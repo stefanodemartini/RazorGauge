@@ -17,3 +17,9 @@ publish/
 # CLI build output
 cli/bin/
 cli/obj/
+
+# FlyLinePhysics build output
+FlyLinePhysics/bin/
+FlyLinePhysics/obj/
+FlyLinePhysics.Tests/bin/
+FlyLinePhysics.Tests/obj/

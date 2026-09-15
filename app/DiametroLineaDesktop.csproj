@@ -45,4 +45,7 @@
     <Resource Include="Assets\icon.ico" />
     <EmbeddedResource Include="Assets\RazorBladeFlyLines.jpg" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FlyLinePhysics\FlyLinePhysics.csproj" />
+  </ItemGroup>
 </Project>

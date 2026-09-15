@@ -3,6 +3,9 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DiametroLineaDesktop.Models;
 using DiametroLineaDesktop.Services;
+using FlyLinePhysics.Analysis;
+using FlyLinePhysics.Physics;
+using FlyLinePhysics.Serialization;
 
 // Headless front end for the design engine: spec in, .flp out — same builder, same physics and
 // same file format the GUI uses. Meant to be driven by a script or an agent.
@@ -27,6 +30,7 @@ try
         "inspect" => Inspect(args),
         "report"  => ReportOnly(args),
         "pdf"     => Pdf(args),
+        "analyze" => Analyze(args),
         _         => Help(),
     };
 }
@@ -50,6 +54,7 @@ int Help()
           flyline inspect <in.flp>    [-o <spec.json>] recover the spec of an existing design
           flyline report  <in.flp>                     mass, AFFTA class and sink speeds
           flyline pdf     <in.flp>    [-o <out.pdf>]   the spec sheet a producer would receive
+          flyline analyze <in.flp>    -a <accel m/s2>  Level-2 physics: m, M, Re, drag, Π, C, score
 
         Without -o, build/pdf write next to the input file and inspect prints to stdout.
         """);
@@ -150,6 +155,24 @@ int Pdf(string[] a)
     return 0;
 }
 
+int Analyze(string[] a)
+{
+    string path = Arg(a, 1) ?? throw new ArgumentException("analyze needs a project file: flyline analyze <in.flp>");
+    string? accelText = Opt(a, "-a");
+    if (accelText is null || !double.TryParse(accelText, System.Globalization.CultureInfo.InvariantCulture, out double accel))
+        throw new ArgumentException("analyze needs a reference acceleration: flyline analyze <in.flp> -a <accel m/s2>");
+
+    // FlyLinePhysics reads the .flp file directly — it can't depend on DiametroLineaDesktop.Models
+    // (that would be a reference cycle), so it carries its own twin model/serializer for the same
+    // JSON format instead of going through ProjectService.
+    var project = FlpJsonSerializer.Load(path);
+    var scenario = new CastScenario { AccelerationRefMs2 = accel };
+    var report = ProfileAnalyzer.Analyze(project, scenario);
+
+    PrintAnalysis(project.Name, report);
+    return 0;
+}
+
 void PrintReport(LineDesignBuilder.DesignReport r)
 {
     Console.WriteLine($"{r.Name}");
@@ -164,6 +187,33 @@ void PrintReport(LineDesignBuilder.DesignReport r)
     foreach (var s in r.Sections)
         Console.WriteLine($"  {i++,-3}{Trim(s.Name, 15),-16}{s.StartCm,8:0.#}{s.EndCm,8:0.#}" +
                           $"{s.StartDiamMm,9:0.000}{s.EndDiamMm,9:0.000}{s.DensityGCm3,8:0.00}{s.MassG,9:0.000}  {s.SinkText}");
+}
+
+void PrintAnalysis(string name, AnalysisReport r)
+{
+    Console.WriteLine($"{name}");
+    if (r.XsCm.Length == 0) { Console.WriteLine("  no design nodes to analyze."); return; }
+
+    Console.WriteLine($"  length {r.XsCm[^1] - r.XsCm[0]:0.#} cm   total mass {r.CumulativeMassG[^1]:0.0} g" +
+        (r.ScanDesignDeltaMm != null ? $"   mean scan↔design delta {r.ScanDesignDeltaMm.Average():0.00} mm" : ""));
+    Console.WriteLine();
+
+    foreach (var series in r.ByVelocity)
+    {
+        var validPi = series.Pi.Where(p => !StabilityMetrics.IsDegenerate(p)).ToList();
+        string piRange = validPi.Count > 0 ? $"{validPi.Min():0.00} .. {validPi.Max():0.00}" : "n/a";
+        int warnCount = series.Warning.Count(w => w);
+        Console.WriteLine($"  v={series.VelocityMs,4:0} m/s   Re {series.Reynolds.Min(),7:0} - {series.Reynolds.Max(),-7:0}   " +
+                          $"Π {piRange,-16}   warnings {warnCount}");
+    }
+    Console.WriteLine();
+
+    if (r.SegmentScores.Count == 0) return;
+    Console.WriteLine($"  {"#",-3}{"name",-16}{"start",8}{"end",8}{"score",7}{"meanΠ",9}{"Πvar",9}{"Cmax",8}{"Δscan",8}");
+    int si = 1;
+    foreach (var s in r.SegmentScores)
+        Console.WriteLine($"  {si++,-3}{Trim(s.Segment.Name, 15),-16}{s.Segment.StartCm,8:0.#}{s.Segment.EndCm,8:0.#}" +
+                          $"{s.Score,7:0.0}{s.MeanPi,9:0.00}{s.PiVariance,9:0.00}{s.MaxContinuityAtTransitions,8:0.000}{s.MeanScanDesignDeltaMm,8:0.00}");
 }
 
 static string Trim(string s, int n) => s.Length <= n ? s : s[..n];
