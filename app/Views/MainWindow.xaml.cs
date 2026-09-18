@@ -2487,8 +2487,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         RefreshAnalysisPlot();
         RefreshDisplaySegments();
 
-        // Keep the editable node DataGrid in sync
-        SyncDesignNodesToList();
+        // Keep the editable node DataGrid in sync — same source the chart itself is using (see
+        // SyncNodeTableData's comment), or a zone-derived design would show as-drawn diameters here
+        // right after any edit re-ran this method, even though UpdateCompModeUI had just put the
+        // real produced ones there on load.
+        SyncNodeTableData();
     }
 
     /// <summary>
@@ -2553,6 +2556,23 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MarkDirty();
         }
     }
+    /// <summary>
+    /// Single source of truth for which values the Position/Diameter grid mirrors: the real
+    /// produced boundary diameters (matching what the chart draws once HasCompensation is set)
+    /// whenever comp mode is on OR a zone's own material has reshaped the diameters in NC mode
+    /// (zonesInNc) — otherwise the as-drawn design values. Must stay in sync with the same
+    /// c/zonesInNc logic in UpdateCompModeUI, which also drives IsReadOnly/AddNodeButton for the
+    /// same reason — duplicating this condition inline is exactly how it drifted out of sync before.
+    /// </summary>
+    private void SyncNodeTableData()
+    {
+        bool hasComp    = ProjectSegments.Any(s => s.HasCompensation);
+        bool c          = _inCompMode && hasComp;
+        bool zonesInNc  = !c && hasComp && _zoneDerivedComp;
+        if (c || zonesInNc) SyncCompNodesToDesignList();
+        else                 SyncDesignNodesToList();
+    }
+
     private void SyncCompNodesToDesignList()
     {
         if (_syncingNodes) return;
@@ -2817,14 +2837,37 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void NozzleZonesGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
     {
-        if (e.EditAction == DataGridEditAction.Commit)
-            Dispatcher.InvokeAsync(() =>
+        if (e.EditAction != DataGridEditAction.Commit) return;
+
+        // Same trap as NozzleDefsGrid_CellEditEnding (see its comment): the grid's own TwoWay
+        // binding hasn't pushed the typed Start/End text into StartCm/EndCm yet at this point, not
+        // even after a Dispatcher.InvokeAsync — its commit runs at a lower priority than Normal, so
+        // RefreshPlot() below would draw the *previous* boundary, one edit behind, forever. Read
+        // what was actually typed straight from the editing TextBox and write it into the model
+        // ourselves, synchronously, so RefreshPlot/MaybeApplyZoneDensityChange see the real value.
+        if (e.Row.Item is NozzleZoneVm editedZone && e.EditingElement is System.Windows.Controls.TextBox tb)
+        {
+            string? header = e.Column.Header?.ToString();
+            if (header == "Start (cm)" || header == "End (cm)")
             {
-                RefreshPlot();
-                MarkDirty();
-                MaybeApplyZoneDensityChange(forcePrompt: false);
-                WarnIfZonesOverlap();
-            });
+                const System.Globalization.NumberStyles styles = System.Globalization.NumberStyles.Float;
+                bool parsed = double.TryParse(tb.Text, styles, System.Globalization.CultureInfo.CurrentCulture, out double typed)
+                           || double.TryParse(tb.Text, styles, System.Globalization.CultureInfo.InvariantCulture, out typed);
+                if (parsed)
+                {
+                    if (header == "Start (cm)") editedZone.StartCm = typed;
+                    else editedZone.EndCm = typed;
+                }
+            }
+        }
+
+        Dispatcher.InvokeAsync(() =>
+        {
+            RefreshPlot();
+            MarkDirty();
+            MaybeApplyZoneDensityChange(forcePrompt: false);
+            WarnIfZonesOverlap();
+        });
     }
 
     /// <summary>
@@ -3623,20 +3666,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
         }
 
-        // NodesDataGrid: in comp mode show compensated boundary diameters, read-only
-        AddNodeButton.Visibility   = c ? Visibility.Collapsed : Visibility.Visible;
-        NodesDataGrid.IsReadOnly   = c;
-        if (c) SyncCompNodesToDesignList();
-        else   SyncDesignNodesToList();
+        // Un design con zone a materiale proprio resta in NC (colonne di disegno, editabili) ma
+        // mostra ANCHE diametri e densità reali: con l'adattamento di massa i diametri prodotti non
+        // sono quelli disegnati, e il produttore ha bisogno di vederli.
+        bool zonesInNc = !c && hasComp && _zoneDerivedComp;
+
+        // NodesDataGrid: in comp mode OR when a zone's own material has reshaped the diameters
+        // (zonesInNc), show the real produced boundary diameters, read-only — otherwise this table
+        // kept the as-drawn values while the chart (which always renders CompSliceDiamsMm once
+        // HasCompensation is set) had already moved on to the adapted ones, so table and chart
+        // disagreed right after opening a zone-derived file.
+        bool showCompNodes = c || zonesInNc;
+        AddNodeButton.Visibility   = showCompNodes ? Visibility.Collapsed : Visibility.Visible;
+        NodesDataGrid.IsReadOnly   = showCompNodes;
+        SyncNodeTableData();
 
         // SegmentsDataGrid: Sink e Comp. Sink entrambe ultime a destra nei rispettivi modi.
         // NC: Start/End/Shape/Taper/SpW/Sink   C: CompStart/CompEnd/ρStart/ρFine/CompSink
         //
-        // Un design con zone a materiale proprio resta in NC (colonne di disegno, editabili) ma
-        // mostra ANCHE diametri e densità reali: con l'adattamento di massa i diametri prodotti non
-        // sono quelli disegnati, e il produttore ha bisogno di vederli. La colonna Comp. Sink resta
-        // nascosta perché in quel caso Sink riporta già la velocità reale per zona.
-        bool zonesInNc = !c && hasComp && _zoneDerivedComp;
+        // La colonna Comp. Sink resta nascosta nel caso zonesInNc perché lì Sink riporta già la
+        // velocità reale per zona.
         OrigStartDiamColumn.Visibility = c ? Visibility.Collapsed : Visibility.Visible;
         OrigEndDiamColumn.Visibility   = c ? Visibility.Collapsed : Visibility.Visible;
         ShapeColumn.Visibility         = c ? Visibility.Collapsed : Visibility.Visible;
@@ -5476,38 +5525,44 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         string text    = tb.Text.Trim();
         int    colIdx  = SegmentsDataGrid.Columns.IndexOf(e.Column);
 
-        // Col 2 = Name, Col 9 = Sp.W. — handled by direct binding, no node sync needed
-        if (colIdx == 2 || colIdx == 9)
+        // Column layout (see MainWindow.xaml): 0=#, 1=Head, 2=Name, 3=Length, 4=Volume(RO),
+        // 5=Mass(RO), 6=Start Ø, 7=End Ø, 8=Shape(RO), 9=Taper(RO), 10=Sp.W., 11=Sink(RO),
+        // 12-16=Comp.* (RO). These indices drifted out of sync with the switch below once Length/
+        // Volume/Mass were inserted at 3-5 — Start Ø/End Ø edits silently did nothing and a typed
+        // Length was applied as a diameter, while a real edit still landed on the Sp.W. handler
+        // meant for what is now Taper (read-only, so that branch never even ran).
+        // Col 2 = Name, Col 10 = Sp.W. — handled by direct binding, no node sync needed
+        if (colIdx == 2 || colIdx == 10)
         {
             // When not in shared-density mode and Sp.W. was edited, apply to just this segment
-            if (colIdx == 9 && !_useSharedDensity && TryParseDouble(text, out double spw) && spw >= 0)
+            if (colIdx == 10 && !_useSharedDensity && TryParseDouble(text, out double spw) && spw >= 0)
                 seg.SpecWeightGCm3 = spw;
             Dispatcher.BeginInvoke(RefreshTotals);
             Dispatcher.BeginInvoke((Action)MarkDirty);
             return;
         }
 
-        // Col 3 = Start Ø, Col 4 = End Ø, Col 5 = Length
-        if (colIdx < 3 || colIdx > 5) return;
+        // Col 3 = Length, Col 6 = Start Ø, Col 7 = End Ø
+        if (colIdx != 3 && colIdx != 6 && colIdx != 7) return;
         if (!TryParseDouble(text, out double newVal) || newVal <= 0) return;
 
         Dispatcher.BeginInvoke(() =>
         {
             switch (colIdx)
             {
-                case 3: // Start Ø — change the Y of the start node
+                case 6: // Start Ø — change the Y of the start node
                 {
                     int idx = _segmentNodes.FindIndex(n => Math.Abs(n.X - seg.StartCm) < 0.05);
                     if (idx >= 0) _segmentNodes[idx] = (_segmentNodes[idx].X, newVal);
                     break;
                 }
-                case 4: // End Ø — change the Y of the end node (shared with next segment's start)
+                case 7: // End Ø — change the Y of the end node (shared with next segment's start)
                 {
                     int idx = _segmentNodes.FindIndex(n => Math.Abs(n.X - seg.EndCm) < 0.05);
                     if (idx >= 0) _segmentNodes[idx] = (_segmentNodes[idx].X, newVal);
                     break;
                 }
-                case 5: // Length — move the end node's X position
+                case 3: // Length — move the end node's X position
                 {
                     double newEndCm = Math.Round(seg.StartCm + newVal, 1);
                     int idx = _segmentNodes.FindIndex(n => Math.Abs(n.X - seg.EndCm) < 0.05);
@@ -5525,6 +5580,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             }
 
+            // _segmentNodes was just edited directly above — push it into the DesignNodes
+            // collection that backs the Position/Diameter grid, or that table keeps showing the
+            // pre-edit values until some unrelated action happens to resync it.
+            SyncDesignNodesToList();
             RefreshPlot();
             RefreshSegmentTable();
             MarkDirty();
