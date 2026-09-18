@@ -3,6 +3,12 @@ public class AppSettings
 {
     public BackendSettings Backend { get; set; } = new();
     public ChartSettings Chart { get; set; } = new();
+    public PrototypeSettings Prototype { get; set; } = new();
+}
+public class PrototypeSettings
+{
+    /// <summary>Folder scanned (recursively) for piece .flp files. Empty = the default projects folder.</summary>
+    public string LibraryFolder { get; set; } = string.Empty;
 }
 public class BackendSettings
 {

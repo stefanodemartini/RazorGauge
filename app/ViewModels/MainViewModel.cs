@@ -305,6 +305,10 @@ public class MainViewModel : ObservableObject
             LineWidth          = _settings.Chart.LineWidth,
             FilteredOpacity    = _settings.Chart.FilteredOpacity,
             RawOpacity         = _settings.Chart.RawOpacity
+        },
+        Prototype = new PrototypeSettings
+        {
+            LibraryFolder = _settings.Prototype.LibraryFolder
         }
     };
 

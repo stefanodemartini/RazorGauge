@@ -5650,6 +5650,52 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private PrototypeWindow? _prototypeWindow;
+
+    /// <summary>Opens (or brings back) the separate prototype-assembly window.</summary>
+    private void Prototype_Click(object sender, RoutedEventArgs e)
+    {
+        if (_prototypeWindow is { IsLoaded: true })
+        {
+            if (_prototypeWindow.WindowState == WindowState.Minimized) _prototypeWindow.WindowState = WindowState.Normal;
+            _prototypeWindow.Activate();
+            return;
+        }
+
+        _prototypeWindow = new PrototypeWindow(
+            getLibraryFolder: () => _vm.Settings.Prototype.LibraryFolder,
+            setLibraryFolder: folder =>
+            {
+                var s = _vm.CloneSettings();
+                s.Prototype.LibraryFolder = folder;
+                _vm.ApplySettings(s);
+            },
+            openInProfiler: path =>
+            {
+                Activate();
+                if (!ConfirmDiscardIfDirty()) return;
+                try { LoadProjectFromFile(path); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open project:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            });
+        // Not owned: an owned window always floats above this one, which hides the line just
+        // opened here with "Open in Profiler". Closing is chained by hand instead (below).
+        _prototypeWindow.Closed += (_, _) => _prototypeWindow = null;
+        Closing -= MainWindow_ClosingPrototype;
+        Closing += MainWindow_ClosingPrototype;
+        _prototypeWindow.Show();
+    }
+
+    /// <summary>Closes the prototype window with this one; if it refuses (unsaved, Cancel), so do we.</summary>
+    private void MainWindow_ClosingPrototype(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (e.Cancel || _prototypeWindow == null) return;
+        _prototypeWindow.Close();
+        if (_prototypeWindow != null) e.Cancel = true;
+    }
+
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
     // Log

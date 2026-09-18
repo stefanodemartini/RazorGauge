@@ -31,6 +31,7 @@ try
         "report"  => ReportOnly(args),
         "pdf"     => Pdf(args),
         "analyze" => Analyze(args),
+        "assemble" => Assemble(args),
         _         => Help(),
     };
 }
@@ -55,6 +56,7 @@ int Help()
           flyline report  <in.flp>                     mass, AFFTA class and sink speeds
           flyline pdf     <in.flp>    [-o <out.pdf>]   the spec sheet a producer would receive
           flyline analyze <in.flp>    -a <accel m/s2>  Level-2 physics: m, M, Re, drag, Π, C, score
+          flyline assemble <in.flproto> [-o <out.flp>] prototype from scanned pieces: cut list (+ .flp)
 
         Without -o, build/pdf write next to the input file and inspect prints to stdout.
         """);
@@ -170,6 +172,27 @@ int Analyze(string[] a)
     var report = ProfileAnalyzer.Analyze(project, scenario);
 
     PrintAnalysis(project.Name, report);
+    return 0;
+}
+
+int Assemble(string[] a)
+{
+    string path = Arg(a, 1) ?? throw new ArgumentException("assemble needs a prototype file: flyline assemble <in.flproto>");
+    // Same loader as the Prototype window: pieces without an embedded scan are filled from SourcePath,
+    // so a hand-written spec only needs source, flip, trims and offset.
+    var proto  = PrototypeAssembler.Load(path);
+    var result = PrototypeAssembler.Assemble(proto);
+
+    Console.WriteLine(proto.Name);
+    Console.Write(PrototypeAssembler.CutList(result, proto.JointAllowanceCm));
+    foreach (var w in result.Warnings) Console.WriteLine($"  ! {w}");
+
+    string? outPath = Opt(a, "-o");
+    if (outPath != null)
+    {
+        ProjectService.Save(PrototypeAssembler.ToFlyLineProject(proto, result), outPath);
+        Console.WriteLine($"\nSaved: {outPath}");
+    }
     return 0;
 }
 

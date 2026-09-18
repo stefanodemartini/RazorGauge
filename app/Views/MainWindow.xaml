@@ -426,6 +426,10 @@
                             Style="{StaticResource BtnSecondary}"
                             Click="OverlayProject_Click"
                             ToolTip="Load another .flp project as a comparison overlay (design profile + scan)"/>
+                    <Button Content="🧩 Prototype…"
+                            Style="{StaticResource BtnSecondary}"
+                            Click="Prototype_Click"
+                            ToolTip="Assemble a prototype line from scanned pieces in the library (separate window)"/>
                     <Button Content="Export CSV"
                             Style="{StaticResource BtnSecondary}"
                             Click="ExportCsv_Click"/>

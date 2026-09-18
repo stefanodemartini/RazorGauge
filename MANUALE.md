@@ -515,7 +515,135 @@ Ogni velocità produce un file `NomeProgetto X.XXips.flp` (o `NomeProgetto Float
 
 ---
 
-## 13. Export
+## 13. Prototipo da Pezzi Scansionati
+
+Finestra separata (**🧩 Prototype…** nella toolbar) per costruire un prototipo di linea usando solo
+pezzi reali già scansionati: si prendono dalla libreria, si sovrappongono sul grafico per confrontare
+i diametri, si tagliano a una o entrambe le estremità e si ruotano di 180°. **Dove tagliare lo decide
+l'utente** — la finestra mostra solo i diametri e segnala come combaciano le giunzioni. Non è una
+progettazione: i diametri dei pezzi non si modificano mai, si tagliano e si posizionano soltanto.
+
+### Libreria pezzi
+- Pannello a sinistra: tutti i `.flp` con una scansione nella cartella libreria **e nelle sottocartelle**
+  (i derivati C e i file senza scan sono esclusi). Ogni pezzo mostra sagoma, lunghezza, Ø min–max e ρ
+  se il progetto sorgente ne ha una.
+- La cartella si imposta in **Settings → Prototipi** oppure con **Folder…** nella finestra stessa.
+  Vuota = cartella progetti predefinita (`Documenti\FlyLineProfiler\Projects`). **↻** la rilegge.
+- Casella sopra la lista: filtro per nome o sottocartella.
+- **Doppio clic** o **Add to prototype →**: il pezzo viene aggiunto subito dopo l'ultimo sul grafico.
+- Pulizia automatica minima della scansione: si scartano solo le letture "senza linea" (< 0.10 mm) e le
+  X ripetute (mediate). Loop saldati, picchi e punte sfilacciate alle estremità **restano** — si tagliano.
+
+### Sul grafico
+- Ogni pezzo è una banda colorata (solo la parte tenuta).
+- **Original shape** (toggle nella toolbar, attivo di default): mostra per **ogni** pezzo la sua forma
+  originale intera come contorno tratteggiato, nello stesso colore e orientamento — si vede cosa è stato
+  tagliato (e lo si recupera trascinando la maniglia indietro) e, per una parte di uno split, l'intero
+  pezzo da cui proviene. Disattivandolo restano solo le parti tenute.
+- L'asse Y riporta il **diametro** (la sagoma è disegnata simmetrica ±raggio).
+- **Trascinare il corpo** di un pezzo → lo sposta orizzontalmente (il diametro non cambia mai).
+  Vicino all'estremità di un altro pezzo si aggancia testa-a-testa; **Shift** disattiva l'aggancio.
+- **Trascinare una maniglia** (barra verticale alle estremità) → taglia quell'estremità, al cm.
+- **Passando col mouse**, la barra di stato mostra il Ø di ogni pezzo sotto il cursore e, se sono due,
+  la differenza Δ: serve a trovare il punto in cui i diametri coincidono.
+- **Tasto destro:**
+  - in una zona dove due pezzi si sovrappongono → **✂ Cut both here**: taglia la coda del pezzo di
+    sinistra e la testa di quello di destra esattamente in quel punto (i due pezzi si toccano lì);
+  - su un pezzo → **✂ Split here into two parts**, **✂ Cut here, keep the left/right part**, **🎨 Color**,
+    **⇄ Flip 180°**, **Reset cuts**, **Remove piece**.
+
+### Colore dei pezzi
+Ogni pezzo — e ogni parte dopo uno split, anche se viene dallo stesso pezzo — ha il suo colore.
+- **Tasto destro sul pezzo → 🎨 Color**: 13 colori (blu, rosso, verde, ambra, viola, ciano, rosa, marrone,
+  giallo, arancio, bianco, grigio, nero) oppure **Custom…** (selettore colori di Windows).
+- Oppure **clic sul quadratino colore** nella tabella pezzi: stesso menu.
+- Per i colori chiari (bianco, giallo) contorno, maniglie ed etichetta vengono scuriti per restare
+  leggibili sul grafico; il riempimento resta del colore scelto.
+- Il colore si salva nel `.flproto` ed è annullabile con Ctrl+Z.
+- Zona gialla tratteggiata = i pezzi si sovrappongono ancora (non ancora tagliati).
+- Etichetta di giunzione `Ø sinistra|destra` e `Δ`: verde ≤ 0.03 mm, arancio ≤ 0.08 mm, rosso oltre.
+  Se tra due pezzi c'è spazio sul grafico viene indicato `gap`: nella linea finita i pezzi sono comunque
+  uniti testa-a-testa.
+
+### Split — dividere un pezzo in più parti
+Un pezzo si può dividere in 2 o più parti, ognuna poi indipendente (si sposta, si taglia e si capovolge
+da sola) — per esempio per usare due tratti dello stesso cilindro in punti diversi del prototipo.
+- **Tasto destro → ✂ Split here** oppure tasto **S** con il mouse sul punto: divide nel punto del cursore.
+  Ripetendo si ottengono 3, 4… parti.
+- **✂ Split…** nella toolbar: divide il pezzo selezionato in 2, 3, 4 o 5 parti uguali.
+- Dopo lo split le parti restano a contatto (giunzione Δ 0.00): trascinarle per separarle.
+- Le parti sono numerate **#1, #2, …** lungo il pezzo fisico partendo dall'estremità di inizio scansione,
+  qualunque sia l'ordine in cui sono state divise. Nella lista di taglio ogni parte indica il tratto del
+  pezzo originale, es. `(= 429–758 cm of Rossa)`.
+- Se due parti dello stesso pezzo usano lo stesso tratto (es. dopo *Reset cuts* su una parte) compare
+  l'avviso *"… both use x–y cm of the same scan"*: fisicamente non è possibile.
+- Con **Original shape** attivo ogni parte mostra tratteggiato l'intero pezzo originale da cui proviene.
+
+### Flip 180°
+Capovolge il pezzo mantenendo la sua posizione sul grafico: cambia solo quale estremità sta a sinistra.
+I tagli restano riferiti alle estremità fisiche del pezzo (vedi sotto).
+
+### Giunzioni: 4 cm per estremità (splice con ago)
+Per unire due pezzi si scopre l'anima togliendo il rivestimento e si esegue la giunzione con l'ago: ogni
+pezzo deve avere **almeno 4 cm in più ad ogni estremità che si unisce** a un altro pezzo. Questo tratto
+è nel pezzo tagliato ma **non** nella linea finita.
+- Il valore si imposta nella toolbar: **Splice [4] cm / end** (salvato nel `.flproto`, default 4 cm).
+- Il grafico mostra sempre la linea **finita** (giunzione = punto di contatto dei due pezzi).
+- La **lista di taglio** invece dà i tagli **al banco**: ad ogni estremità unita si taglia 4 cm più
+  all'esterno, quindi il pezzo tagliato è più lungo, es. `piece 502 cm = 498 in line + 4 splice`.
+- Le due estremità libere della linea (punta e coda) non ricevono il margine.
+- Avvisi:
+  - *"only X cm of line beyond the joint … the splice needs 4 cm"* → il pezzo non ha abbastanza linea
+    oltre il punto di giunzione (es. estremità non tagliata o tagliata a meno di 4 cm): spostare il punto
+    di giunzione verso l'interno del pezzo;
+  - *"X cm of line between them, their two splices need 8 cm"* → due parti dello stesso pezzo (split)
+    hanno troppo poca linea tra loro per i rispettivi margini. Subito dopo uno split le parti si toccano
+    (0 cm): accorciarle di almeno 4 cm ciascuna sul lato del taglio.
+
+### Tabella pezzi e lista di taglio
+- Ordine = ordine sul grafico (da sinistra). Colonne: direzione, lunghezza intera, **Trim scan-start** /
+  **Trim scan-end** (tagli sul grafico, editabili, cm), **In line** (lunghezza nella linea finita),
+  **Cut length** (lunghezza del pezzo tagliato al banco, margini splice inclusi), Ø alle due estremità
+  tenute, **ρ** (editabile) e massa.
+- I tagli sono sempre espressi rispetto alle **estremità della scansione** del pezzo: *scan-start* =
+  l'estremità entrata per prima nel sensore (X = 0 nel file sorgente), *scan-end* = l'altra. Così la
+  lista si legge uguale al banco qualunque sia l'orientamento nel prototipo.
+- **CUT LIST**: per ogni pezzo quanto tagliare al banco da ciascuna estremità (margini splice inclusi),
+  la lunghezza del pezzo tagliato, i Ø e la posizione nella linea finita; poi le giunzioni con il salto di
+  diametro e la lunghezza totale (della linea finita). **Copy cut list**
+  la copia negli appunti.
+- La massa totale compare solo se tutti i pezzi hanno una densità (ρ = 0 → "density missing").
+  Nota: la massa è calcolata sul diametro scansionato — la verifica vera è la bilancia.
+
+### Tasti
+| Tasto | Azione |
+|---|---|
+| Ctrl+Z | Undo (anche Undo nella toolbar) |
+| Canc | Rimuove il pezzo selezionato |
+| F | Flip 180° del pezzo selezionato |
+| S | Split del pezzo sotto il cursore, nel punto del cursore |
+
+### Salvare ed esportare
+- **Save / Save As…** → file `.flproto` (default `Documenti\FlyLineProfiler\Prototypes`). Contiene una
+  copia di ogni scansione usata, quindi resta modificabile anche se il `.flp` sorgente viene spostato.
+- **Close gaps** → fa scorrere i pezzi verso sinistra in modo che ognuno inizi dove finisce il precedente.
+- **Export .flp…** → la linea finita come progetto normale: la sua *scansione* è il profilo assemblato
+  (pezzi uniti testa-a-testa da X = 0; a ogni giunzione il salto di Ø è registrato con due punti alla
+  stessa X). Le Notes contengono la lista di taglio. Se tutti i pezzi hanno la stessa ρ, diventa la
+  densità del progetto.
+- **Open in Profiler** → esporta e apre subito il risultato nella finestra principale (chiede prima di
+  salvare il progetto aperto, se modificato).
+- Se al momento dell'export ci sono ancora sovrapposizioni viene chiesta conferma: le parti sovrapposte
+  finirebbero due volte nella linea.
+
+### CLI
+`flyline assemble <in.flproto> [-o <out.flp>]` stampa la lista di taglio e, con `-o`, scrive il `.flp`
+assemblato. Un `.flproto` scritto a mano può omettere le scansioni: basta `SourcePath`, `Flipped`,
+`TrimStartCm`, `TrimEndCm`, `OffsetCm` per pezzo.
+
+---
+
+## 14. Export
 
 | Funzione | Formato | Come accedere |
 |---|---|---|
@@ -538,7 +666,7 @@ Non viene più chiesto se esportare NC o C: il PDF documenta **quello che il fil
 
 ---
 
-## 14. Impostazioni
+## 15. Impostazioni
 
 **Settings** (pulsante ingranaggio) → finestra modale.
 
@@ -568,9 +696,15 @@ Non viene più chiesto se esportare NC o C: il PDF documenta **quello che il fil
 | Filtered Opacity | 1.0 | Opacità serie filtrata |
 | Raw Opacity | 0.65 | Opacità serie raw |
 
+### Prototipi
+
+| Campo | Default | Descrizione |
+|---|---|---|
+| Cartella libreria pezzi | (vuoto) | Cartella letta, con le sottocartelle, dalla finestra Prototype. Vuoto = `Documenti\FlyLineProfiler\Projects` |
+
 ---
 
-## 15. Interazione con il Grafico
+## 16. Interazione con il Grafico
 
 ### Navigazione
 - **Scroll mouse**: zoom in/out
@@ -596,7 +730,7 @@ Le etichette Ø/posizione dei nodi restano sotto il profilo — le due catene no
 
 ---
 
-## 16. Shortcut Tastiera
+## 17. Shortcut Tastiera
 
 | Shortcut | Azione |
 |---|---|
@@ -608,7 +742,7 @@ Le etichette Ø/posizione dei nodi restano sotto il profilo — le due catene no
 
 ---
 
-## 17. Formati File
+## 18. Formati File
 
 ### `.flp` (FlyLine Project)
 
@@ -632,6 +766,12 @@ JSON con i campi principali:
   "IsCompensatedDerivative": false
 }
 ```
+
+### `.flproto` (Prototipo da pezzi)
+
+JSON: `Name`, `Notes`, `JointAllowanceCm` (margine splice per estremità unita, default 4) e `Pieces`, ognuno con `Name`, `SourcePath`, `ColorHex`, `DensityGCm3`,
+`PartNumber` (0 = pezzo intero, 1…n = parte dopo uno split), `Xs`/`Ds` (copia pulita della scansione, cm/mm), `Flipped`, `TrimStartCm`, `TrimEndCm`, `OffsetCm`
+(posizione sul grafico dell'estremità sinistra del pezzo intero).
 
 ### `.nodes.csv`
 

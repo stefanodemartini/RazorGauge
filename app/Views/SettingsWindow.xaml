@@ -116,6 +116,24 @@
                     <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Chart.LineWidth}" />
                 </Grid>
             </TabItem>
+
+            <TabItem Header="Prototipi">
+                <StackPanel Margin="12">
+                    <TextBlock Text="Cartella libreria pezzi" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" Text="{Binding Prototype.LibraryFolder, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Button Grid.Column="1" Content="Sfoglia…" Width="80" Margin="8,0,0,0" Click="BrowseLibrary_Click"/>
+                    </Grid>
+                    <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11">
+                        Tutti i file .flp con una scansione, in questa cartella e nelle sottocartelle,
+                        compaiono come pezzi nella finestra Prototype. Vuoto = cartella progetti predefinita.
+                    </TextBlock>
+                </StackPanel>
+            </TabItem>
         </TabControl>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
