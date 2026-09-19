@@ -608,9 +608,16 @@ pezzo deve avere **almeno 4 cm in più ad ogni estremità che si unisce** a un a
 - I tagli sono sempre espressi rispetto alle **estremità della scansione** del pezzo: *scan-start* =
   l'estremità entrata per prima nel sensore (X = 0 nel file sorgente), *scan-end* = l'altra. Così la
   lista si legge uguale al banco qualunque sia l'orientamento nel prototipo.
-- **CUT LIST**: per ogni pezzo quanto tagliare al banco da ciascuna estremità (margini splice inclusi),
-  la lunghezza del pezzo tagliato, i Ø e la posizione nella linea finita; poi le giunzioni con il salto di
-  diametro e la lunghezza totale (della linea finita). **Copy cut list**
+- **CUT LIST** — il foglio per il banco, nell'ordine in cui si lavora:
+  1. **CUTTING** — un blocco per ogni pezzo fisico (le parti di uno split stanno sotto il loro pezzo).
+     Ogni riga è un tratto misurato **dall'estremità marcata** (quella entrata per prima nello scanner):
+     `da – a – lunghezza` e la destinazione — `discard` (scarto) oppure `→ position N` nella linea, con
+     `(in linea + splice)`. I margini splice sono già inclusi. Problemi (parti che si sovrappongono,
+     linea insufficiente per lo splice) compaiono con ⚠ subito sotto la riga interessata.
+  2. **ASSEMBLY** — dalla punta alla coda: posizione, pezzo, lunghezza nella linea, Ø lato punta → lato
+     coda e **da che parte va l'estremità marcata** (`at tip` / `at back`). Tra un pezzo e l'altro la riga
+     `↓ splice` con i due Ø e il gradino (⚠ oltre 0.03 mm, *big step* oltre 0.08 mm).
+  3. **FINISHED LINE** — lunghezza, numero di pezzi e di splice, massa (se tutte le ρ sono note).
   la copia negli appunti.
 - La massa totale compare solo se tutti i pezzi hanno una densità (ρ = 0 → "density missing").
   Nota: la massa è calcolata sul diametro scansionato — la verifica vera è la bilancia.

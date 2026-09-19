@@ -459,33 +459,90 @@ public static class PrototypeAssembler
         }
     }
 
-    /// <summary>Bench instructions, one line per piece, in scan-end terms so they read the same whatever the orientation.</summary>
+    /// <summary>
+    /// The bench sheet, in the order the work is done:
+    ///  1. CUTTING — per physical piece (split parts grouped under their piece), a ruler measured from
+    ///     the piece's MARKED end (the end that entered the scanner first): every stretch is either
+    ///     discarded or goes to a numbered position in the line. Splice allowance included.
+    ///  2. ASSEMBLY — tip → back, which way round each piece goes, and the splice between each pair.
+    ///  3. FINISHED LINE — length and mass.
+    /// </summary>
     public static string CutList(AssemblyResult r, double jointAllowanceCm)
     {
         var sb = new StringBuilder();
+        if (r.Pieces.Count == 0) return string.Empty;
+        void Line(string text = "") => sb.Append(text).Append('\n');
+
+        // ── 1. Cutting ──────────────────────────────────────────────────────
+        Line("1. CUTTING");
+        Line("   Measure every piece from its MARKED end");
+        Line("   (the end that went into the scanner first).");
         if (r.Joints.Count > 0 && jointAllowanceCm > 0)
-            sb.Append(Inv($"Cuts include {jointAllowanceCm:0.#} cm per joined end (core exposed for the splice).\n"));
-        foreach (var p in r.Pieces)
+            Line(Inv($"   Includes {jointAllowanceCm:0.#} cm for the splice at every joined end."));
+
+        var groups = r.Pieces
+            .GroupBy(p => p.Piece.SourcePath, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Min(p => p.Number));
+        foreach (var g in groups)
         {
-            sb.Append(Inv($"{p.Number}. {p.Name}  {(p.Piece.Flipped ? "(flipped)" : "")}\n"));
-            sb.Append(Inv($"     cut scan-start {p.BenchCutStartCm:0.#} cm, scan-end {p.BenchCutEndCm:0.#} cm → piece {p.CutLengthCm:0.#} cm"));
-            double splice = p.CutLengthCm - p.KeptCm;
-            if (splice > 0.05) sb.Append(Inv($" = {p.KeptCm:0.#} in line + {splice:0.#} splice"));
-            // For a split part the stretch of the original piece is the clearer instruction.
-            if (p.Piece.PartNumber > 0)
-                sb.Append(Inv($"  (= {p.BenchCutStartCm:0.#}–{p.Piece.LengthCm - p.BenchCutEndCm:0.#} cm of {p.Piece.Name})"));
-            sb.Append('\n');
-            sb.Append(Inv($"     Ø {p.DLeftMm:0.00} → {p.DRightMm:0.00} mm   line {p.StartInLineCm:0}–{p.StartInLineCm + p.KeptCm:0} cm"));
-            if (p.MassG.HasValue) sb.Append(Inv($"   {p.MassG:0.00} g"));
-            sb.Append('\n');
+            var piece = g.First().Piece;
+            double len = piece.LengthCm;
+            Line();
+            Line(Inv($"   {piece.Name.ToUpperInvariant()}   ({len:0.#} cm)"));
+            Line("        from      to    length");
+
+            double pos = 0;
+            foreach (var p in g.OrderBy(p => p.BenchCutStartCm))
+            {
+                double from = p.BenchCutStartCm, to = len - p.BenchCutEndCm;
+                if (from > pos + 0.05) Line(Row(pos, from, "discard"));
+
+                string use = (p.Piece.PartNumber > 0 ? $"part #{p.Piece.PartNumber} " : "") + $"→ position {p.Number}";
+                double splice = p.CutLengthCm - p.KeptCm;
+                if (splice > 0.05) use += Inv($"  ({p.KeptCm:0.#} + {splice:0.#} splice)");
+                Line(Row(from, to, use));
+
+                // Problems the cutter must see right here, not only in the warnings panel.
+                if (from < pos - 0.05)
+                    Line(Inv($"        ⚠ overlaps the stretch above by {pos - from:0.#} cm — not enough line"));
+                if (p.ShortAtStartCm > 0.05)
+                    Line(Inv($"        ⚠ {p.ShortAtStartCm:0.#} cm short for the splice at the marked end"));
+                if (p.ShortAtEndCm > 0.05)
+                    Line(Inv($"        ⚠ {p.ShortAtEndCm:0.#} cm short for the splice at the far end"));
+                pos = Math.Max(pos, to);
+            }
+            if (len - pos > 0.05) Line(Row(pos, len, "discard"));
         }
-        foreach (var j in r.Joints)
-            sb.Append(Inv($"Joint {r.Pieces[j.LeftIndex].Number}→{r.Pieces[j.RightIndex].Number}: Ø {j.DLeftMm:0.00} / {j.DRightMm:0.00} mm  (step {j.StepMm:+0.00;-0.00;0.00})\n"));
-        sb.Append(Inv($"Total length {r.LengthCm / 100.0:0.00} m"));
-        if (r.MassG.HasValue) sb.Append(Inv($"   mass {r.MassG:0.00} g ({r.MassGrains:0} gr)"));
-        sb.Append('\n');
+
+        // ── 2. Assembly ─────────────────────────────────────────────────────
+        Line();
+        Line("2. ASSEMBLY   tip → back, splice in this order");
+        Line();
+        Line("   pos  piece               in line   Ø tip → back   marked end");
+        for (int i = 0; i < r.Pieces.Count; i++)
+        {
+            var p = r.Pieces[i];
+            string name = p.Name.Length > 17 ? p.Name[..16] + "…" : p.Name;
+            Line(Inv($"   {p.Number,3}  {name,-17} {p.KeptCm,6:0.#} cm   {p.DLeftMm:0.00} → {p.DRightMm:0.00}    at {(p.Piece.Flipped ? "back" : "tip")}"));
+            if (i < r.Joints.Count)
+            {
+                var j = r.Joints[i];
+                string flag = Math.Abs(j.StepMm) > 0.08 ? "   ⚠ big step" : Math.Abs(j.StepMm) > 0.03 ? "   ⚠" : "";
+                Line(Inv($"        ↓ splice   Ø {j.DLeftMm:0.00} | {j.DRightMm:0.00}   step {j.StepMm:+0.00;-0.00;0.00} mm{flag}"));
+            }
+        }
+
+        // ── 3. Finished line ────────────────────────────────────────────────
+        Line();
+        Line(Inv($"3. FINISHED LINE   {r.LengthCm / 100.0:0.00} m ({r.LengthCm:0.#} cm)   {r.Pieces.Count} pieces, {r.Joints.Count} splices"));
+        Line(r.MassG.HasValue
+            ? Inv($"   mass {r.MassG:0.00} g  ({r.MassGrains:0} gr)")
+            : "   mass: not available (a piece has no density)");
         return sb.ToString();
     }
+
+    private static string Row(double from, double to, string what) =>
+        Inv($"      {from,6:0.#}  {to,6:0.#}  {to - from,6:0.#} cm   {what}");
 
     /// <summary>
     /// The finished line as an ordinary project: its scan is the assembled profile, so it opens in
