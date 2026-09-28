@@ -69,6 +69,8 @@ public static class LineWeightFamilyCalc
         public bool   Achieved;
         /// <summary>Sink-speed family only: false if the required density hit the practical density floor/ceiling.</summary>
         public bool   SpeedAchievable = true;
+        /// <summary>Density family only: the speed this member actually sinks at, m/s. NaN when it floats.</summary>
+        public double AchievedSpeedMs = double.NaN;
     }
 
     /// <summary>
@@ -187,5 +189,94 @@ public static class LineWeightFamilyCalc
             Achieved        = true,
             SpeedAchievable = speedAchievable
         };
+    }
+
+    /// <summary>
+    /// Generates one density family member: the mirror of <see cref="GenerateSinkSpeedFamilyMember"/>.
+    /// There, a target speed is the input and the density is solved; here the density is the input —
+    /// one of the materials actually in the shop — and the speed is whatever comes out.
+    ///
+    /// The taper shape is never changed. What happens to the diameters is
+    /// <paramref name="keepClassMass"/>'s choice:
+    ///
+    ///  - true: every diameter is scaled by one factor so the first-30ft mass still matches
+    ///    <paramref name="targetGrains"/>, so the variant keeps the source's line-weight class the
+    ///    way a real product family does (WF6F/WF6I/WF6S3 all stay "WF6"). Denser material means a
+    ///    thinner line at the same class.
+    ///  - false: the drawn diameters are left exactly as they are and only the material changes, so
+    ///    mass and class move with the density. This is the bench question — "what if I extruded
+    ///    this same profile in the denser stuff?" — and the answer is a different line weight.
+    ///
+    /// Either way the resulting sink speed is solved for the geometry that comes out, as one
+    /// rigid body (<see cref="SinkingSpeedCalc.RigidBodySinkSpeed"/>), not slice by slice in
+    /// isolation: a real line's sections are joined and share one equilibrium speed.
+    /// </summary>
+    public static FamilyGenerationResult GenerateDensityFamilyMember(
+        List<ProjectSegment> sortedSourceSegs, bool isSalt, double tempC,
+        double densityGCm3, double targetGrains, bool keepClassMass = true)
+    {
+        if (densityGCm3 <= 0 || sortedSourceSegs.Count == 0)
+            return new FamilyGenerationResult { Achieved = false };
+
+        var atDensity = sortedSourceSegs.Select(seg => new ProjectSegment
+        {
+            Index = seg.Index, StartCm = seg.StartCm, EndCm = seg.EndCm,
+            StartDiameterMm = seg.StartDiameterMm, EndDiameterMm = seg.EndDiameterMm,
+            Name = seg.Name, SpecWeightGCm3 = densityGCm3, IsHead = seg.IsHead
+        }).ToList();
+
+        FamilyGenerationResult result;
+        if (keepClassMass)
+        {
+            double gramsAtDensity = MassInFirstCm(atDensity, Target30FtCm);
+            result = GenerateFamilyMember(atDensity, gramsAtDensity, targetGrains);
+            if (!result.Achieved) return result;
+        }
+        else
+        {
+            result = new FamilyGenerationResult
+            {
+                Segments       = atDensity,
+                RemapCm        = x => x,
+                AchievedGrains = MassInFirstCm(atDensity, Target30FtCm) * GramsToGrains,
+                Achieved       = true,
+            };
+        }
+
+        result.AchievedSpeedMs = WholeLineSinkSpeedMs(result.Segments, isSalt, tempC);
+        return result;
+    }
+
+    /// <summary>
+    /// Sink speed of a whole line taken as one rigid body, sampling every segment's taper at 1 cm —
+    /// the same slice length the compensation and zone paths use, so a taper is resolved rather than
+    /// averaged down to its endpoints.
+    /// </summary>
+    private static double WholeLineSinkSpeedMs(
+        List<ProjectSegment> segs, bool isSalt, double tempC)
+    {
+        var diams = new List<double>();
+        var lens  = new List<double>();
+        var dens  = new List<double>();
+
+        foreach (var seg in segs)
+        {
+            if (seg.LengthCm <= 0 || seg.SpecWeightGCm3 <= 0) continue;
+            int n = Math.Max(1, (int)Math.Ceiling(seg.LengthCm));
+            double dl = seg.LengthCm / n;
+            for (int i = 0; i < n; i++)
+            {
+                double t = (i + 0.5) / n;
+                diams.Add(seg.StartDiameterMm + t * (seg.EndDiameterMm - seg.StartDiameterMm));
+                lens.Add(dl);
+                dens.Add(seg.SpecWeightGCm3);
+            }
+        }
+
+        if (diams.Count == 0) return double.NaN;
+        double v = SinkingSpeedCalc.RigidBodySinkSpeed(isSalt, tempC, diams, lens, dens);
+        // A line lighter than water has no positive equilibrium speed: report it as floating rather
+        // than as a negative "speed".
+        return double.IsNaN(v) || v <= 0 ? double.NaN : v;
     }
 }

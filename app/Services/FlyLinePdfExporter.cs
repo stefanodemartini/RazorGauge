@@ -231,7 +231,7 @@ public static class FlyLinePdfExporter
         bool isSalt,
         double tempC,
         string afftaBadge,
-        string colorNote = "",
+        string note = "",
         List<NozzleDefinition>? nozzleDefinitions = null,
         List<NozzleZone>?       nozzleZones       = null,
         string designColorHex = "DC3232",
@@ -768,34 +768,37 @@ public static class FlyLinePdfExporter
                         }
                     }
 
-                    // ── Colour note / laser mark (if defined) ──────────────
-                    if (!string.IsNullOrWhiteSpace(colorNote) || !string.IsNullOrWhiteSpace(laserMark))
+                    // ── Laser mark (if defined) ────────────────────────────
+                    if (!string.IsNullOrWhiteSpace(laserMark))
                     {
-                        col.Item().Row(noteRow =>
-                        {
-                            if (!string.IsNullOrWhiteSpace(colorNote))
+                        col.Item().Background(C("EDF4FB"))
+                            .Border(0.5f).BorderColor(C("9DBEDC"))
+                            .Padding(5).Text(t =>
                             {
-                                noteRow.RelativeItem().Background(C("FFF8E8"))
-                                    .Border(0.5f).BorderColor(C("E8C060"))
-                                    .Padding(5).Text(t =>
-                                    {
-                                        t.Span("Color:  ").FontSize(7.5f).FontColor(ColMuted).Bold();
-                                        t.Span(colorNote).FontSize(8.5f).Bold().FontColor(C("B87D20"));
-                                    });
-                                if (!string.IsNullOrWhiteSpace(laserMark))
-                                    noteRow.ConstantItem(6);
-                            }
-                            if (!string.IsNullOrWhiteSpace(laserMark))
+                                t.Span("Laser mark:  ").FontSize(7.5f).FontColor(ColMuted).Bold();
+                                t.Span(laserMark).FontSize(8.5f).Bold().FontColor(C("2A5E8C"));
+                            });
+                    }
+
+                    // ── Note (if defined) ──────────────────────────────────
+                    // Full width and on its own row: this is free text for the producer, not only a
+                    // colour, so it can run to several lines. Each line is emitted separately so the
+                    // breaks the author typed survive into the sheet instead of being reflowed into
+                    // one paragraph.
+                    if (!string.IsNullOrWhiteSpace(note))
+                    {
+                        var noteLines = note.Replace("\r\n", "\n").Replace('\r', '\n')
+                                            .Split('\n');
+                        col.Item().PaddingTop(4).Background(C("FFF8E8"))
+                            .Border(0.5f).BorderColor(C("E8C060"))
+                            .Padding(5).Text(t =>
                             {
-                                noteRow.RelativeItem().Background(C("EDF4FB"))
-                                    .Border(0.5f).BorderColor(C("9DBEDC"))
-                                    .Padding(5).Text(t =>
-                                    {
-                                        t.Span("Laser mark:  ").FontSize(7.5f).FontColor(ColMuted).Bold();
-                                        t.Span(laserMark).FontSize(8.5f).Bold().FontColor(C("2A5E8C"));
-                                    });
-                            }
-                        });
+                                // Line, not Span: a Span would leave the first note line running on
+                                // straight after the label, with no break between them.
+                                t.Line("Note").FontSize(7.5f).FontColor(ColMuted).Bold();
+                                foreach (string lineText in noteLines)
+                                    t.Line(lineText).FontSize(8.5f).Bold().FontColor(C("B87D20"));
+                            });
                     }
 
                     col.Item().LineHorizontal(0.5f).LineColor(ColBorder);

@@ -3249,13 +3249,103 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         get => _sharedDensity;
         set
         {
+            double previous = _sharedDensity;
             _sharedDensity = value;
             OnPropertyChanged(nameof(SharedDensity));
+            // Only the density box reaches this setter. FromWeight/FromSinkSpeed set the field
+            // directly because there the density is being solved *from* a target — rescaling the
+            // diameters underneath would fight the very thing that was just solved for. Loading a
+            // project sets the field directly too.
+            MaybeRescaleDiametersForDensityChange(previous, value);
             ApplySharedDensity();
             TriggerCompRecompute();
             MarkDirty();
         }
     }
+
+    // Sticky, like the zone dialog's: asked once per change, remembered for the next one.
+    private bool _lastDensityRescaleChoice = true;
+
+    /// <summary>
+    /// Changing the line's material and keeping its mass means changing its diameters — the same
+    /// identity the whole design rests on, ρ_new·d_new² = ρ_old·d_old², here applied to the line as
+    /// a whole rather than inside a zone. Every diameter scales by the one constant
+    /// <c>√(ρ_old/ρ_new)</c>, which is exactly what the family generators do, so the mass is held at
+    /// every x and not merely on average: denser material, thinner line, same weight.
+    ///
+    /// Unlike a nozzle zone — a live overlay recomputed on load — this writes into DesignNodes,
+    /// because it IS the design. Hence PushUndo, and hence the prompt: it is not reversible by
+    /// typing the old number back, since the rescale would then apply a second time.
+    ///
+    /// The sink speed is not an input here. It is recomputed from the geometry that comes out and
+    /// reported, because that is the consequence worth seeing.
+    /// </summary>
+    private void MaybeRescaleDiametersForDensityChange(double previousDensity, double newDensity)
+    {
+        if (_isCompensatedDerivative) return;             // baked C file: its geometry is the answer
+        if (previousDensity <= 0 || newDensity <= 0) return;
+        if (DesignNodes.Count == 0) return;
+        double factor = Math.Sqrt(previousDensity / newDensity);
+        if (Math.Abs(factor - 1.0) < 1e-6) return;
+
+        double speedBefore = CurrentWholeLineSinkSpeedIns();
+
+        var answer = MessageBox.Show(
+            $"Material density {previousDensity:0.00} → {newDensity:0.00} g/cm³.\n\n" +
+            $"Adjust every diameter by ×{factor:0.0000} so the line keeps the mass it has now?\n\n" +
+            "Yes — diameters change, weight stays (recommended)\n" +
+            "No — keep the drawn diameters; the line's weight changes instead",
+            "Material density change", MessageBoxButton.YesNo, MessageBoxImage.Question,
+            _lastDensityRescaleChoice ? MessageBoxResult.Yes : MessageBoxResult.No);
+
+        _lastDensityRescaleChoice = answer == MessageBoxResult.Yes;
+        if (!_lastDensityRescaleChoice) return;
+
+        PushUndo();
+        foreach (var node in DesignNodes)
+            node.DiameterMm = Math.Round(node.DiameterMm * factor, 4);
+
+        SyncListFromDesignNodes();
+        RefreshSegmentTable();
+        RefreshPlot();
+
+        // ApplySharedDensity, which the caller runs next, pushes the new density into the segments
+        // the table just rebuilt; only then is the speed the new geometry's own.
+        Dispatcher.InvokeAsync(() =>
+        {
+            double speedAfter = CurrentWholeLineSinkSpeedIns();
+            UiStatus = $"ρ {previousDensity:0.00} → {newDensity:0.00} g/cm³ · diameters ×{factor:0.0000}" +
+                       $" · mass held · sink {FormatIns(speedBefore)} → {FormatIns(speedAfter)}";
+        });
+    }
+
+    /// <summary>The whole line as one rigid body — its sections are joined and share one
+    /// equilibrium speed, so this is not the average of the per-segment isolated figures.</summary>
+    private double CurrentWholeLineSinkSpeedIns()
+    {
+        var diams = new List<double>();
+        var lens  = new List<double>();
+        var dens  = new List<double>();
+        foreach (var seg in ProjectSegments.OrderBy(s => s.StartCm))
+        {
+            if (seg.LengthCm <= 0 || seg.SpecWeightGCm3 <= 0) continue;
+            int n = Math.Max(1, (int)Math.Ceiling(seg.LengthCm));
+            double dl = seg.LengthCm / n;
+            for (int i = 0; i < n; i++)
+            {
+                double t = (i + 0.5) / n;
+                diams.Add(seg.StartDiameterMm + t * (seg.EndDiameterMm - seg.StartDiameterMm));
+                lens.Add(dl);
+                dens.Add(seg.SpecWeightGCm3);
+            }
+        }
+        if (diams.Count == 0) return double.NaN;
+        double v = SinkingSpeedCalc.RigidBodySinkSpeed(_waterIsSalt, _waterTempC, diams, lens, dens);
+        return double.IsNaN(v) || v <= 0 ? double.NaN : v * 39.3701;
+    }
+
+    private static string FormatIns(double ins)
+        => double.IsNaN(ins) ? "floating" : $"{ins:0.00} ips";
 
     private void ApplySharedDensity()
     {
@@ -4433,6 +4523,67 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }).ToList();
 
         SaveFamilyVariants("Generate Family", variants);
+    }
+
+    /// <summary>
+    /// The mirror of <see cref="GenerateSinkSpeedFamily_Click"/>: there a target speed is the input
+    /// and the density is solved for it; here the densities are the input — the materials actually
+    /// in the shop — and the speed each one reaches is the result.
+    /// </summary>
+    private void GenerateDensityFamily_Click(object sender, RoutedEventArgs e)
+    {
+        if (ProjectSegments.Count == 0)
+        {
+            MessageBox.Show("No segments yet — add design nodes first.",
+                            "Generate Family by Density", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (_currentProjectPath == null)
+        {
+            MessageBox.Show("Save the project first — generated files are named after it.",
+                            "Generate Family by Density", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        if (ProjectSegments.All(s => s.SpecWeightGCm3 <= 0))
+        {
+            MessageBox.Show("Set material density first — the source line's mass can't be computed without it.",
+                            "Generate Family by Density", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var dlg = new GenerateDensityFamilyDialog(Nozzles.Select(n => n.DensityGCm3)) { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.SelectedDensities.Count == 0) return;
+
+        var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        double sourceGrains = sourceGrams * LineWeightFamilyCalc.GramsToGrains;
+        bool keepClass = dlg.KeepClassMass;
+
+        var variants = dlg.SelectedDensities.Select(rho =>
+        {
+            var result = LineWeightFamilyCalc.GenerateDensityFamilyMember(
+                sorted, _waterIsSalt, _waterTempC, rho, sourceGrains, keepClass);
+
+            string speed = double.IsNaN(result.AchievedSpeedMs)
+                ? "floating"
+                : $"{result.AchievedSpeedMs * 39.3701:0.00}ips";
+            string label = $"{rho:0.00}gcm3 {speed}";
+
+            string? warning = !result.Achieved || !double.IsNaN(result.AchievedSpeedMs)
+                ? null
+                : "lighter than water — this variant floats at any diameter";
+            return (label, result, "mass could not be held at this density", warning);
+        }).ToList();
+
+        SaveFamilyVariants("Generate Family by Density", variants, postProcess: (project, result, label) =>
+        {
+            project.IsSinking = !label.EndsWith("floating", StringComparison.Ordinal);
+            // Each variant is one uniform material by construction, so the source's M1-M4 would be
+            // stale: point every nozzle at the density this variant actually uses, and drop the
+            // source's zones, which described materials this line no longer has.
+            double newDensity = result.Segments.Count > 0 ? result.Segments[0].SpecWeightGCm3 : 0;
+            foreach (var n in project.NozzleDefinitions) n.DensityGCm3 = newDensity;
+            project.NozzleZones.Clear();
+        });
     }
 
     private void GenerateSinkSpeedFamily_Click(object sender, RoutedEventArgs e)

@@ -475,6 +475,10 @@
                                 Style="{StaticResource BtnGhost}"
                                 Click="GenerateSinkSpeedFamily_Click"
                                 ToolTip="Generate sibling designs at different target sink speeds — same geometry, only the uniform material density changes"/>
+                        <Button Content="Generate by Density…"
+                                Style="{StaticResource BtnGhost}"
+                                Click="GenerateDensityFamily_Click"
+                                ToolTip="Generate sibling designs from the materials you actually have — pick the densities, the diameters follow and the sink speed each one reaches is computed"/>
                         <!-- Sinking-only tools — hidden for floating lines -->
                         <StackPanel x:Name="SinkingToolsPanel" Orientation="Horizontal" VerticalAlignment="Center">
                             <Button x:Name="CompensateBtn"
@@ -1031,8 +1035,11 @@
                 </Border>
             </Grid>
 
-            <!-- ── Colour sections panel ──────────────────────────────── -->
-            <Grid Margin="0,6,0,4" Height="160">
+            <!-- ── Materials / note panel ─────────────────────────────────
+                 Fixed height on purpose: it bounds the nozzle DataGrid on the left. The note on
+                 the right is the DockPanel's fill child, so this number is what decides how tall
+                 the note box gets. -->
+            <Grid Margin="0,6,0,4" Height="210">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="220"/>
                     <ColumnDefinition Width="*"/>
@@ -1250,7 +1257,7 @@
                                  ToolTip="Mark position in mm measured from the rear end. Leave empty if no mark at the rear side"/>
                     </Grid>
                     <TextBlock DockPanel.Dock="Top"
-                               Text="Color note (printed in PDF)"
+                               Text="Note (printed in PDF)"
                                FontSize="11" FontWeight="SemiBold"
                                Foreground="{StaticResource TextMuted}"
                                Margin="0,0,0,3"/>
@@ -1264,7 +1271,10 @@
                              BorderThickness="1"
                              FontSize="11"
                              Padding="6,4"
-                             ToolTip="Free text description of the line colour (e.g. Red / White / Green in equal parts)"/>
+                             MinHeight="90"
+                             AcceptsTab="False"
+                             SpellCheck.IsEnabled="False"
+                             ToolTip="Free text for the producer — colours, finish, packaging, anything worth printing on the sheet. Line breaks are kept in the PDF."/>
                 </DockPanel>
             </Grid>
 

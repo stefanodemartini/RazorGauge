@@ -1,0 +1,160 @@
+<Window
+    x:Class="DiametroLineaDesktop.Views.GenerateDensityFamilyDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Generate Family by Density"
+    Width="380" SizeToContent="Height"
+    WindowStartupLocation="CenterOwner"
+    ResizeMode="NoResize"
+    Background="#12151C"
+    FontFamily="Segoe UI"
+    ShowInTaskbar="False">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Accent"      Color="#2D7DD2"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#E2E8F4"/>
+        <SolidColorBrush x:Key="TextMuted"   Color="#7A8499"/>
+        <SolidColorBrush x:Key="PanelBg"     Color="#1C2030"/>
+        <SolidColorBrush x:Key="BorderCol"   Color="#2E3548"/>
+        <SolidColorBrush x:Key="InputBg"     Color="#232837"/>
+
+        <Style TargetType="Button" x:Key="BtnGhostStyle">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="Background" Value="{StaticResource InputBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderCol}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="{StaticResource InputBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderCol}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+    </Window.Resources>
+
+    <Border Background="#1C2030" BorderBrush="#2E3548" BorderThickness="1" Margin="1">
+        <StackPanel Margin="20">
+
+            <TextBlock Text="Generate Family by Density"
+                       FontSize="14" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimary}"
+                       Margin="0,0,0,4"/>
+            <TextBlock Text="Pick the materials you actually have. Each one becomes a variant, and the sink speed it reaches is computed for you."
+                       FontSize="11" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" Margin="0,0,0,12"/>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="0.94" FontSize="10"
+                           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+                <Slider x:Name="DensitySlider" Grid.Column="1"
+                        Minimum="0.94" Maximum="2.50" Value="1.10"
+                        IsMoveToPointEnabled="True"
+                        SmallChange="0.01" LargeChange="0.05"
+                        ValueChanged="DensitySlider_ValueChanged"
+                        Margin="8,0"/>
+                <TextBlock Grid.Column="2" Text="2.50" FontSize="10"
+                           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock x:Name="DensityValueLabel" Text="1.10 g/cm³"
+                       FontSize="13" FontWeight="SemiBold"
+                       Foreground="{StaticResource Accent}"
+                       HorizontalAlignment="Center" Margin="0,4,0,2"/>
+            <TextBlock x:Name="HintLabel" Text=""
+                       FontSize="10" Foreground="{StaticResource TextMuted}"
+                       HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+            <StackPanel Orientation="Horizontal">
+                <Button Content="+ Add to list" Click="AddBtn_Click" IsDefault="True"
+                        Style="{StaticResource BtnGhostStyle}" Margin="0,0,6,0"/>
+                <Button x:Name="AddNozzlesBtn" Content="+ Add my M1–M4" Click="AddNozzlesBtn_Click"
+                        Style="{StaticResource BtnGhostStyle}"/>
+            </StackPanel>
+
+            <ListBox x:Name="DensitiesListBox" Height="110" Margin="0,10,0,6"/>
+            <Button Content="Remove selected" Click="RemoveBtn_Click"
+                    Style="{StaticResource BtnGhostStyle}" HorizontalAlignment="Left"/>
+
+            <Rectangle Height="1" Fill="#2E3548" Margin="0,18,0,12"/>
+
+            <TextBlock Text="What stays fixed"
+                       FontSize="11" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
+            <RadioButton x:Name="KeepClassRadio" GroupName="Constraint" IsChecked="True"
+                         Content="The line-weight class — diameters rescale"/>
+            <TextBlock Text="Denser material, thinner line, same grains in the first 30 ft. A product family: WF6 stays WF6."
+                       FontSize="10" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" Margin="20,0,0,8"/>
+            <RadioButton x:Name="KeepDiametersRadio" GroupName="Constraint"
+                         Content="The drawn diameters — only the material changes"/>
+            <TextBlock Text="Same profile extruded in another material. Mass and class move with the density."
+                       FontSize="10" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" Margin="20,0,0,0"/>
+
+            <Rectangle Height="1" Fill="#2E3548" Margin="0,16,0,14"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Generate"
+                        Click="OkBtn_Click"
+                        Width="90" Height="30"
+                        FontSize="12" FontWeight="SemiBold"
+                        Foreground="White" BorderThickness="0"
+                        Cursor="Hand" Margin="0,0,8,0">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#2D7DD2" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.82"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.62"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <Button Content="Cancel"
+                        Click="CancelBtn_Click"
+                        IsCancel="True"
+                        Width="90" Height="30"
+                        FontSize="12"
+                        Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="#232837"
+                                    BorderBrush="#2E3548" BorderThickness="1"
+                                    CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  TextBlock.Foreground="#7A8499"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.75"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</Window>
