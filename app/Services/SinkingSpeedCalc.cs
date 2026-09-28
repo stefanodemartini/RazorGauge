@@ -396,16 +396,31 @@ public static class SinkingSpeedCalc
 
     /// <summary>
     /// Inverse of <see cref="CylinderSinkSpeed"/>: given a FIXED material density, finds the
-    /// diameter of an isolated cylinder that sinks at exactly targetSpeedMs. NaN if no diameter
-    /// in a generous realistic range (up to 30mm) reaches it — e.g. the density itself doesn't
-    /// sink at all, or the target is unreachable at any practical size.
+    /// diameter of an isolated cylinder that sinks at exactly targetSpeedMs. NaN when no diameter
+    /// up to 30mm reaches it — the density doesn't sink at all, or the target is out of reach at any
+    /// practical size. Thicker sinks faster: net gravity goes with d², drag only with d.
     ///
-    /// Used to constrain physical compensation to a small number of real, manufacturable materials:
-    /// quantize the ideal continuous per-slice density (from <see cref="CompensateProfile"/>) down
-    /// to at most a handful of real nozzles, then solve each slice's diameter for its assigned
-    /// nozzle's fixed density instead of solving density freely per slice — the diameter absorbs
-    /// all the variation needed to still hit the target speed, since it (unlike density/material)
-    /// can vary continuously along a real extruded line.
+    /// **Currently called from nowhere.** It was written for a version of the quantisation step that
+    /// was abandoned, and is kept because the physics is right and the question it answers is still
+    /// a real one. Read the two paragraphs below before reaching for it.
+    ///
+    /// The abandoned design: quantise the ideal continuous per-slice density (from
+    /// <see cref="CompensateProfile"/>) down to the few real nozzles, then solve each slice's
+    /// diameter for its assigned nozzle's fixed density, so the slice still hits the target speed
+    /// exactly — the diameter absorbing what the material cannot. Two things killed it. The
+    /// assignment jumps discretely at a material boundary while the ideal density is continuous, so
+    /// the corrected diameter snapped to a different value on each side: a visible step, and a
+    /// diameter discontinuity is never acceptable (see QuantizeCompensationToRealMaterials, which
+    /// leaves the diameter at the continuous solve and lets the achieved speed absorb the error
+    /// instead). And the diameters it asks for are mostly unmanufacturable anyway — at 1.10 g/cm³,
+    /// 3 ips wants 4.46 mm against a real line's 0.5-1.8 mm. Diameter alone does not reach useful
+    /// sink rates unless the material is very dense.
+    ///
+    /// What it is still good for is the inverse question at the bench — "with this material, what
+    /// can I reach at a diameter I can actually extrude?" — where the NaN is as informative as a
+    /// number. It is NOT a per-slice solver for a real line: this is the isolated-cylinder model,
+    /// while a line's slices are mechanically coupled and share one equilibrium speed
+    /// (<see cref="RigidBodySinkSpeed"/>).
     /// </summary>
     public static double DiameterForTargetSinkSpeedMm(
         bool isSalt, double tempC, double densityGcm3, double targetSpeedMs)

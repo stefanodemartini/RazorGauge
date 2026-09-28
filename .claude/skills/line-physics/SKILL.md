@@ -48,7 +48,7 @@ Three speed models, deliberately different — don't swap them:
 |---|---|---|
 | `CylinderSinkSpeed` | isolated infinite cylinder at one diameter/density | Sink column endpoints, Sink Map colouring |
 | `RigidBodySinkSpeed` | many slices, own diameter+density each, one shared equilibrium speed | a zone-derived segment's real speed |
-| `DiameterForTargetSinkSpeedMm` | inverse of the first | solving diameter for a target speed |
+| `DiameterForTargetSinkSpeedMm` | inverse of the first | **nothing — called from nowhere.** Written for an abandoned quantisation step; kept for the bench question "what can this material reach at an extrudable diameter?". Never a per-slice solver: it is the isolated-cylinder model |
 
 ## Two independent compensation systems
 
