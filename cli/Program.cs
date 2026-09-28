@@ -55,7 +55,20 @@ int Help()
           flyline inspect <in.flp>    [-o <spec.json>] recover the spec of an existing design
           flyline report  <in.flp>                     mass, AFFTA class and sink speeds
           flyline pdf     <in.flp>    [-o <out.pdf>]   the spec sheet a producer would receive
-          flyline analyze <in.flp>    -a <accel m/s2>  Level-2 physics: m, M, Re, drag, Π, C, score
+          flyline analyze <in.flp>    -a <accel m/s2>  Level-2 physics: ρ·d, per-segment taper rate,
+                                                       m, M, Re, drag, Π, C
+                                      [--csv <out.csv>]       per-segment rows (appends)
+                                      [--csv-line <out.csv>]  one row per project (appends)
+                                      [--csv-slices <out.csv>] every 1 cm slice (overwrites)
+                                      [--tail-d <mm>] [--tail-rho <g/cm3>] [--tail-len <cm>]
+                                      [--kind auto|shootinghead|fullline]
+
+        A shooting head is analyzed together with the shooting line it tows (default 0.40 mm nylon,
+        40 m); a full line already carries its running line in the profile. Which one a file is, is
+        detected from the trailing constant-diameter run unless --kind says otherwise.
+
+        -a only scales Π's level, never the shape of ρ·d or the taper rates, so it does not need
+        to be right for the per-segment readout to be.
           flyline assemble <in.flproto> [-o <out.flp>] prototype from scanned pieces: cut list (+ .flp)
 
         Without -o, build/pdf write next to the input file and inspect prints to stdout.
@@ -169,11 +182,106 @@ int Analyze(string[] a)
     // JSON format instead of going through ProjectService.
     var project = FlpJsonSerializer.Load(path);
     var scenario = new CastScenario { AccelerationRefMs2 = accel };
+
+    // The shooting line is a property of how the head is fished, not of the file, so it is a global
+    // default here rather than a stored field. These overrides exist to try alternatives — notably
+    // fluorocarbon (--tail-rho 1.78), which lands at nearly the same ρ·d as a coated running line.
+    if (double.TryParse(Opt(a, "--tail-d"), System.Globalization.CultureInfo.InvariantCulture, out double td))
+        scenario.ShootingLine.DiameterMm = td;
+    if (double.TryParse(Opt(a, "--tail-rho"), System.Globalization.CultureInfo.InvariantCulture, out double tr))
+        scenario.ShootingLine.DensityGCm3 = tr;
+    if (double.TryParse(Opt(a, "--tail-len"), System.Globalization.CultureInfo.InvariantCulture, out double tl))
+        scenario.ShootingLine.LengthCm = tl;
+    if (Opt(a, "--kind") is string k && Enum.TryParse<LineKind>(k, ignoreCase: true, out var kind))
+        scenario.Kind = kind;
+
     var report = ProfileAnalyzer.Analyze(project, scenario);
 
     PrintAnalysis(project.Name, report);
+
+    // Full precision, machine-readable: the printed table rounds Π to two decimals and hides the
+    // coefficient of variation entirely, which is too coarse to calibrate the score weights against.
+    string? sliceCsv = Opt(a, "--csv-slices");
+    if (sliceCsv != null)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        var sb = new System.Text.StringBuilder("xCm,diameterMm,linearMassKgM,cumulativeMassG,inertialTaper,region\n");
+        for (int i = 0; i < report.XsCm.Length; i++)
+            sb.Append(report.XsCm[i].ToString("R", inv)).Append(',')
+              .Append(report.Diameter[i].ToString("R", inv)).Append(',')
+              .Append(report.LinearMassKgM[i].ToString("R", inv)).Append(',')
+              .Append(report.CumulativeMassG[i].ToString("R", inv)).Append(',')
+              .Append(report.InertialTaper[i].ToString("R", inv)).Append(',')
+              .Append(i < report.DesignSliceCount ? "design" : "shootingline").Append('\n');
+        File.WriteAllText(sliceCsv, sb.ToString());
+        Console.WriteLine($"\nCSV (slices): {sliceCsv}");
+    }
+
+    string? lineCsv = Opt(a, "--csv-line");
+    if (lineCsv != null)
+    {
+        WriteLineCsv(lineCsv, path, project.Name, report);
+        Console.WriteLine($"\nCSV (line): {lineCsv}");
+    }
+
+    string? csvPath = Opt(a, "--csv");
+    if (csvPath != null)
+    {
+        WriteAnalysisCsv(csvPath, path, project.Name, report);
+        Console.WriteLine($"\nCSV: {csvPath}");
+    }
     return 0;
 }
+
+// One row per project: the shape of rho*d plus the junction. This is the table the index scales are
+// meant to be read off, so it is separate from the per-segment one.
+void WriteLineCsv(string csvPath, string sourcePath, string name, AnalysisReport r)
+{
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var sb = new System.Text.StringBuilder();
+    if (!File.Exists(csvPath))
+        sb.AppendLine("file,project,kind,designCm,designMassG,peakCm,peakTaper,frontBackup," +
+                      "medianC,p99C,spikiness,junctionStep,towedG,towedFrac");
+
+    string N(double v) => double.IsNaN(v) ? "" : v.ToString("R", inv);
+    int nd = r.DesignSliceCount;
+    var sh = r.Shape; var j = r.Junction;
+
+    sb.AppendLine(string.Join(',',
+        Csv(sourcePath), Csv(name), r.Kind.ToString(),
+        N(nd > 0 ? r.XsCm[nd - 1] - r.XsCm[0] : double.NaN),
+        N(nd > 0 ? r.CumulativeMassG[nd - 1] : double.NaN),
+        N(sh?.PeakPositionCm      ?? double.NaN),
+        N(sh?.PeakInertialTaper   ?? double.NaN),
+        N(sh?.FrontBackupFraction ?? double.NaN),
+        N(sh?.MedianContinuity    ?? double.NaN),
+        N(sh?.P99Continuity       ?? double.NaN),
+        N(sh?.ContinuitySpikiness ?? double.NaN),
+        N(j?.StepRatio          ?? double.NaN),
+        N(j?.TowedMassG         ?? double.NaN),
+        N(j?.TowedMassFraction  ?? double.NaN)));
+    File.AppendAllText(csvPath, sb.ToString());
+}
+
+// Appends when the file already exists, so a batch run over many projects builds one table.
+void WriteAnalysisCsv(string csvPath, string sourcePath, string name, AnalysisReport r)
+{
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var sb = new System.Text.StringBuilder();
+    if (!File.Exists(csvPath))
+        sb.AppendLine("file,project,seg,name,startCm,endCm,lengthCm,taperIn,taperOut,kPer100Cm,massG");
+
+    foreach (var (s, i) in r.SegmentTapers.Select((s, i) => (s, i + 1)))
+        sb.AppendLine(string.Join(',',
+            Csv(sourcePath), Csv(name), i.ToString(inv), Csv(s.Name),
+            s.StartCm.ToString("R", inv), s.EndCm.ToString("R", inv),
+            s.LengthCm.ToString("R", inv),
+            s.InertialTaperStart.ToString("R", inv), s.InertialTaperEnd.ToString("R", inv),
+            s.TaperRatePer100Cm.ToString("R", inv), s.MassG.ToString("R", inv)));
+    File.AppendAllText(csvPath, sb.ToString());
+}
+
+static string Csv(string v) => $"\"{v.Replace("\"", "\"\"")}\"";
 
 int Assemble(string[] a)
 {
@@ -216,9 +324,46 @@ void PrintAnalysis(string name, AnalysisReport r)
 {
     Console.WriteLine($"{name}");
     if (r.XsCm.Length == 0) { Console.WriteLine("  no design nodes to analyze."); return; }
+    if (!r.HasDensityData)
+    {
+        Console.WriteLine("  no density set anywhere in this project — every mass and ρ·d would be " +
+                          "zero. Set a density before reading anything into it.");
+        return;
+    }
 
-    Console.WriteLine($"  length {r.XsCm[^1] - r.XsCm[0]:0.#} cm   total mass {r.CumulativeMassG[^1]:0.0} g" +
-        (r.ScanDesignDeltaMm != null ? $"   mean scan↔design delta {r.ScanDesignDeltaMm.Average():0.00} mm" : ""));
+    int nd = r.DesignSliceCount;
+    double designLen = r.XsCm[nd - 1] - r.XsCm[0];
+    double designMass = r.CumulativeMassG[nd - 1];
+    // Only over the design: the appended shooting line is NaN there, nothing was scanned out past
+    // the head.
+    var scanDeltas = r.ScanDesignDeltaMm?.Take(nd).Where(d => !double.IsNaN(d)).ToList();
+
+    Console.WriteLine($"  {(r.Kind == LineKind.FullLine ? "full line" : "shooting head")}   " +
+        $"{(r.Kind == LineKind.FullLine ? "length" : "head")} {designLen:0.#} cm   mass {designMass:0.0} g" +
+        (scanDeltas is { Count: > 0 } ? $"   mean scan↔design delta {scanDeltas.Average():0.00} mm" : ""));
+
+    if (r.Shape is { } sh)
+    {
+        Console.WriteLine($"  ρ·d peak {sh.PeakInertialTaper:0.000} at {sh.PeakPositionCm:0.#} cm   " +
+            $"front backup {sh.FrontBackupFraction * 100:0.0}%   spikiness {sh.ContinuitySpikiness:0.0}x " +
+            $"(median C {sh.MedianContinuity:0.0000}, p99 {sh.P99Continuity:0.0000})");
+    }
+
+    if (r.Shape is { BackupSpots.Count: > 0 } bs)
+    {
+        // Where the line ahead is inertially heavier than the line behind it — a hinge. Reported by
+        // position because these sit on density-zone edges, where the diameter taper looks smooth.
+        var worst = bs.BackupSpots.OrderByDescending(t => t.Fraction).Take(3);
+        Console.WriteLine("  ! front backup at " +
+            string.Join(", ", worst.Select(t => $"{t.PositionCm:0.#} cm ({t.Fraction * 100:0.0}%)")));
+    }
+
+    if (r.Junction is { } j)
+    {
+        Console.WriteLine($"  + shooting line from {j.PositionCm:0.#} cm: " +
+            $"ρ·d {j.InertialTaperBefore:0.000} → {j.InertialTaperAfter:0.000}  " +
+            $"step {j.StepRatio:0.00}x   tows {j.TowedMassG:0.0} g ({j.TowedMassFraction * 100:0.#}% of head)");
+    }
     Console.WriteLine();
 
     foreach (var series in r.ByVelocity)
@@ -231,12 +376,33 @@ void PrintAnalysis(string name, AnalysisReport r)
     }
     Console.WriteLine();
 
-    if (r.SegmentScores.Count == 0) return;
-    Console.WriteLine($"  {"#",-3}{"name",-16}{"start",8}{"end",8}{"score",7}{"meanΠ",9}{"Πvar",9}{"Cmax",8}{"Δscan",8}");
+    if (r.SegmentTapers.Count == 0) return;
+    Console.WriteLine($"  {"#",-3}{"name",-14}{"start",7}{"end",7}{"len",6}{"ρ·d in",9}{"ρ·d out",9}{"k/100cm",9}{"mass g",8}  vs archivio");
     int si = 1;
-    foreach (var s in r.SegmentScores)
-        Console.WriteLine($"  {si++,-3}{Trim(s.Segment.Name, 15),-16}{s.Segment.StartCm,8:0.#}{s.Segment.EndCm,8:0.#}" +
-                          $"{s.Score,7:0.0}{s.MeanPi,9:0.00}{s.PiVariance,9:0.00}{s.MaxContinuityAtTransitions,8:0.000}{s.MeanScanDesignDeltaMm,8:0.00}");
+    foreach (var s in r.SegmentTapers)
+        Console.WriteLine($"  {si++,-3}{Trim(s.Name, 13),-14}{s.StartCm,7:0.#}{s.EndCm,7:0.#}{s.LengthCm,6:0}" +
+                          $"{s.InertialTaperStart,9:0.000}{s.InertialTaperEnd,9:0.000}{s.TaperRatePer100Cm,9:0.000}" +
+                          $"{s.MassG,8:0.00}  {Band(s)}");
+}
+
+// Where this segment's rate sits against the archive. Reference, never a verdict: a front taper
+// outside the commercial band may be exactly what was wanted.
+static string Band(SegmentTaper s)
+{
+    if (double.IsNaN(s.TaperRatePer100Cm)) return "";
+    if (s.IsCylindrical) return "cilindrico";
+
+    double k = Math.Abs(s.TaperRatePer100Cm);
+    string where =
+        k < TaperReference.RisingP10    ? "molto dolce" :
+        k < TaperReference.RisingP25    ? "dolce" :
+        k < TaperReference.RisingP75    ? "tipico" :
+        k < TaperReference.RisingP90    ? "ripido" : "molto ripido";
+
+    bool rising = s.TaperRatePer100Cm > 0;
+    bool inCommercial = rising
+        && k >= TaperReference.CommercialRisingLo && k <= TaperReference.CommercialRisingHi;
+    return where + (inCommercial ? "  · banda commerciale" : "");
 }
 
 static string Trim(string s, int n) => s.Length <= n ? s : s[..n];

@@ -25,6 +25,25 @@ public class CastScenario
     public required double AccelerationRefMs2 { get; set; }
 
     /// <summary>
+    /// The shooting line a shooting head tows. Ignored when the profile already contains its own
+    /// running line (see <see cref="Kind"/>).
+    /// </summary>
+    public ShootingLineSpec ShootingLine { get; set; } = new();
+
+    /// <summary>
+    /// Which system the project describes. Auto (default) decides from the profile shape.
+    /// </summary>
+    public LineKind Kind { get; set; } = LineKind.Auto;
+
+    /// <summary>
+    /// Auto-detection threshold: a trailing constant-diameter run at least this long means the
+    /// profile already includes its running line, so nothing is appended. Stefano's archive splits
+    /// cleanly on this — his full lines trail 960-1475 cm of level running line, his heads at most
+    /// 30 cm — so the exact value anywhere in that gap is uncritical.
+    /// </summary>
+    public double IntegratedRunningLineMinCm { get; set; } = 300.0;
+
+    /// <summary>
     /// C(s) warning threshold. Null (default) means no warnings are raised — we don't have a
     /// calibrated value yet; set explicitly once we do.
     /// </summary>
