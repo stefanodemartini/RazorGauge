@@ -493,6 +493,45 @@ Ogni velocità produce un file `NomeProgetto X.XXips.flp` (o `NomeProgetto Float
 
 ---
 
+## 11b. Generazione Famiglia per Densità
+
+Lo specchio della §11: lì la **velocità** è l'ingresso e la densità viene risolta; qui le **densità sono l'ingresso** — i materiali che hai davvero in magazzino — e la velocità di affondamento è il risultato.
+
+### Come funziona
+- Il pulsante **Generate by Density…** (toolbar Design Tools) apre un dialogo con uno slider da **0.94** a **2.50 g/cm³**
+- **+ Add to list** aggiunge la densità corrente; **+ Add my M1–M4** aggiunge in un colpo le densità degli ugelli già definiti nel progetto
+- Si sceglie **cosa resta fisso**:
+  - **la classe di peso** (default) — tutti i diametri vengono riscalati di `√(ρ_vecchia/ρ_nuova)` perché la massa dei primi 30 ft resti identica. Materiale più denso ⇒ linea più sottile, stesso peso. È la logica di famiglia: una WF6 resta WF6
+  - **i diametri disegnati** — cambia solo il materiale, e massa e classe si muovono con la densità. È la domanda da banco: «e se estrudessi questo stesso profilo nel materiale più denso?»
+- Per ogni variante la **velocità di affondamento viene calcolata** sulla geometria che ne esce, come **corpo rigido unico** (`RigidBodySinkSpeed`, campionando ogni segmento a 1 cm) — non fetta per fetta isolata, perché le sezioni di una linea vera sono unite e condividono una sola velocità di equilibrio
+- Una densità ≤ 1.00 g/cm³ galleggia a qualsiasi diametro: il dialogo lo dice già mentre trascini lo slider
+
+### File generati
+Ogni densità produce `NomeProgetto 1.10gcm3 0.45ips.flp` — densità e velocità raggiunta sono entrambe nel nome, accanto al progetto originale (che deve essere già salvato).
+
+---
+
+## 11c. Cambiare la densità e vedere i diametri
+
+Fuori dalla generazione famiglia, la stessa matematica è disponibile **dal vivo** mentre progetti.
+
+Digitando una nuova densità nella casella **ρ g/cm³** (pannello materiale), l'app chiede se adattare i diametri per conservare la massa. Rispondendo sì, **ogni diametro viene moltiplicato per `√(ρ_vecchia/ρ_nuova)`** — la stessa costante per tutti, quindi la massa è conservata in **ogni punto**, non solo in media.
+
+La barra di stato riporta la conseguenza:
+
+```
+ρ 0.96 → 1.10 g/cm³ · diameters ×0.9342 · mass held · sink 0.32 ips → 0.45 ips
+```
+
+Differenze dalle zone ugello (§5):
+- una zona è un **overlay vivo**, ricalcolato a ogni caricamento, che non tocca mai i `DesignNodes`; questo invece **scrive nei nodi**, perché *è* il disegno. Per questo c'è l'undo e per questo viene chiesto
+- non è reversibile ridigitando il numero vecchio: la riscalatura si applicherebbe una seconda volta. Usa **Ctrl+Z**
+- la scelta è **sticky**: la risposta viene proposta come default alla modifica successiva
+
+> I pulsanti **⚖ From weight…** e **⏬ From sink speed…** non innescano la riscalatura: lì la densità viene risolta *a partire da* un obiettivo, e riscalare i diametri sotto combatterebbe proprio ciò che si è appena risolto.
+
+---
+
 ## 12. Confronto e Overlay
 
 ### Importare una Serie di Confronto
@@ -665,9 +704,19 @@ assemblato. Un `.flproto` scritto a mano può omettere le scansioni: basta `Sour
 1. **Header**: nome progetto, data, tipo profilo (NC o C)
 2. **Grafico profilo** (3200×600 px) con etichette nodi e segmenti
 3. **Tabella segmenti** completa
-4. **Card informazioni**: tipo core, laser mark, note colore
+4. **Card informazioni**: tipo core, laser mark, **Note**
 5. **Nozzle swatches**: colori materiali con densità
 6. **Badge AFFTA + CoM/Rg + classificazione taper**
+
+### La casella Note
+
+Era "Color note" ed era limitata al colore. Adesso è una **nota libera per il produttore** — colori, finitura, imballo, qualunque cosa valga la pena stampare sul foglio.
+
+- La casella nel pannello materiali è più alta (il blocco che la contiene è passato da 160 a 210 px, e la casella ha `MinHeight` 90): ci stanno comodamente quattro o cinque righe
+- **Gli a capo che digiti vengono mantenuti nel PDF**: ogni riga è emessa separatamente, non riflusso in un unico paragrafo
+- Nel PDF la nota ha un **riquadro a tutta larghezza** tutto suo, sotto il laser mark (che a sua volta ha ora la propria riga). Prima i due si dividevano la stessa riga, stretto, il che andava bene per "rosso/bianco/verde" e non per una nota vera
+
+> Nel file `.flp` la chiave resta **`ColorNote`**: rinominarla avrebbe reso illeggibile la nota di tutti i progetti già salvati e delle spec CLI esistenti. È solo il nome della chiave — il campo è a tutti gli effetti generico.
 
 Non viene più chiesto se esportare NC o C: il PDF documenta **quello che il file aperto è davvero**. Un file C (o un design NC con zone a materiale proprio) esporta il profilo per-slice con densità reali; un design NC a materiale unico esporta il profilo disegnato. Il nome del file include automaticamente il suffisso `_NC` o `_C`.
 
@@ -749,7 +798,186 @@ Le etichette Ø/posizione dei nodi restano sotto il profilo — le due catene no
 
 ---
 
-## 18. Formati File
+## 18. Analisi fisica — Livello 2 (`flyline analyze`)
+
+```
+flyline analyze <in.flp> -a <accel m/s2>
+                [--csv <out.csv>]
+                [--tail-d <mm>] [--tail-rho <g/cm3>] [--tail-len <cm>]
+                [--kind auto|shootinghead|fullline]
+```
+
+Calcola massa lineare m(s), massa cumulata M(s), Reynolds, drag normale e tangenziale, Π e
+l'indice di continuità C, campionati ogni cm. Con `--csv` accoda le righe per segmento a
+precisione piena (il testo a video arrotonda troppo per calibrare).
+
+### Testa vs linea completa
+
+Le due famiglie sono **strutturalmente diverse nel file** e non sono confrontabili fetta per fetta:
+
+- **Linea completa** — la running line è dentro il profilo (in archivio: 960÷1475 cm di tratto
+  costante finale a 0.75÷1.19 mm).
+- **Shooting head** — il profilo si ferma alla coda della testa, e quello che segue è un
+  **monofilo che nel file non c'è**.
+
+L'analisi quindi appende alla testa la shooting line che traina, così le due famiglie vengono
+valutate come lo stesso tipo di oggetto. Il default è il riferimento di Stefano: **0.40 mm nylon
+(ρ 1.14), 40 m**.
+
+La shooting line **non è salvata nel `.flp`**: descrive come la linea viene pescata, non la linea.
+È un parametro di analisi con default globale, sovrascrivibile con `--tail-*`.
+
+Il riconoscimento è automatico dal tratto costante finale (soglia 300 cm: in archivio le linee
+complete ne hanno ≥ 960, le teste ≤ 30, quindi il margine è ampio). `--kind` forza la scelta.
+
+### ρ·d — il "taper inerziale"
+
+Nel range reale (d 0.4÷2.0 mm, v 15÷35 m/s) la parte di drag dipendente da Re vale solo il 2÷11%
+del totale, quindi
+
+```
+Π ≈ 1.31 · ρ[g/cm³] · d[mm] · a / v²     (entro ~5%)
+```
+
+Tre conseguenze pratiche:
+
+1. **Diametro e densità si scambiano 1:1.** −10% di diametro con +10% di densità lascia il
+   carattere balistico invariato.
+2. **Velocità e accelerazione sono solo fattori di scala**: spostano il *livello* di Π, non la sua
+   *forma* lungo s. Siccome castabilità e turnover dipendono dalla forma, `ρ·d` porta
+   l'informazione di progetto senza bisogno di indovinare né v né a.
+3. Resta una correzione del second'ordine: a parità di ρ·d un tratto sottile-e-denso è ~3% peggio
+   di uno grosso-e-leggero (più drag per unità di massa). Non si può assottigliare all'infinito
+   compensando in densità.
+
+### Lo scalino alla giunzione
+
+Per una testa viene riportato il salto di ρ·d fra coda della testa e shooting line. Non è un
+difetto — è il prezzo della shooting head — ma la sua **entità** conta, ed è controllata dal back
+taper. La leva di progetto è quella.
+
+Valori misurati sulle 30 teste in archivio: **da 1.32× a 2.66×, mediana 2.08×**. Le copie della
+SA MED stanno a 1.47÷1.65×, le ST Rossa / Rosa ST27 a 2.33÷2.66×.
+
+Con un mono nylon fisso il ranking dello scalino coincide con quello del ρ·d di coda; la metrica
+diventa indipendente quando la densità varia (linee compensate, sink tip) o cambia la shooting
+line. Esempio: **fluorocarbon 0.40 mm** (`--tail-rho 1.78`) ha ρ·d = 0.712, quasi identico a una
+running line coated 0.75 mm (0.701) — porta lo scalino di `ST27 - 60` da 2.11× a 1.35×, al costo
+di 3.2 g di traino in più.
+
+### Metriche di forma su ρ·d
+
+Calcolate sul **design** (la scansione è solo traccia di riferimento, non entra nella valutazione).
+Tutte adimensionali e indipendenti da v e a.
+
+| Metrica | Cosa dice | Range in archivio (52 linee) |
+|---|---|---|
+| **front backup** | quanto ρ·d *risale* andando verso la punta, in frazione della discesa picco→punta. 0 = scende monotono | 0 su 49 linee, poi 5.7% / 28% / 35% |
+| **spikiness** | p99/mediana di \|Δ(ρ·d)/Δs\|/(ρ·d) — quanto l'evento locale più brusco spicca sul fondo della linea stessa | 1.1 ÷ 105, mediana 12.6 |
+| **junction step** | scalino ρ·d testa → shooting line | 1.32 ÷ 2.66, mediana 2.08 |
+
+**Front backup** è il difetto non opinabile: un punto dove la linea davanti è inerzialmente più
+pesante di quella dietro, cioè dove un loop può incernierare o fermarsi. Viene riportata anche la
+**posizione**, perché serve.
+
+**Spikiness** è scale-free di proposito: un taper ripido non è un difetto, un *gradino* su un taper
+regolare sì.
+
+> **Zone di densità: come funziona davvero l'adattamento.** Con `ZoneDensityAdaptDiameters = true`
+> il bordo della zona è un **nodo esatto** e il segmento **appena fuori** dalla zona viene
+> rimodellato: il suo estremo vicino prende il valore scalato della zona
+> (`d·√(ρ_base/ρ_zona)`), l'estremo lontano resta il diametro disegnato, lineare in mezzo
+> (`MainWindow.ApplyZoneDensities`, stesso algoritmo di `LineDesignBuilder.Build`). Quindi:
+>
+> - **il diametro è continuo per costruzione** — un nodo, un valore, condiviso dai due lati;
+> - **la massa è conservata dentro la zona** — più densa e più sottile a pari massa;
+> - **la differenza di massa la paga il segmento adiacente rimodellato**, che resta più sottile del
+>   disegnato su tutta la sua lunghezza. È il costo accettato, non un errore.
+>
+> `ProfileAnalyzer` replica questo: insieme dei breakpoint (nodi + bordi zona interni), diametro
+> risolto in ogni breakpoint con test **chiuso** ai bordi (media dei fattori su un nodo condiviso da
+> due zone), interpolazione lineare fra breakpoint, densità di ogni pezzo letta al **punto medio**.
+> Siccome i bordi zona sono breakpoint, ogni pezzo sta tutto dentro o tutto fuori: la domanda "da
+> che parte del bordo sta questo campione" non si pone.
+>
+> Due divergenze deliberate: la densità **base** non è clampata a `RhoFloor` (l'app clampa ogni
+> pezzo, ma `RhoFloor` è il limite di fabbricazione del solutore di compensazione, mentre una
+> densità condivisa impostata a mano è un dato di progetto — diversi file reali stanno a
+> 0.917÷0.92); e una zona che punta a un ugello non definito (ρ = 0) ricade sulla base invece di
+> azzerare la massa di quel tratto.
+
+> **A parità di massa, più denso = più sottile = meno drag.** Verificato sul modello per
+> 0.96 → 1.10 g/cm³ **dentro la zona**: diametro **−6.6%** (`√(0.96/1.10)`), drag normale
+> **−6.4%**, Π **+6.9%**, uniforme a 15/25/35 m/s e su tutti i diametri. Il drag cala un filo meno
+> del diametro per il termine di Reynolds.
+>
+> Al bordo però, siccome il diametro è continuo, **l'intero salto di materiale finisce in ρ·d e
+> nella massa lineare** — il rapporto pieno `ρ_zona/ρ_base`, non la sua radice. Su `STD 27g 60` a
+> 310 cm, andando verso la punta: diametro −0.08% (continuo), massa lineare **+14.4%**, ρ·d
+> **+14.5%**.
+>
+> Le tre linee con front backup > 0 sono queste: `ST27-60 (2nd version)` 29.0% a 499 cm,
+> `STD 27g 60` 23.5% a 309 cm, `STD 27g 60 (Italian Flag) - Front Taper Density` 5.5% a 309 cm
+> (frazione della discesa picco→punta, non il gradino). L'aumento di Π nel front taper **è
+> l'effetto voluto**, non un difetto.
+
+> ⚠️ **Progetti senza densità** (`SharedDensityGCm3 = 0`, nessuna zona, nessun SpecWeight) vengono
+> segnalati esplicitamente invece di riportare massa 0.0 g: in archivio sono `SA MED Original #5
+> (New)`, `SA MED #5 Fake 2nd 2 of 3`, `Leader 15m`.
+
+### Tasso di taper per segmento — `k`
+
+La metrica su cui si legge l'effetto di una modifica. Per ogni intervallo fra due nodi di design:
+
+```
+k = ln(ρ·d_out / ρ·d_in) / L      [per 100 cm]
+```
+
+Positiva dove la linea ingrossa verso il codino (front taper, ventre), negativa lungo il back
+taper, ~0 su un tratto cilindrico. È un **tasso**, quindi confrontabile fra un tip di 20 cm e un
+ventre di 600, e fra progetti diversi. È agganciata ai **nodi**, non a `SegmentMetadata`: se i
+metadati sono sfasati si perde solo il nome, non la geometria.
+
+**Perché questa e non le altre.** Le metriche globali (spikiness, front backup, junction step) non
+rispondono a una modifica di progetto, o rispondono col segno sbagliato. Misurato su `ST27 - 60`:
+
+| modifica | segmento 20–310 | segmento 310–fine | spikiness globale |
+|---|---|---|---|
+| front taper 630 → 930 cm | 0.088 invariato | 0.074 → **0.038** | 9.3 → 17.1 (peggiora) |
+| Ø nodo 310: 1.06 → 1.26 | 0.056 → **0.116** | 0.063 → **0.030** | 11.4 → 22.0 |
+| Ø punta: 0.80 → 1.00 | 0.128 → **0.051** | 0.046 invariato | 14.5 → 14.6 |
+
+La spikiness si muove solo perché si muove la sua mediana — il p99 è inchiodato dal back taper, che
+queste modifiche non toccano — quindi allungare il front taper la fa *peggiorare*. `k` invece è
+monotona, localizzata (si muove solo il segmento toccato) e mostra il compromesso: alzare il nodo
+intermedio irripidisce la prima metà e addolcisce la seconda.
+
+### Inviluppo di riferimento (misurato, non scelto)
+
+345 intervalli su 52 progetti. |k| per 100 cm:
+
+| | p10 | p25 | mediana | p75 | p90 |
+|---|---|---|---|---|---|
+| segmenti in **salita** (front taper, ventre) | 0.016 | 0.037 | **0.074** | 0.093 | 0.125 |
+| segmenti in **discesa** (back taper) | — | 0.045 | 0.126 | 0.371 | — |
+
+**Banda commerciale** — segmenti in salita delle copie di linee commerciali: **0.065 ÷ 0.103**. Le
+sei della SA MED stanno dentro 0.073÷0.103, abbastanza strette da sembrare una regola di progetto
+deliberata. La famiglia ST27/STD27 ha mediana **0.046** — circa la metà — con dispersione
+0.007÷0.644.
+
+> È un **riferimento, mai un verdetto**: un front taper fuori banda può essere esattamente quello
+> che si voleva. Le costanti stanno in `TaperReference`.
+
+> ⚠️ Lo **score 0-100 per segmento è stato rimosso**: su 363 segmenti reali stava fra 70 e 75 per il
+> 94% di essi, perché la penalità sul livello di Π assumeva Π≈1 come ideale mentre le linee vere
+> stanno a Π≈0.05, saturandola ovunque. Anche `ScanDesignDeltaMm` non torna in un indice di qualità:
+> misura se l'estrusore ha fatto quello che era disegnato — controllo di produzione — non se il
+> disegno è buono. Resta come lettura separata.
+
+---
+
+## 19. Formati File
 
 ### `.flp` (FlyLine Project)
 
