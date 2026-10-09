@@ -20,7 +20,18 @@ public class FlyLineProject
     public double SharedDensityGCm3   { get; set; } = 0.0;
 
     /// <summary>Line type and format.</summary>
-    public bool IsSinking  { get; set; } = false;   // false = floating, true = sinking
+    /// <summary>
+    /// Kept for files and app versions that predate <see cref="LineType"/>, and still written on
+    /// save as "anything but floating" so an older build keeps showing a neutral line's
+    /// compensation tools rather than hiding them.
+    /// </summary>
+    public bool IsSinking  { get; set; } = false;
+
+    /// <summary>
+    /// "Floating", "Neutral" or "Sinking". Absent in files written before it existed, which are
+    /// read from <see cref="IsSinking"/> instead.
+    /// </summary>
+    public string LineType { get; set; } = string.Empty;
     public bool IsFullLine { get; set; } = false;   // false = shooting head, true = full line
 
     /// <summary>Sinking speed calculation settings.</summary>

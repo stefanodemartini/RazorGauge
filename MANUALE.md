@@ -349,9 +349,42 @@ transizione:
 - **Temperature**: 0–40 °C
 - Modificare questi parametri ricalcola automaticamente tutte le velocità
 
-### Floating / Sinking
-- Il flag **Sinking / Floating** si aggiorna automaticamente in base alla fisica
-- Per linee floating gli strumenti di compensazione sono nascosti
+### Floating / Neutral / Sinking
+
+Tre tipi, non più due. Il selettore in testa al pannello Design Project ha ora anche **Neutral**.
+
+**Il neutro non è un terzo stato fisico.** Sotto la densità dell'acqua una linea galleggia, sopra
+affonda: non c'è altro. "Neutral" è una **banda di affondamento molto lento**, abbastanza lenta da
+pescare come se la linea restasse sospesa. Dove finisce quella banda è una convenzione di prodotto,
+non un confine misurato, e per questo sta in una sola costante con un nome:
+`SinkingSpeedCalc.NeutralMaxIns`.
+
+| | condizione |
+|---|---|
+| **Floating** | non affonda (densità ≤ quella dell'acqua) |
+| **Neutral** | affonda, ma sotto **0.15 in/s** |
+| **Sinking** | affonda più veloce |
+
+0.15 in/s è circa un centimetro ogni due secondi e mezzo. La soglia è tarata sull'archivio: la linea
+più lenta che hai davvero progettato come sinking esce a **0.23 in/s** (`ST27 - 65`, ρ 1.006), quindi
+la banda neutra le sta sotto senza toccarla. In archivio c'è anche un buco coerente: le floating
+arrivano a ρ 0.972, le sinking partono da 1.006 — il neutro sta esattamente nel mezzo.
+
+- Il tipo **si aggiorna automaticamente in base alla fisica** appena una densità è impostata, come
+  faceva il flag a due stati. **Decide la sezione più veloce**: una linea con un tratto affondante
+  non è una linea floating
+- Per linee floating gli strumenti di compensazione restano nascosti; per le **neutre no** — una
+  neutra è ingegnerizzata in densità, è semmai il caso in cui servono di più
+
+### Tipo per sezione
+
+La tabella segmenti ha una colonna **Type** accanto a Sink, con il tipo di *quella* sezione, ricavato
+dalla velocità già calcolata per essa. Su un taper decide l'estremo più veloce, quindi una sezione è
+"Floating" solo se non affonda in nessun punto.
+
+Serve perché **un sink tip è esattamente una linea le cui sezioni non concordano** — la cosa che un
+tipo unico per tutta la linea non può dire. Il selettore in alto resta la sintesi (e per un sink tip
+dirà "Sinking", perché la punta affonda); la colonna mostra com'è fatta davvero.
 
 ### Full Line vs Shooting Head
 - **Full Line**: attiva la colonna "Head" nella tabella segmenti
@@ -993,6 +1026,7 @@ JSON con i campi principali:
   "NozzleZones": [...],
   "SharedDensityGCm3": 1.25,
   "IsSinking": true,
+  "LineType": "Neutral",
   "IsFullLine": false,
   "WaterType": "fresh",
   "WaterTempC": 15.0,
@@ -1001,6 +1035,13 @@ JSON con i campi principali:
   "IsCompensatedDerivative": false
 }
 ```
+
+> **`LineType` e `IsSinking` convivono.** `LineType` ("Floating" / "Neutral" / "Sinking") è il campo
+> vero; `IsSinking` viene comunque scritto come *"tutto tranne floating"*, così una versione
+> precedente dell'app continua a mostrare gli strumenti di compensazione su una linea neutra invece
+> di nasconderli. Un file scritto prima che `LineType` esistesse non lo ha: viene letto da
+> `IsSinking`.
+
 
 ### `.flproto` (Prototipo da pezzi)
 

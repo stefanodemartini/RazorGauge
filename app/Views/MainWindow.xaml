@@ -769,15 +769,21 @@
                                VerticalAlignment="Center"
                                Margin="0,0,16,0"/>
 
-                    <!-- Line type: Floating / Sinking -->
+                    <!-- Line type: Floating / Neutral / Sinking -->
                     <Border Background="#1C2030" CornerRadius="5" Padding="4,2" Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Content="Floating"
-                                         IsChecked="{Binding ElementName=MainWin, Path=IsSinking, Converter={StaticResource InverseBoolConverter}}"
+                            <RadioButton Content="Floating" GroupName="LineType"
+                                         IsChecked="{Binding ElementName=MainWin, Path=IsFloatingType}"
                                          FontSize="11" Foreground="{StaticResource TextMuted}"
-                                         VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <RadioButton Content="Sinking"
-                                         IsChecked="{Binding ElementName=MainWin, Path=IsSinking}"
+                                         VerticalAlignment="Center" Margin="0,0,8,0"
+                                         ToolTip="Lighter than water — does not sink"/>
+                            <RadioButton Content="Neutral" GroupName="LineType"
+                                         IsChecked="{Binding ElementName=MainWin, Path=IsNeutralType}"
+                                         FontSize="11" Foreground="{StaticResource TextMuted}"
+                                         VerticalAlignment="Center" Margin="0,0,8,0"
+                                         ToolTip="Sinks, but slower than 0.15 in/s — suspended for any practical purpose"/>
+                            <RadioButton Content="Sinking" GroupName="LineType"
+                                         IsChecked="{Binding ElementName=MainWin, Path=IsSinkingType}"
                                          FontSize="11" Foreground="{StaticResource TextMuted}"
                                          VerticalAlignment="Center"/>
                         </StackPanel>
@@ -998,6 +1004,13 @@
                                                Header="Sink (in/s)"
                                                Binding="{Binding SinkSpeedText}"
                                                Width="90"
+                                               IsReadOnly="True"/>
+                            <!-- Per section, because a sink tip is exactly a line whose sections
+                                 disagree — the one thing the whole-line type cannot say -->
+                            <DataGridTextColumn x:Name="DensityClassColumn"
+                                               Header="Type"
+                                               Binding="{Binding DensityClassText}"
+                                               Width="78"
                                                IsReadOnly="True"/>
                             <!-- Colonne modo C (posizioni 12-16): Comp. Sink è l'ultima a destra -->
                             <DataGridTextColumn x:Name="CompStartDiamColumn"

@@ -81,4 +81,26 @@ public class RoundTripTests
         Assert.Equal(0.35, reloaded.CoreDiameterMm);
         Assert.Equal(1.38, reloaded.CoreDensityGCm3);
     }
+
+    [Fact]
+    public void LineType_SurvivesARoundTrip_AndIsAbsentFromOlderFiles()
+    {
+        // This library rewrites whole files, so a key it does not model is a key it silently
+        // deletes. LineType is read by the app and nothing here, which is exactly the shape of
+        // field most easily lost.
+        var project = FlpJsonSerializer.Deserialize(File.ReadAllText(FixturePath));
+        project.LineType = "Neutral";
+
+        var again = FlpJsonSerializer.Deserialize(FlpJsonSerializer.Serialize(project));
+
+        Assert.Equal("Neutral", again.LineType);
+    }
+
+    [Fact]
+    public void FileWithoutLineType_ReadsAsEmpty_SoTheAppCanFallBackToIsSinking()
+    {
+        var project = FlpJsonSerializer.Deserialize(File.ReadAllText(FixturePath));
+
+        Assert.Equal(string.Empty, project.LineType);
+    }
 }

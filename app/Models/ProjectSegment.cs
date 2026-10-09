@@ -130,7 +130,7 @@ public class ProjectSegment : INotifyPropertyChanged
     public double SinkSpeedMs
     {
         get => _sinkSpeedMs;
-        set { if (_sinkSpeedMs != value) { _sinkSpeedMs = value; Notify(nameof(SinkSpeedMs)); Notify(nameof(SinkSpeedText)); } }
+        set { if (_sinkSpeedMs != value) { _sinkSpeedMs = value; Notify(nameof(SinkSpeedMs)); Notify(nameof(SinkSpeedText)); Notify(nameof(DensityClass)); Notify(nameof(DensityClassText)); } }
     }
 
     private double _sinkSpeedStartMs = double.NaN;
@@ -144,14 +144,40 @@ public class ProjectSegment : INotifyPropertyChanged
     public double SinkSpeedStartMs
     {
         get => _sinkSpeedStartMs;
-        set { if (_sinkSpeedStartMs != value) { _sinkSpeedStartMs = value; Notify(nameof(SinkSpeedStartMs)); Notify(nameof(SinkSpeedText)); } }
+        set { if (_sinkSpeedStartMs != value) { _sinkSpeedStartMs = value; Notify(nameof(SinkSpeedStartMs)); Notify(nameof(SinkSpeedText)); Notify(nameof(DensityClass)); Notify(nameof(DensityClassText)); } }
     }
 
     public double SinkSpeedEndMs
     {
         get => _sinkSpeedEndMs;
-        set { if (_sinkSpeedEndMs != value) { _sinkSpeedEndMs = value; Notify(nameof(SinkSpeedEndMs)); Notify(nameof(SinkSpeedText)); } }
+        set { if (_sinkSpeedEndMs != value) { _sinkSpeedEndMs = value; Notify(nameof(SinkSpeedEndMs)); Notify(nameof(SinkSpeedText)); Notify(nameof(DensityClass)); Notify(nameof(DensityClassText)); } }
     }
+
+    /// <summary>
+    /// How this section behaves in the water, from the speed already solved for it. Per section and
+    /// not only per line, because a sink tip is exactly a line whose sections disagree — the one
+    /// thing a single whole-line type cannot say.
+    /// </summary>
+    public Models.LineDensityClass DensityClass
+    {
+        get
+        {
+            // The local model gives two speeds across a taper; the faster end is what decides, so a
+            // section is only called floating when none of it sinks.
+            if (!double.IsNaN(_sinkSpeedStartMs) && !double.IsNaN(_sinkSpeedEndMs))
+                return Services.SinkingSpeedCalc.ClassifyIns(
+                    Math.Max(_sinkSpeedStartMs, _sinkSpeedEndMs) * 39.3701);
+            if (double.IsNaN(_sinkSpeedMs)) return Models.LineDensityClass.Floating;
+            return Services.SinkingSpeedCalc.ClassifyIns(_sinkSpeedMs * 39.3701);
+        }
+    }
+
+    /// <summary>Empty when nothing has been solved yet, so the column stays blank rather than
+    /// claiming a section floats before any density is set.</summary>
+    public string DensityClassText =>
+        double.IsNaN(_sinkSpeedStartMs) && double.IsNaN(_sinkSpeedEndMs) && double.IsNaN(_sinkSpeedMs)
+            ? string.Empty
+            : DensityClass.ToLabel();
 
     public string SinkSpeedText
     {

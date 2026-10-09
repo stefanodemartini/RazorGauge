@@ -162,7 +162,10 @@ int Pdf(string[] a)
                         Sanitize(project.Name) + (useComp ? "_C" : "_NC") + ".pdf");
 
     FlyLinePdfExporter.Export(outPath, project.Name, chartBytes, segments,
-        project.IsSinking, project.IsFullLine, project.WaterType == "salt", project.WaterTempC,
+        // Older files carry no LineType, so fall back to the flag they do have.
+        LineDensityClassExtensions.ParseOr(project.LineType,
+            project.IsSinking ? LineDensityClass.Sinking : LineDensityClass.Floating),
+        project.IsFullLine, project.WaterType == "salt", project.WaterTempC,
         afftaBadge, project.ColorNote, nozzleDefs, nozzleZones, project.DesignLineColorHex,
         project.CoreType, project.LaserMark, useComp, compNote);
 

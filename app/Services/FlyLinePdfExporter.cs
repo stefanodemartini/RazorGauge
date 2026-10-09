@@ -226,7 +226,7 @@ public static class FlyLinePdfExporter
         string projectName,
         byte[] chartImageBytes,
         List<ProjectSegment> segments,
-        bool isSinking,
+        Models.LineDensityClass lineClass,
         bool isFullLine,
         bool isSalt,
         double tempC,
@@ -286,7 +286,7 @@ public static class FlyLinePdfExporter
         double headLenMm    = headSegs.Count > 0
             ? (headSegs[^1].EndCm - headSegs[0].StartCm) * 10.0 : 0;
 
-        string lineType   = isSinking  ? "Sinking"    : "Floating";
+        string lineType   = lineClass.ToLabel();
         string lineFormat = isFullLine ? "Full Line"  : "Shooting Head";
         string water      = isSalt     ? "Salt water" : "Fresh water";
 

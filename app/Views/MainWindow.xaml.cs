@@ -192,7 +192,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private double _compMinSpeedMs     = 0;   // min NC sink speed across segments
     private double _compMaxSpeedMs     = 0;   // max NC sink speed across segments
     private double _compTargetSpeedMs  = 0;   // user-selected target (0 = use max)
-    private bool   _isSinking  = false;
+    private LineDensityClass _lineType = LineDensityClass.Floating;
     private bool   _isFullLine = false;
     private string _afftaBadge = "AFFTA: —";
 
@@ -214,11 +214,48 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public string DrawModeStatus         => _segmentDrawMode ? "DISEGNO SEGMENTI ATTIVO" : string.Empty;
     public string SegmentNodesStatus     => _segmentNodes.Count > 0 ? $"Nodi: {_segmentNodes.Count}" : string.Empty;
 
-    public bool IsSinking
+    /// <summary>
+    /// The line's declared behaviour in the water. Kept in sync with the physics by
+    /// UpdateSinkingSpeeds once any density is set, the way the two-way flag always was.
+    /// </summary>
+    public LineDensityClass LineType
     {
-        get => _isSinking;
-        set { _isSinking = value; OnPropertyChanged(nameof(IsSinking)); UpdateLineTypeUI(); }
+        get => _lineType;
+        set
+        {
+            if (_lineType == value) return;
+            _lineType = value;
+            OnPropertyChanged(nameof(LineType));
+            OnPropertyChanged(nameof(IsFloatingType));
+            OnPropertyChanged(nameof(IsNeutralType));
+            OnPropertyChanged(nameof(IsSinkingType));
+            OnPropertyChanged(nameof(IsSinking));
+            UpdateLineTypeUI();
+            MarkDirty();
+        }
     }
+
+    // One per radio button. A setter only acts on being checked: WPF also fires the unchecked
+    // sibling, and acting on that would write the type twice per click, the second time wrongly.
+    public bool IsFloatingType
+    {
+        get => _lineType == LineDensityClass.Floating;
+        set { if (value) LineType = LineDensityClass.Floating; }
+    }
+    public bool IsNeutralType
+    {
+        get => _lineType == LineDensityClass.Neutral;
+        set { if (value) LineType = LineDensityClass.Neutral; }
+    }
+    public bool IsSinkingType
+    {
+        get => _lineType == LineDensityClass.Sinking;
+        set { if (value) LineType = LineDensityClass.Sinking; }
+    }
+
+    /// <summary>"Anything but floating" — what the compensation tools and the saved file care
+    /// about. A neutral line is density-engineered, so it keeps them.</summary>
+    public bool IsSinking => _lineType != LineDensityClass.Floating;
     public bool IsFullLine
     {
         get => _isFullLine;
@@ -941,7 +978,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CreatedAt          = _projectCreatedAt,
             UseSharedDensity   = _useSharedDensity,
             SharedDensityGCm3  = _sharedDensity,
-            IsSinking          = _isSinking,
+            IsSinking          = _lineType != LineDensityClass.Floating,
+            LineType           = _lineType.ToLabel(),
             IsFullLine         = _isFullLine,
             WaterType          = _waterIsSalt ? "salt" : "fresh",
             WaterTempC         = _waterTempC,
@@ -1247,7 +1285,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // baseDensity <= 0 guard fires, and any zone on this file silently does nothing on load.
         if (_useSharedDensity && Nozzles.Count > 0)
             Nozzles[0].DensityGCm3 = _sharedDensity;
-        _isSinking        = project.IsSinking;
+        _lineType         = LineDensityClassExtensions.ParseOr(
+            project.LineType,
+            project.IsSinking ? LineDensityClass.Sinking : LineDensityClass.Floating);
         _isFullLine       = project.IsFullLine;
         _waterIsSalt      = project.WaterType == "salt";
         _waterTempC       = project.WaterTempC;
@@ -1282,7 +1322,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         // Restore compensated profile if one was saved.
         _lastZoneAdaptChoice = project.ZoneDensityAdaptDiameters;
-        if (project.CompTargetSpeedMs > 0 && _isSinking && ProjectSegments.Any(s => s.SpecWeightGCm3 > 0))
+        if (project.CompTargetSpeedMs > 0 && _lineType != LineDensityClass.Floating && ProjectSegments.Any(s => s.SpecWeightGCm3 > 0))
         {
             // Legacy recipe-based fork (files saved before compensated snapshots became
             // self-contained): recompute C from the NC source geometry + the saved target speed.
@@ -3454,6 +3494,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         bool anyComputed = false;
         bool anySinking  = false;
+        double fastestIns = 0.0;
 
         foreach (var seg in ProjectSegments)
         {
@@ -3492,17 +3533,32 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 ? Math.Max(seg.SinkSpeedStartMs, seg.SinkSpeedEndMs)
                 : seg.SinkSpeedMs;
             if (!double.IsNaN(repSpeed) && repSpeed > 0)
+            {
                 anySinking = true;
+                fastestIns = Math.Max(fastestIns, repSpeed * 39.3701);
+            }
         }
 
-        // Auto-sync the Floating/Sinking radio to the physics — only when at least
-        // one segment has a density set (don't override the flag when nothing is computed).
-        if (anyComputed && _isSinking != anySinking)
+        // Auto-sync the line type to the physics — only when at least one segment has a density
+        // set (don't override the choice when nothing is computed). The fastest section decides:
+        // a line with one sinking section is not a floating line, which is also why a sink tip
+        // reads as sinking here while the per-section column keeps showing the sections apart.
+        if (anyComputed)
         {
-            _isSinking = anySinking;
-            OnPropertyChanged(nameof(IsSinking));
-            UpdateLineTypeUI();
-            MarkDirty();
+            var solved = anySinking
+                ? SinkingSpeedCalc.ClassifyIns(fastestIns)
+                : LineDensityClass.Floating;
+            if (_lineType != solved)
+            {
+                _lineType = solved;
+                OnPropertyChanged(nameof(LineType));
+                OnPropertyChanged(nameof(IsFloatingType));
+                OnPropertyChanged(nameof(IsNeutralType));
+                OnPropertyChanged(nameof(IsSinkingType));
+                OnPropertyChanged(nameof(IsSinking));
+                UpdateLineTypeUI();
+                MarkDirty();
+            }
         }
 
         // NC min/max sink speeds — the achievable range offered by the Compensate dialog. Pulls
@@ -3830,12 +3886,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!IsLoaded) return;
         // Hide compensation tools for floating lines
         bool hasAnyDensity = ProjectSegments.Any(s => s.SpecWeightGCm3 > 0);
-        SinkingToolsPanel.Visibility = (hasAnyDensity && !_isSinking)
+        SinkingToolsPanel.Visibility = (hasAnyDensity && _lineType == LineDensityClass.Floating)
             ? Visibility.Collapsed : Visibility.Visible;
         HeadColumn.Visibility = _isFullLine ? Visibility.Visible : Visibility.Collapsed;
 
         // Exit comp mode when the profile is floating
-        if (!_isSinking && _inCompMode)
+        if (_lineType == LineDensityClass.Floating && _inCompMode)
         {
             _inCompMode = false;
             foreach (var seg in ProjectSegments) seg.ClearCompensation();
@@ -4483,7 +4539,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // the PDF table shows the handful of real materials a producer needs, not one row per
             // ~1cm slice. Identical to ProjectSegments for a normal design (see RefreshDisplaySegments).
             FlyLinePdfExporter.Export(dlg.FileName, _projectName, chartBytes, DisplaySegments.ToList(),
-                _isSinking, _isFullLine, _waterIsSalt, _waterTempC, AfftaBadge, _colorNote,
+                _lineType, _isFullLine, _waterIsSalt, _waterTempC, AfftaBadge, _colorNote,
                 pdfNozzleDefs, pdfNozzleZones, designHex,
                 _coreType, laserMarkText, exportComp, compNote);
             UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}";
@@ -4724,7 +4780,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CreatedAt          = DateTime.UtcNow,
             UseSharedDensity   = _useSharedDensity,
             SharedDensityGCm3  = segs.Count > 0 ? segs[0].SpecWeightGCm3 : _sharedDensity,
-            IsSinking          = _isSinking,
+            IsSinking          = _lineType != LineDensityClass.Floating,
+            LineType           = _lineType.ToLabel(),
             IsFullLine         = _isFullLine,
             WaterType          = _waterIsSalt ? "salt" : "fresh",
             WaterTempC         = _waterTempC,

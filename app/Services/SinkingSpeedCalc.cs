@@ -18,6 +18,23 @@ public static class SinkingSpeedCalc
     private const double Tol      = 1e-12;
     public  const double RhoFloor = 0.94; // g/cm³ — minimum practical material density (0.94 < ρ_water → will float)
 
+    /// <summary>
+    /// Fastest sink speed, in in/s, still called "neutral" rather than "sinking".
+    ///
+    /// A product convention, not a physical boundary: anything denser than water sinks, and this
+    /// only says below which speed that sinking stops mattering to how the line is fished. 0.15 in/s
+    /// is about a centimetre every two and a half seconds — suspended for any practical purpose —
+    /// and it sits clear of the archive, whose slowest line actually designed as sinking comes out
+    /// at 0.23 in/s.
+    /// </summary>
+    public  const double NeutralMaxIns = 0.15;
+
+    /// <summary>Classifies a sink speed given in in/s. Zero or less floats.</summary>
+    public static Models.LineDensityClass ClassifyIns(double speedIns)
+        => double.IsNaN(speedIns) || speedIns <= 0 ? Models.LineDensityClass.Floating
+         : speedIns <= NeutralMaxIns              ? Models.LineDensityClass.Neutral
+         :                                          Models.LineDensityClass.Sinking;
+
     // ── Public API ──────────────────────────────────────────────────────────
 
     /// <summary>
