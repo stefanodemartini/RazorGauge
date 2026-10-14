@@ -361,7 +361,7 @@ public class MainViewModel : ObservableObject
                                 PpcIsCalibrated = root.TryGetProperty("ppcCalibrated", out var pcEl)
                                                   && pcEl.ValueKind == System.Text.Json.JsonValueKind.True;
                                 PpcText       = $"{ppc:0.0000}";
-                                PpcSourceText = PpcIsCalibrated ? "calibrato" : "formula";
+                                PpcSourceText = PpcIsCalibrated ? "calibrated" : "formula";
                                 ppcLog = $", ppc={ppc:0.0000} ({PpcSourceText})";
                             }
                             AppendLog($"Params ricevuti: zeroDisplay={dz:0.00} mm, offset={off:0.00} mm{ppcLog}");

@@ -414,7 +414,7 @@
                                   Click="AutoFitToggle_Click"/>
                     <!-- Position only, data kept: this is the one to press before every measured
                          run, and "Clear Chart" would throw the scan away doing it. -->
-                    <Button Content="Reset Posizione"
+                    <Button Content="Reset Position"
                             Style="{StaticResource BtnSecondary}"
                             Click="ResetPosition_Click"
                             ToolTip="Zero the length to 0 without touching the scan — press this immediately before a measured run"/>
@@ -621,11 +621,11 @@
 
                     <!-- Pulses/cm the device is really using. On screen because it silently scales
                          every length recorded: a stale EEPROM calibration shifts all measurements
-                         with nothing to say so. "calibrato" is highlighted — that is the case where
+                         with nothing to say so. "calibrated" is highlighted — that is the case where
                          the number is not the one the wheel formula implies. -->
                     <Border Style="{StaticResource MetricCard}">
                         <StackPanel>
-                            <TextBlock Text="PPC (impulsi/cm)" FontSize="10" Foreground="{StaticResource TextMuted}"/>
+                            <TextBlock Text="PPC (pulses/cm)" FontSize="10" Foreground="{StaticResource TextMuted}"/>
                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
                                 <TextBlock Text="{Binding PpcText}" FontSize="15" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimary}"/>

@@ -386,9 +386,9 @@ Serve perché **un sink tip è esattamente una linea le cui sezioni non concorda
 tipo unico per tutta la linea non può dire. Il selettore in alto resta la sintesi (e per un sink tip
 dirà "Sinking", perché la punta affonda); la colonna mostra com'è fatta davvero.
 
-### Reset Posizione
+### Reset Position
 
-Il pulsante **Reset Posizione** (toolbar strumenti) azzera la lunghezza a 0 **senza toccare i dati
+Il pulsante **Reset Position** (toolbar strumenti) azzera la lunghezza a 0 **senza toccare i dati
 della scansione** — manda `resetpos` al dispositivo. È diverso da **Clear Chart**, che azzera la
 posizione *e* cancella tutto.
 
@@ -397,15 +397,15 @@ rapportata: partendo da una posizione rimasta da prima la misura risulta corta e
 quell'avanzo, e niente a schermo lo segnala. Un caso reale: una corsa di 100 cm letta 98 solo per
 questo, mentre lo stesso banco su 1000 cm ha letto 1000 esatti.
 
-Verifica a vista: **se la lunghezza viva non legge 0 prima di partire, premi Reset Posizione.**
+Verifica a vista: **se la lunghezza viva non legge 0 prima di partire, premi Reset Position.**
 
 ### PPC — impulsi per centimetro
 
-La card **PPC (impulsi/cm)** nella riga delle metriche mostra il valore che il dispositivo sta
+La card **PPC (pulses/cm)** nella riga delle metriche mostra il valore che il dispositivo sta
 **realmente** usando per convertire gli impulsi dell'encoder in centimetri, e da dove viene:
 
 - **formula** (grigio) — ricavato da `ENCODER_PPR` e `WHEEL_CIRC_MM` nel firmware
-- **calibrato** (arancio) — valore scritto in EEPROM con `calibrate:<cm>` o `Imposta PPC`, che
+- **calibrated** (arancio) — valore scritto in EEPROM con `calibrate:<cm>` o `Imposta PPC`, che
   sopravvive al riavvio e **sostituisce** quello di formula
 
 È in evidenza quando è calibrato perché quel numero **scala tutte le lunghezze registrate**: una

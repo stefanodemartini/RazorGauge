@@ -5294,7 +5294,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private async void ResetPosition_Click(object sender, RoutedEventArgs e)
     {
         await Send("resetpos");
-        UiStatus = "Posizione azzerata — i dati della scansione restano";
+        UiStatus = "Position zeroed — scan data kept";
     }
 
     private async void Reset_Click(object sender, RoutedEventArgs e)

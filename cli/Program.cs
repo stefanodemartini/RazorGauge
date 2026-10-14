@@ -383,7 +383,7 @@ void PrintAnalysis(string name, AnalysisReport r)
     Console.WriteLine();
 
     if (r.SegmentTapers.Count == 0) return;
-    Console.WriteLine($"  {"#",-3}{"name",-14}{"start",7}{"end",7}{"len",6}{"ρ·d in",9}{"ρ·d out",9}{"k/100cm",9}{"mass g",8}  vs archivio");
+    Console.WriteLine($"  {"#",-3}{"name",-14}{"start",7}{"end",7}{"len",6}{"ρ·d in",9}{"ρ·d out",9}{"k/100cm",9}{"mass g",8}  vs archive");
     int si = 1;
     foreach (var s in r.SegmentTapers)
         Console.WriteLine($"  {si++,-3}{Trim(s.Name, 13),-14}{s.StartCm,7:0.#}{s.EndCm,7:0.#}{s.LengthCm,6:0}" +
@@ -396,19 +396,19 @@ void PrintAnalysis(string name, AnalysisReport r)
 static string Band(SegmentTaper s)
 {
     if (double.IsNaN(s.TaperRatePer100Cm)) return "";
-    if (s.IsCylindrical) return "cilindrico";
+    if (s.IsCylindrical) return "cylindrical";
 
     double k = Math.Abs(s.TaperRatePer100Cm);
     string where =
-        k < TaperReference.RisingP10    ? "molto dolce" :
-        k < TaperReference.RisingP25    ? "dolce" :
-        k < TaperReference.RisingP75    ? "tipico" :
-        k < TaperReference.RisingP90    ? "ripido" : "molto ripido";
+        k < TaperReference.RisingP10    ? "very gentle" :
+        k < TaperReference.RisingP25    ? "gentle" :
+        k < TaperReference.RisingP75    ? "typical" :
+        k < TaperReference.RisingP90    ? "steep" : "very steep";
 
     bool rising = s.TaperRatePer100Cm > 0;
     bool inCommercial = rising
         && k >= TaperReference.CommercialRisingLo && k <= TaperReference.CommercialRisingHi;
-    return where + (inCommercial ? "  · banda commerciale" : "");
+    return where + (inCommercial ? "  · commercial band" : "");
 }
 
 static string Trim(string s, int n) => s.Length <= n ? s : s[..n];
