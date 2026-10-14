@@ -236,6 +236,7 @@ public static class FlyLinePdfExporter
         List<NozzleZone>?       nozzleZones       = null,
         string designColorHex = "DC3232",
         string coreType = "",
+        double? coreDiameterMm = null,
         string laserMark = "",
         bool showCompensation = false,
         string compensationNote = "")
@@ -564,6 +565,11 @@ public static class FlyLinePdfExporter
                                             .FontSize(6f).Bold().FontColor(ColMuted).AlignCenter();
                                         sCol.Item().PaddingTop(2).Text(coreType)
                                             .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
+                                        // The core is not drawn on the sheet's chart, so its size
+                                        // has to be stated here or it is nowhere.
+                                        if (coreDiameterMm is double cd && cd > 0)
+                                            sCol.Item().Text($"Ø {cd:0.000} mm")
+                                                .FontSize(6f).FontColor(ColMuted).AlignCenter();
                                     });
                                 }
                             });
@@ -635,6 +641,11 @@ public static class FlyLinePdfExporter
                                             .FontSize(6f).Bold().FontColor(ColMuted).AlignCenter();
                                         sCol.Item().PaddingTop(2).Text(coreType)
                                             .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
+                                        // The core is not drawn on the sheet's chart, so its size
+                                        // has to be stated here or it is nowhere.
+                                        if (coreDiameterMm is double cd && cd > 0)
+                                            sCol.Item().Text($"Ø {cd:0.000} mm")
+                                                .FontSize(6f).FontColor(ColMuted).AlignCenter();
                                     });
                                 }
                             });

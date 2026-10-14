@@ -613,6 +613,34 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Pulses/cm the device is really using. On screen because it silently scales
+                         every length recorded: a stale EEPROM calibration shifts all measurements
+                         with nothing to say so. "calibrato" is highlighted — that is the case where
+                         the number is not the one the wheel formula implies. -->
+                    <Border Style="{StaticResource MetricCard}">
+                        <StackPanel>
+                            <TextBlock Text="PPC (impulsi/cm)" FontSize="10" Foreground="{StaticResource TextMuted}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                <TextBlock Text="{Binding PpcText}" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimary}"/>
+                                <TextBlock Text="{Binding PpcSourceText}" FontSize="10"
+                                           VerticalAlignment="Bottom" Margin="6,0,0,2">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PpcIsCalibrated}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Warning}"/>
+                                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
                     <Border Style="{StaticResource MetricCard}" MinWidth="200">
                         <StackPanel>
                             <TextBlock Text="GoTo / Status" FontSize="10" Foreground="{StaticResource TextMuted}"/>
@@ -1223,8 +1251,30 @@
                               IsEditable="True"
                               Text="{Binding ElementName=MainWin, Path=CoreType, UpdateSourceTrigger=LostFocus}"
                               FontSize="11"
-                              Margin="0,0,0,8"
-                              ToolTip="Core material — pick a common type or type your own"/>
+                              Margin="0,0,0,2"
+                              ToolTip="Core — pick a stocked one (material, breaking strain and the supplier's diameter range) or type your own"/>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Ø" FontSize="11" Foreground="{StaticResource TextMuted}"
+                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Width="56" DockPanel.Dock="Left"
+                                 Text="{Binding ElementName=MainWin, Path=CoreDiameterMm, StringFormat='0.000', TargetNullValue='', UpdateSourceTrigger=LostFocus}"
+                                 Background="#1A1E2A"
+                                 Foreground="{StaticResource TextPrimary}"
+                                 BorderBrush="{StaticResource BorderBrush2}"
+                                 BorderThickness="1" FontSize="11" Padding="4,2"
+                                 VerticalAlignment="Center"
+                                 ToolTip="Filled from the picked core; override it to use a different point of the supplier's range"/>
+                        <CheckBox DockPanel.Dock="Right"
+                                  Content="Show"
+                                  IsChecked="{Binding ElementName=MainWin, Path=ShowCore}"
+                                  FontSize="10" Foreground="{StaticResource TextMuted}"
+                                  VerticalAlignment="Center" Margin="6,0,0,0"
+                                  ToolTip="Draw the core in the design chart and print it on the PDF"/>
+                        <TextBlock Text="{Binding ElementName=MainWin, Path=CoreSpecText}"
+                                   FontSize="10" Foreground="{StaticResource TextMuted}"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                   Margin="8,0,0,0"/>
+                    </DockPanel>
                     <TextBlock DockPanel.Dock="Top"
                                Text="Laser mark (printed in PDF)"
                                FontSize="11" FontWeight="SemiBold"

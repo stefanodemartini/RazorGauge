@@ -65,6 +65,10 @@ public class FlyLineProject
     /// </summary>
     public double? CoreDiameterMm { get; set; }
 
+    /// <summary>Whether the app draws and prints the core. Carried so a round-trip through Save
+    /// does not drop it.</summary>
+    public bool ShowCore { get; set; } = true;
+
     /// <summary>Core (anima) density in g/cm³ — see <see cref="CoreDiameterMm"/>.</summary>
     public double? CoreDensityGCm3 { get; set; }
 }

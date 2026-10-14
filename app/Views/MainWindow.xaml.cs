@@ -102,7 +102,65 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public string CoreType
     {
         get => _coreType;
-        set { _coreType = value; OnPropertyChanged(nameof(CoreType)); MarkDirty(); }
+        set
+        {
+            _coreType = value;
+            OnPropertyChanged(nameof(CoreType));
+            // Picking a catalogue entry fills the diameter in; picking a generic one clears it, so
+            // a core with no known size draws nothing instead of keeping the previous one's.
+            var spec = CoreCatalog.Find(value);
+            CoreDiameterMm = spec?.NominalMm;
+            OnPropertyChanged(nameof(CoreSpecText));
+            MarkDirty();
+            RefreshPlot();
+        }
+    }
+
+    private bool _showCore = true;
+    /// <summary>One switch for both places the core appears — the design chart and the PDF — so it
+    /// is never drawn in one and missing from the other.</summary>
+    public bool ShowCore
+    {
+        get => _showCore;
+        set
+        {
+            if (_showCore == value) return;
+            _showCore = value;
+            OnPropertyChanged(nameof(ShowCore));
+            MarkDirty();
+            RefreshPlot();
+        }
+    }
+
+    private double? _coreDiameterMm;
+    /// <summary>Null when the core has no known diameter — nothing is drawn and nothing is claimed.</summary>
+    public double? CoreDiameterMm
+    {
+        get => _coreDiameterMm;
+        set
+        {
+            if (Nullable.Equals(_coreDiameterMm, value)) return;
+            _coreDiameterMm = value is double d && d > 0 ? d : null;
+            OnPropertyChanged(nameof(CoreDiameterMm));
+            OnPropertyChanged(nameof(CoreSpecText));
+            MarkDirty();
+            RefreshPlot();
+        }
+    }
+
+    /// <summary>What the picker shows under the combo: the supplier's range when the core came from
+    /// the catalogue, the bare diameter when it was typed, nothing when it has none.</summary>
+    public string CoreSpecText
+    {
+        get
+        {
+            var spec = CoreCatalog.Find(_coreType);
+            if (spec != null)
+                return _coreDiameterMm is double d && Math.Abs(d - spec.NominalMm) > 1e-9
+                    ? $"{spec.RangeText} · using {d:0.000} mm"
+                    : $"{spec.RangeText} · using {spec.NominalMm:0.000} mm";
+            return _coreDiameterMm is double dm ? $"Ø {dm:0.000} mm" : "no diameter — core not drawn";
+        }
     }
 
     private string _laserMark = string.Empty;
@@ -348,16 +406,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void InitializeChartControls()
     {
-        CoreTypeCombo.ItemsSource = new[]
-        {
-            "Braided multifilament nylon",
-            "Braided monofilament nylon",
-            "Monofilament nylon (single strand)",
-            "GSP braid (Spectra / Dyneema)",
-            "Polyester (Dacron) braid",
-            "Kevlar / aramid braid",
-            "Coreless / PU monocore",
-        };
+        CoreTypeCombo.ItemsSource = CoreCatalog.PickerItems;
         SmoothingToggle.IsChecked = _vm.SmoothingEnabled;
         SmoothingAlphaSlider.Value = Math.Clamp(_vm.Settings.Chart.SmoothingAlpha, SmoothingAlphaSlider.Minimum, SmoothingAlphaSlider.Maximum);
         LineWidthSlider.Value = Math.Clamp(_vm.Settings.Chart.LineWidth, (int)LineWidthSlider.Minimum, (int)LineWidthSlider.Maximum);
@@ -474,7 +523,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         // Design layer first so scan can render on top of it.
         if (_showDesignLayer && _designMode)
+        {
             RenderSegmentOverlay(plot);
+            DrawCoreBand(plot);
+        }
 
         // Scan + imported series (always on top in design mode so they're not buried).
         if (_showScanLayer && pts.Count > 0)
@@ -699,6 +751,43 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             EnsureWideDrawingView(anchorX);
         }
+    }
+
+    /// <summary>
+    /// The core, drawn inside the coating at its true size — design chart only, where the taper is
+    /// being shaped. A braided core runs one diameter the whole length, so it is a constant band in
+    /// the same ±d/2 system the profile itself uses, which is what makes "in proportion" free here.
+    ///
+    /// Nothing is drawn when the core has no known diameter: a generic or hand-named core gets no
+    /// invented size. And where the core is thicker than the coating around it the band simply
+    /// sticks out of the profile — that is not a drawing glitch but the design saying it cannot be
+    /// built there, so it is left visible rather than clipped away.
+    /// </summary>
+    private void DrawCoreBand(ScottPlot.Plot plot)
+    {
+        if (!_showCore) return;
+        if (_coreDiameterMm is not double core || core <= 0) return;
+        if (_segmentNodes.Count < 2) return;
+
+        var sorted = _segmentNodes.OrderBy(n => n.X).ToList();
+        double x0 = sorted[0].X, x1 = sorted[^1].X;
+        if (x1 <= x0) return;
+
+        double half = core / 2.0;
+        var xs  = new[] { x0, x1 };
+        var top = new[] { half, half };
+        var bot = new[] { -half, -half };
+
+        // Pale and flat against the shaded coating, so it reads as something underneath rather than
+        // as another profile competing with it.
+        var coreCol = new ScottColor(235, 235, 240).WithAlpha(0.92f);
+        DrawLineFill(plot, xs, top, bot, coreCol);
+
+        var edgeT = plot.Add.Scatter(xs, top);
+        edgeT.Color = new ScottColor(120, 120, 135); edgeT.LineWidth = 1f; edgeT.MarkerSize = 0;
+        edgeT.LegendText = $"Core Ø {core:0.000} mm";
+        var edgeB = plot.Add.Scatter(xs, bot);
+        edgeB.Color = new ScottColor(120, 120, 135); edgeB.LineWidth = 1f; edgeB.MarkerSize = 0;
     }
 
     // ── Analysis chart: mass/unit-length + cumulative grain weight ────────────
@@ -1006,6 +1095,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             DesignLineColorHex = Nozzles.Count > 0 ? Nozzles[0].ColorHex : "DC3232",
             ColorNote     = _colorNote,
             CoreType      = _coreType,
+            CoreDiameterMm = _coreDiameterMm,
+            ShowCore      = _showCore,
             LaserMark     = _laserMark,
             LaserMarkFromTipMm = _laserMarkFromTip,
             LaserMarkFromEndMm = _laserMarkFromEnd,
@@ -1254,7 +1345,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _colorNote = project.ColorNote ?? string.Empty;
         OnPropertyChanged(nameof(ColorNote));
         _coreType = project.CoreType ?? string.Empty;
+        // A file older than the catalogue has no diameter of its own; recover it from the entry its
+        // CoreType names, if it names one.
+        _coreDiameterMm = project.CoreDiameterMm ?? CoreCatalog.Find(_coreType)?.NominalMm;
+        _showCore = project.ShowCore;
         OnPropertyChanged(nameof(CoreType));
+        OnPropertyChanged(nameof(CoreDiameterMm));
+        OnPropertyChanged(nameof(CoreSpecText));
+        OnPropertyChanged(nameof(ShowCore));
         _laserMark = project.LaserMark ?? string.Empty;
         OnPropertyChanged(nameof(LaserMark));
         _laserMarkFromTip = project.LaserMarkFromTipMm ?? string.Empty;
@@ -4541,7 +4639,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             FlyLinePdfExporter.Export(dlg.FileName, _projectName, chartBytes, DisplaySegments.ToList(),
                 _lineType, _isFullLine, _waterIsSalt, _waterTempC, AfftaBadge, _colorNote,
                 pdfNozzleDefs, pdfNozzleZones, designHex,
-                _coreType, laserMarkText, exportComp, compNote);
+                _showCore ? _coreType : string.Empty,
+                _showCore ? _coreDiameterMm : null,
+                laserMarkText, exportComp, compNote);
             UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}";
         }
         catch (Exception ex)
@@ -4789,6 +4889,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             DesignLineColorHex = Nozzles.Count > 0 ? Nozzles[0].ColorHex : "DC3232",
             ColorNote          = _colorNote,
             CoreType           = _coreType,
+            CoreDiameterMm     = _coreDiameterMm,
+            ShowCore           = _showCore,
             LaserMark          = _laserMark,
             LaserMarkFromTipMm = remappedFromTip,
             LaserMarkFromEndMm = _laserMarkFromEnd,

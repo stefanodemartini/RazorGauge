@@ -51,6 +51,17 @@ public class FlyLineProject
     public string ColorNote { get; set; } = string.Empty;
     /// <summary>Core material (e.g. "Braided multifilament nylon", "GSP (Spectra/Dyneema) braid").</summary>
     public string CoreType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Core diameter in mm — the nominal of the picked <see cref="CoreCatalog"/> entry, or whatever
+    /// was typed over it. Null for a generic or hand-named core, which then draws nothing rather
+    /// than guessing a size.
+    /// </summary>
+    public double? CoreDiameterMm { get; set; }
+
+    /// <summary>Whether the core is drawn in the design chart and printed on the PDF. Defaults to
+    /// true, which costs nothing on a project that has no core diameter to show.</summary>
+    public bool ShowCore { get; set; } = true;
     /// <summary>Text laser-marked on the line, shown in the PDF.</summary>
     public string LaserMark { get; set; } = string.Empty;
     /// <summary>Mark position: mm from the tip (X = 0). Empty = no mark at the tip side.</summary>

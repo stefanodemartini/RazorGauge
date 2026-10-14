@@ -103,4 +103,17 @@ public class RoundTripTests
 
         Assert.Equal(string.Empty, project.LineType);
     }
+
+    [Fact]
+    public void CoreDiameter_SurvivesARoundTrip()
+    {
+        // Same trap as LineType: this library rewrites whole files, and the app is the only thing
+        // that sets the core, so a field it does not model is a field it deletes.
+        var project = FlpJsonSerializer.Deserialize(File.ReadAllText(FixturePath));
+        project.CoreDiameterMm = 0.845;
+
+        var again = FlpJsonSerializer.Deserialize(FlpJsonSerializer.Serialize(project));
+
+        Assert.Equal(0.845, again.CoreDiameterMm);
+    }
 }
