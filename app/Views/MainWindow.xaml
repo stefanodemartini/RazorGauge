@@ -412,10 +412,16 @@
                                   Style="{StaticResource ToggleBase}"
                                   IsChecked="True"
                                   Click="AutoFitToggle_Click"/>
+                    <!-- Position only, data kept: this is the one to press before every measured
+                         run, and "Clear Chart" would throw the scan away doing it. -->
+                    <Button Content="Reset Posizione"
+                            Style="{StaticResource BtnSecondary}"
+                            Click="ResetPosition_Click"
+                            ToolTip="Zero the length to 0 without touching the scan — press this immediately before a measured run"/>
                     <Button Content="Clear Chart"
                             Style="{StaticResource BtnGhost}"
                             Click="Reset_Click"
-                            ToolTip="Reset position and clear chart"/>
+                            ToolTip="Reset position AND clear the chart"/>
 
                     <Separator Style="{StaticResource ToolSep}"/>
 

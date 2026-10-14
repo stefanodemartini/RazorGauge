@@ -5282,6 +5282,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     // Tools
+
+    /// <summary>
+    /// Zeroes the length without clearing the scan — the device's own "resetpos", which the app
+    /// could not reach before: its only reset was the destructive one.
+    ///
+    /// Worth a button of its own because the position is what a measured run is referenced to. A run
+    /// started from a stale position reads short by exactly that stale amount, and nothing says so:
+    /// a 100 cm run once read 98 for this reason alone, while the same rig over 1000 cm read 1000.
+    /// </summary>
+    private async void ResetPosition_Click(object sender, RoutedEventArgs e)
+    {
+        await Send("resetpos");
+        UiStatus = "Posizione azzerata — i dati della scansione restano";
+    }
+
     private async void Reset_Click(object sender, RoutedEventArgs e)
     {
         await Send("reset");
