@@ -33,6 +33,9 @@ public class MainViewModel : ObservableObject
     private string _lastUpdate = "--";
     private string _logText = "";
     private string _displayZeroText = "0.00 mm";
+    private string _ppcText = "—";
+    private string _ppcSourceText = string.Empty;
+    private bool   _ppcIsCalibrated;
     private string _offsetText = "0.00 mm";
     private bool _scanReceiving;
     private bool _isGoToActive;
@@ -53,6 +56,15 @@ public class MainViewModel : ObservableObject
     public string LastUpdate       { get => _lastUpdate;       set => SetProperty(ref _lastUpdate, value); }
     public string LogText          { get => _logText;          set => SetProperty(ref _logText, value); }
     public string DisplayZeroText  { get => _displayZeroText;  set => SetProperty(ref _displayZeroText, value); }
+
+    /// <summary>
+    /// Pulses-per-cm the device is actually using, and whether it comes from its EEPROM calibration
+    /// or from the wheel formula. Surfaced because it silently scales every length the app records:
+    /// a stale calibration shifts all measurements with nothing on screen to say so.
+    /// </summary>
+    public string PpcText          { get => _ppcText;          set => SetProperty(ref _ppcText, value); }
+    public string PpcSourceText    { get => _ppcSourceText;    set => SetProperty(ref _ppcSourceText, value); }
+    public bool   PpcIsCalibrated  { get => _ppcIsCalibrated;  set => SetProperty(ref _ppcIsCalibrated, value); }
     public string OffsetText       { get => _offsetText;       set => SetProperty(ref _offsetText, value); }
 
     public bool SmoothingEnabled
@@ -341,7 +353,18 @@ public class MainViewModel : ObservableObject
                             var off = root.TryGetProperty("offset",      out var offEl) ? offEl.GetDouble() : 0;
                             DisplayZeroText = $"{dz:0.00} mm";
                             OffsetText      = $"{off:0.00} mm";
-                            AppendLog($"Params ricevuti: zeroDisplay={dz:0.00} mm, offset={off:0.00} mm");
+
+                            string ppcLog = string.Empty;
+                            if (root.TryGetProperty("ppc", out var ppcEl))
+                            {
+                                var ppc = ppcEl.GetDouble();
+                                PpcIsCalibrated = root.TryGetProperty("ppcCalibrated", out var pcEl)
+                                                  && pcEl.ValueKind == System.Text.Json.JsonValueKind.True;
+                                PpcText       = $"{ppc:0.0000}";
+                                PpcSourceText = PpcIsCalibrated ? "calibrato" : "formula";
+                                ppcLog = $", ppc={ppc:0.0000} ({PpcSourceText})";
+                            }
+                            AppendLog($"Params ricevuti: zeroDisplay={dz:0.00} mm, offset={off:0.00} mm{ppcLog}");
                             break;
 
                         case "speed":

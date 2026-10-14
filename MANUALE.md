@@ -386,6 +386,67 @@ Serve perché **un sink tip è esattamente una linea le cui sezioni non concorda
 tipo unico per tutta la linea non può dire. Il selettore in alto resta la sintesi (e per un sink tip
 dirà "Sinking", perché la punta affonda); la colonna mostra com'è fatta davvero.
 
+### PPC — impulsi per centimetro
+
+La card **PPC (impulsi/cm)** nella riga delle metriche mostra il valore che il dispositivo sta
+**realmente** usando per convertire gli impulsi dell'encoder in centimetri, e da dove viene:
+
+- **formula** (grigio) — ricavato da `ENCODER_PPR` e `WHEEL_CIRC_MM` nel firmware
+- **calibrato** (arancio) — valore scritto in EEPROM con `calibrate:<cm>` o `Imposta PPC`, che
+  sopravvive al riavvio e **sostituisce** quello di formula
+
+È in evidenza quando è calibrato perché quel numero **scala tutte le lunghezze registrate**: una
+calibrazione vecchia o fatta in condizioni diverse sposta ogni misura, e prima non c'era nulla a
+schermo che lo dicesse. Il dato arrivava già via WebSocket ma veniva scartato.
+
+> Se una scansione risulta lunga o corta di qualche percento, questa card è il primo posto da
+> guardare. Da lì si risale alla pagina web dell'ESP32, dove il valore si azzera (`Ripristina
+> formula`) o si ritara.
+
+### Core (anima)
+
+Il selettore **Core** nel pannello materiali elenca i core realmente a magazzino, con materiale,
+carico di rottura e la gamma di diametro del fornitore:
+
+| Materiale | lb | Ø |
+|---|---|---|
+| Polyester | 12 | 0.55–0.60 |
+| Polyester | 17 | 0.65–0.72 |
+| Polyester | 20 | 0.82–0.87 |
+| Polyester | 25 | 0.90–0.95 |
+| Polyester | 30 | 1.00–1.05 |
+| Polyester | 35 | 1.15 |
+| Kevlar | 60 | ≥ 0.90 |
+| Kevlar | 80 | ≥ 0.90 |
+
+- Il fornitore dà una **gamma**, non un valore. Scegliendo una voce il campo **Ø** si riempie col
+  **punto medio**; la gamma resta scritta accanto, così la tolleranza non sparisce dietro un numero
+  solo. Il Ø è sovrascrivibile a mano per usare un altro punto della gamma
+- Restano in lista anche le vecchie descrizioni generiche ("Braided multifilament nylon"…): non
+  hanno diametro, quindi un progetto che ne usa una si apre e si stampa come prima, semplicemente
+  non disegna il core
+- Il Kevlar è quotato solo come "sopra 0.90" per entrambi i carichi: il Ø registrato è quel **minimo**,
+  non una misura. Da sostituire con i valori veri prima di fidarsi di un core Kevlar disegnato in scala
+
+La spunta **Show** accanto al Ø è **un solo interruttore per entrambi i posti** in cui il core
+compare, così non capita mai che sia disegnato nel grafico e assente dal foglio (o viceversa).
+Spenta: niente banda nel grafico e **nessuna card Core nel PDF**, né tipo né diametro.
+
+**Nel grafico** (solo in Design Mode) il core è disegnato dentro il rivestimento **alla sua
+dimensione vera**, come banda a diametro costante nello stesso sistema ±d/2 del profilo. Dove il
+core è più grosso del rivestimento **la banda esce dal profilo**: non è un difetto del disegno, è
+il progetto che dice che lì non si può costruire — per questo non viene tagliata via.
+
+**Nel PDF** il core non è disegnato: compaiono la voce scelta e il Ø usato nella card Core.
+
+Nel `.flp`: `CoreType` (come prima) più **`CoreDiameterMm`** e **`ShowCore`**. Un file più vecchio del catalogo non ha
+il diametro e lo recupera dalla voce che il suo `CoreType` nomina, se ne nomina una.
+
+> Il Ø del core **non entra ancora nel calcolo della massa**. `MassLinearCalculator` sa già
+> modellare anima + rivestimento, ma gli serve anche la **densità** del core, che il fornitore non
+> ha dato — e la densità di una treccia non è quella del materiale pieno, perché la treccia ha aria
+> dentro. Finché manca quel numero il calcolo resta a sezione piena, come prima.
+
 ### Full Line vs Shooting Head
 - **Full Line**: attiva la colonna "Head" nella tabella segmenti
 - Il CoM e i calcoli AFFTA usano solo i segmenti testa quando attivo
