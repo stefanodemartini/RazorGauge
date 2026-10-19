@@ -33,6 +33,10 @@ public class MainViewModel : ObservableObject
     private string _lastUpdate = "--";
     private string _logText = "";
     private string _displayZeroText = "0.00 mm";
+    private string _expectedLengthText = string.Empty;
+    private string _lengthDeltaText = string.Empty;
+    private bool   _lengthDeltaIsOff;
+    private double _measuredLengthCm;
     private string _ppcText = "—";
     private string _ppcSourceText = string.Empty;
     private bool   _ppcIsCalibrated;
@@ -47,6 +51,60 @@ public class MainViewModel : ObservableObject
     public string ConnectionStatus { get => _connectionStatus; set => SetProperty(ref _connectionStatus, value); }
     public string MotorState       { get => _motorState;       set => SetProperty(ref _motorState, value); }
     public string CurrentLength    { get => _currentLength;    set => SetProperty(ref _currentLength, value); }
+
+    /// <summary>
+    /// The length a run is being checked against, typed in by hand, and how far the measured length
+    /// is from it. For validating the measurement on a line whose length is already known, where
+    /// the interesting figure is the difference and doing it in the head over 2700 cm invites
+    /// exactly the arithmetic slip the check is meant to catch.
+    ///
+    /// Empty or unparseable means no check is running, and the readout stays blank rather than
+    /// comparing against zero.
+    /// </summary>
+    public string ExpectedLengthText
+    {
+        get => _expectedLengthText;
+        set { if (SetProperty(ref _expectedLengthText, value)) RefreshLengthDelta(); }
+    }
+
+    public string LengthDeltaText  { get => _lengthDeltaText;  set => SetProperty(ref _lengthDeltaText, value); }
+
+    /// <summary>True once the difference exceeds a tenth of a percent, so a run that is off stands
+    /// out instead of needing to be read.</summary>
+    public bool LengthDeltaIsOff   { get => _lengthDeltaIsOff;  set => SetProperty(ref _lengthDeltaIsOff, value); }
+
+    /// <summary>Last length reported by the device, cm. Public so the window can warn when a scan
+    /// is enabled at a position that is not zero.</summary>
+    public double MeasuredLengthCm => _measuredLengthCm;
+
+    private void SetMeasuredLength(double cm)
+    {
+        _measuredLengthCm = cm;
+        CurrentLength = $"{cm:0.0} cm";
+        RefreshLengthDelta();
+    }
+
+    private void RefreshLengthDelta()
+    {
+        if (!double.TryParse(_expectedLengthText, NumberStyles.Float, CultureInfo.CurrentCulture, out var expected)
+         && !double.TryParse(_expectedLengthText, NumberStyles.Float, CultureInfo.InvariantCulture, out expected))
+        {
+            LengthDeltaText  = string.Empty;
+            LengthDeltaIsOff = false;
+            return;
+        }
+        if (expected <= 0)
+        {
+            LengthDeltaText  = string.Empty;
+            LengthDeltaIsOff = false;
+            return;
+        }
+
+        double delta = _measuredLengthCm - expected;
+        double pct   = delta / expected * 100.0;
+        LengthDeltaText  = $"{delta:+0.0;-0.0;0.0} cm   {pct:+0.00;-0.00;0.00}%";
+        LengthDeltaIsOff = Math.Abs(pct) > 0.1;
+    }
     public string CurrentDiameter  { get => _currentDiameter;  set => SetProperty(ref _currentDiameter, value); }
     public string CurrentDisplay   { get => _currentDisplay;   set => SetProperty(ref _currentDisplay, value); }
     public string Speed            { get => _speed;            set => SetProperty(ref _speed, value); }
@@ -77,13 +135,21 @@ public class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>"RX ON" / "RX OFF" — the state spelled out, not inferred from which button is
+    /// greyed. Receiving off stops the recording but never the encoder: the position keeps
+    /// advancing, which is the trap this makes visible.</summary>
+    public string ScanStateText => ScanReceiving ? "RX ON" : "RX OFF";
+
     public bool ScanReceiving
     {
         get => _scanReceiving;
         set
         {
             if (SetProperty(ref _scanReceiving, value))
+            {
                 OnPropertyChanged(nameof(CanEnableScan));
+                OnPropertyChanged(nameof(ScanStateText));
+            }
         }
     }
 
@@ -413,7 +479,7 @@ public class MainViewModel : ObservableObject
                             var cur = root.TryGetProperty("current_cm",   out var curEl) ? curEl.GetDouble() : 0;
                             var tar = root.TryGetProperty("target_cm",    out var tarEl) ? tarEl.GetDouble() : 0;
                             GotoStatus    = $"GOTOPOS: {cur:0.0}/{tar:0.0} cm — mancano {rem:0.0} cm";
-                            CurrentLength = $"{cur:0.0} cm";
+                            SetMeasuredLength(cur);
                             break;
                         }
                     }
@@ -424,7 +490,7 @@ public class MainViewModel : ObservableObject
                 if (root.TryGetProperty("cm", out var cmEl))
                 {
                     var x = cmEl.GetDouble();
-                    CurrentLength = $"{x:0.0} cm";
+                    SetMeasuredLength(x);
 
                     if (root.TryGetProperty("diameter", out var diaEl))
                     {

@@ -5254,7 +5254,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private async void ScanOn_Click(object sender, RoutedEventArgs e)
     {
         await Send("scan_on");
-        UiStatus = "Receiving ON";
+
+        // Receiving off never stopped the encoder, only the recording, so any line fed through
+        // meanwhile is already in the position. Enabling here means the scan starts from there and
+        // every point carries that head start — the one failure that looks like a measurement error
+        // and is not. Said plainly rather than left to be noticed later in the chart.
+        double at = _vm.MeasuredLengthCm;
+        UiStatus = Math.Abs(at) < 0.5
+            ? "Receiving ON — position 0"
+            : $"Receiving ON at {at:0.0} cm — the scan starts from here. Reset Position first for a run from zero.";
     }
 
     private async void ScanOff_Click(object sender, RoutedEventArgs e)

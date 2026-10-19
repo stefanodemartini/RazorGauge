@@ -386,6 +386,48 @@ Serve perché **un sink tip è esattamente una linea le cui sezioni non concorda
 tipo unico per tutta la linea non può dire. Il selettore in alto resta la sintesi (e per un sink tip
 dirà "Sinking", perché la punta affonda); la colonna mostra com'è fatta davvero.
 
+### RX ON / OFF — cosa ferma davvero
+
+Accanto ai pulsanti c'è un **badge di stato**: verde `RX ON`, grigio `RX OFF`. Prima lo stato si
+deduceva solo da quale dei due pulsanti fosse grigio.
+
+**RX OFF ferma la registrazione, non l'encoder.** Il contatore avanza sempre: è una posizione, non
+un campionamento. Quindi la linea fatta passare a ricezione spenta **è già nella posizione**, e una
+scansione abilitata dopo parte da lì — ogni punto porta quel vantaggio iniziale.
+
+Non è un difetto da correggere: serve per mettere in pausa una scansione e riprenderla senza perdere
+il riferimento. È però la trappola che fa sembrare sbagliata una misura che non lo è.
+
+Per questo, abilitando la ricezione la barra di stato dice **da dove** si parte:
+
+```
+Receiving ON — position 0
+Receiving ON at 312.0 cm — the scan starts from here. Reset Position first for a run from zero.
+```
+
+**Per una corsa da zero: Reset Position subito prima di RX ON**, non prima di posizionare la linea.
+
+### Expected / Δ — verifica su una lunghezza nota
+
+La card **Expected / Δ** (striscia metriche, accanto a Length) serve a controllare la misura su una
+linea di cui si conosce già la lunghezza: si digita la lunghezza nota in cm e accanto compare la
+**differenza**, in centimetri e in percentuale.
+
+Verde entro lo 0.1%, arancio oltre. Vuota finché il campo è vuoto: non confronta contro zero.
+
+Esiste perché su 2700 cm la differenza fatta a mente è proprio il tipo di conto che il controllo
+dovrebbe smascherare, non introdurre.
+
+**Procedura:**
+1. **Reset Position** — azzera la lunghezza senza toccare i dati
+2. verifica che Length legga **0** prima di partire
+3. digita la lunghezza nota in **Expected**
+4. fai passare la linea; a fine corsa leggi Δ
+
+> ⚠️ **"Lunghezza nota" dev'essere misurata, non nominale.** Il nominale di una linea commerciale ha
+> le sue tolleranze: confrontando contro quello, uno scarto può essere della linea e non dello
+> strumento. Per validare la misura serve una lunghezza verificata con metro o fettuccia.
+
 ### Reset Position
 
 Il pulsante **Reset Position** (toolbar strumenti) azzera la lunghezza a 0 **senza toccare i dati
