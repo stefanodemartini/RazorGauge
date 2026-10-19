@@ -1,16 +1,16 @@
 ---
 name: build-deploy
-description: Build, publish and deploy the FlyLine Profiler WPF app. Use whenever code under app/ changed and Stefano needs to test it — covers the exe file-lock dance, the self-contained publish, and the Desktop copy he actually runs.
+description: Build, publish and deploy the RazorGauge WPF app. Use whenever code under app/ changed and Stefano needs to test it — covers the exe file-lock dance, the self-contained publish, and the Desktop copy he actually runs.
 ---
 
-# Building and deploying FlyLine Profiler
+# Building and deploying RazorGauge
 
-`app/DiametroLineaDesktop.csproj` — .NET 8 WPF, `AssemblyName` = **FlyLineProfiler.exe** (note: project name and exe name differ).
+`app/DiametroLineaDesktop.csproj` — .NET 8 WPF, `AssemblyName` = **RazorGauge.exe** (note: project name and exe name differ).
 
 ## The one rule that matters
 
 **Stefano runs the copy on his Desktop, not the Debug build.** A `dotnet build` alone updates only
-`app/bin/Debug/net8.0-windows/FlyLineProfiler.exe`. If he tests from the Desktop after that, he is
+`app/bin/Debug/net8.0-windows/RazorGauge.exe`. If he tests from the Desktop after that, he is
 testing *stale code* and will report bugs you already fixed. This wasted real time in a past session.
 Every change he needs to see must end with the publish + Desktop copy.
 
@@ -19,11 +19,11 @@ Every change he needs to see must end with the publish + Desktop copy.
 He may be mid-acquisition with scan data in memory. Check, then **ask and wait**:
 
 ```bash
-tasklist //FI "IMAGENAME eq FlyLineProfiler.exe"
+tasklist //FI "IMAGENAME eq RazorGauge.exe"
 ```
 
 If it's running, tell him you're ready and wait for his confirmation ("chiusa"). Building while it
-runs fails with `MSB3027 / MSB3021: cannot access FlyLineProfiler.exe ... used by another process`
+runs fails with `MSB3027 / MSB3021: cannot access RazorGauge.exe ... used by another process`
 (the compile itself succeeds — only the exe copy step fails, so a "Build FAILED" with only MSB302x
 errors means your code is fine).
 
@@ -40,14 +40,14 @@ dotnet publish DiametroLineaDesktop.csproj -c Release -r win-x64 \
   -o "C:\Users\Stefano\Documents\Arduino\flylineprofiler\publish"
 
 # 3. the copy he actually runs (~200 MB, takes a moment)
-cp "C:\Users\Stefano\Documents\Arduino\flylineprofiler\publish\FlyLineProfiler.exe" \
-   "C:\Users\Stefano\Desktop\FlyLineProfiler.exe"
-ls -la "C:\Users\Stefano\Desktop\FlyLineProfiler.exe"   # confirm the timestamp moved
+cp "C:\Users\Stefano\Documents\Arduino\flylineprofiler\publish\RazorGauge.exe" \
+   "C:\Users\Stefano\Desktop\RazorGauge.exe"
+ls -la "C:\Users\Stefano\Desktop\RazorGauge.exe"   # confirm the timestamp moved
 
 # 4. relaunch for him
 ```
 ```powershell
-Start-Process "C:\Users\Stefano\Desktop\FlyLineProfiler.exe"
+Start-Process "C:\Users\Stefano\Desktop\RazorGauge.exe"
 ```
 
 Report the new Desktop timestamp back to him — it's how he confirms he's on the right build.
@@ -55,7 +55,7 @@ Report the new Desktop timestamp back to him — it's how he confirms he's on th
 ## Debug-only shortcut
 
 For a quick compile check (no deploy needed yet), step 1 alone is enough, launching
-`app\bin\Debug\net8.0-windows\FlyLineProfiler.exe`. But if he's going to *test* it, deploy properly.
+`app\bin\Debug\net8.0-windows\RazorGauge.exe`. But if he's going to *test* it, deploy properly.
 
 ## Diagnosing "the fix didn't work"
 

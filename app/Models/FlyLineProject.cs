@@ -1,7 +1,7 @@
 namespace DiametroLineaDesktop.Models;
 
 /// <summary>
-/// Serializable model for a FlyLine Profiler project (.flp file).
+/// Serializable model for a RazorGauge project (.flp file).
 /// Contains the acquired scan profile, any imported comparison series,
 /// and the design nodes drawn over the profile.
 /// </summary>

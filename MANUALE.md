@@ -1,4 +1,4 @@
-# FlyLine Profiler — Manuale Utente
+# RazorGauge — Manuale Utente
 
 **Versione**: corrente (giugno 2026)
 **Piattaforma**: Windows 10/11 (x64), .NET 8
@@ -7,7 +7,7 @@
 
 ## Avvio
 
-Aprire `FlyLineProfiler.exe` oppure fare doppio-clic su un file `.flp` per aprire direttamente un progetto.
+Aprire `RazorGauge.exe` oppure fare doppio-clic su un file `.flp` per aprire direttamente un progetto.
 
 La finestra si apre in **Modalità Design** (toggle "Design Mode" attivo in alto a destra).
 
@@ -17,7 +17,7 @@ La finestra si apre in **Modalità Design** (toggle "Design Mode" attivo in alto
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ FlyLine Profiler — [NomeProgetto]                    [Design Mode]│
+│ RazorGauge — [NomeProgetto]                    [Design Mode]│
 ├─────────┬───────────────────────────────────────────────────────┤
 │         │                                                         │
 │ Pannello│              GRAFICO PRINCIPALE (ScottPlot)            │

@@ -11,7 +11,12 @@ public static class ProjectService
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                      "FlyLineProfiler", "Projects");
 
-    public const string FileFilter    = "FlyLine Profiler project (*.flp)|*.flp";
+    public const string FileFilter    = "RazorGauge project (*.flp)|*.flp";
+    /// <summary>
+    /// Resta ".flp" anche dopo che il prodotto si chiama RazorGauge: cambiarla renderebbe
+    /// invisibili tutti i progetti gia salvati e romperebbe le associazioni di sistema, in cambio
+    /// di nulla. L'estensione identifica il formato, non il nome commerciale.
+    /// </summary>
     public const string FileExtension = ".flp";
 
     private static readonly JsonSerializerOptions _opts = new() { WriteIndented = true };

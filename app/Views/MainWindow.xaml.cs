@@ -967,7 +967,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void UpdateProjectTitle()
     {
         var star = _isDirty ? " *" : string.Empty;
-        Title = $"FlyLine Profiler — {_projectName}{star}";
+        Title = $"RazorGauge — {_projectName}{star}";
         if (ProjectNameText != null)
             ProjectNameText.Text = $"{_projectName}{star}";
     }

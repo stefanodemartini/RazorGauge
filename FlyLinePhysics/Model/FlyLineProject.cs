@@ -1,7 +1,7 @@
 namespace FlyLinePhysics.Model;
 
 /// <summary>
-/// Serializable model for a FlyLine Profiler project (.flp file) — a twin of
+/// Serializable model for a RazorGauge project (.flp file) — a twin of
 /// DiametroLineaDesktop.Models.FlyLineProject kept in this library so FlyLinePhysics can read/
 /// write the same file format without depending on the WPF assembly (that would create a
 /// reference cycle, since the WPF app depends on this library, not the other way round).

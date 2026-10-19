@@ -8,7 +8,7 @@
         xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         xmlns:local="clr-namespace:DiametroLineaDesktop.Views"
         mc:Ignorable="d"
-        Title="FlyLine Profiler"
+        Title="RazorGauge"
         Icon="/Assets/icon.ico"
         Height="900"
         Width="1400"
@@ -229,7 +229,7 @@
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" Fill="{StaticResource Accent}" Margin="0,0,10,0"/>
-                    <TextBlock Text="FlyLine Profiler"
+                    <TextBlock Text="RazorGauge"
                                FontSize="18" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimary}"/>
                     <TextBlock Text="  fly line diameter profiler"
@@ -305,7 +305,7 @@
                     <Button Content="?"
                             Style="{StaticResource BtnGhost}"
                             Click="AboutBtn_Click"
-                            ToolTip="About FlyLine Profiler"
+                            ToolTip="About RazorGauge"
                             Width="32" Height="32"
                             FontSize="14" FontWeight="Bold"
                             Margin="0,0,8,0"/>

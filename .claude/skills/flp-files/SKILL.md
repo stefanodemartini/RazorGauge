@@ -1,6 +1,6 @@
 ---
 name: flp-files
-description: Read, inspect and edit FlyLine Profiler .flp project files directly (JSON on disk). Use to verify real saved geometry, diagnose "the app shows X but the file says Y", or apply a design change (e.g. a density zone) outside the UI.
+description: Read, inspect and edit RazorGauge .flp project files directly (JSON on disk). Use to verify real saved geometry, diagnose "the app shows X but the file says Y", or apply a design change (e.g. a density zone) outside the UI.
 ---
 
 # Working with .flp project files

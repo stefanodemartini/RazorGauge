@@ -275,7 +275,7 @@ Windows alternative to the browser UI. Connects to the same ESP32 backend over W
 | UI shell | `Fluent.Ribbon` 10.0 |
 | Chart | `ScottPlot.WPF` 5.0.52 |
 | PDF export | `FlyLinePdfExporter.cs` (custom, no 3rd-party PDF lib dependency noted here — see file) |
-| Project files | `.flp` (JSON, saved in `Documents\FlyLineProfiler\Projects\`) |
+| Project files | `.flp` (JSON, saved in `Documents\RazorGauge\Projects\`) |
 
 ### File structure
 ```

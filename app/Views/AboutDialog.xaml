@@ -2,7 +2,7 @@
     x:Class="DiametroLineaDesktop.Views.AboutDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="About FlyLine Profiler"
+    Title="About RazorGauge"
     Width="420" Height="320"
     WindowStartupLocation="CenterOwner"
     ResizeMode="NoResize"
@@ -34,7 +34,7 @@
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,18">
                     <Ellipse Width="14" Height="14" Fill="{StaticResource Accent}"
                              VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <TextBlock Text="FlyLine Profiler"
+                    <TextBlock Text="RazorGauge"
                                FontSize="22" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimary}"
                                VerticalAlignment="Center"/>
