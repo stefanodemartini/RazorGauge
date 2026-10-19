@@ -1,0 +1,31 @@
+RazorGauge - struttura in alluminio: viteria e sequenza di montaggio (verificata sul modello 3D)
+
+VITERIA (acciaio inox A2 consigliato)
+- Pezzo unico MJF -> piastra (P1-P8): 8 x M3x12 testa cilindrica ISO 4762 dal fronte (7.2 mm di PA12 + 4.8 mm nel filetto della piastra)
+- RazorBoard (P9-P12): 4 distanziali M3x10 maschio-femmina, FILETTO MASCHIO MAX 6 mm
+  (P12 e' coperto davanti dal pezzo unico: il maschio non deve sporgere oltre la piastra) + 4 x M3x6 per la scheda
+- Mensola -> piastra (P13-P15 / M5-M7): 3 x M3x12 testa svasata piana ISO 10642, dal fronte
+- Base -> piastra (B1-B4 / P16-P19): 4 x M3x12 testa svasata piana ISO 10642, dal basso
+- Base -> piastrina presa (B12-B13 / bordo piastrina): 2 x M3x12 testa svasata piana ISO 10642, dal basso
+- Forcella bobina -> mensola (M1-M2): 2 x M3x8 testa cilindrica (base forcella 3 mm). I fori della forcella sono Ø3: portarli a Ø3.4
+- Staffa NEMA -> mensola (M3-M4): 2 x M4x16 + rondelle + dado autobloccante sotto la mensola (asole: tensione cinghia ±5 mm)
+- Driver TB6600 -> base (B5-B6): 2 x M4x8 + rondelle
+- Piedini (B7-B10): 4 piedini in gomma con perno M4, perno max 6 mm
+- Presa IEC C14 + cover (piastrina P1-P2): 2 x M3x16 testa cilindrica + dado (verificare con lo spessore della cover)
+- Encoder -> parete del pezzo unico: 3 x M3x6 (parete 3 mm, filetto nell'encoder 3 mm in presa)
+- Ruota encoder: 2 grani M3x4 punta piana (uno sul PIANO dell'albero)
+- Pulsanti Ø12 (P20-P22): filetto 12 mm = piastra 6 + dado + controdado (circa 2.5 + 2.5): ok, circa 1 mm di margine
+- Alimentatore (B14-B17): 2 x M3x8 + rondella nelle asole (interasse 175 x 35). Sulla base ci sono 4 fori = le due diagonali: usa quella che corrisponde alle asole
+
+SEQUENZA
+1. Base: piedini, driver, alimentatore.
+2. Piastra verticale sulla base (linguette nelle asole) + 4 viti dal basso.
+3. Piastrina presa sulla base + 2 viti dal basso; presa e cover.
+4. Mensola nella piastra (linguette) + 3 viti svasate dal fronte. FARLO PRIMA DELLA BOBINA: le viti stanno dietro la flangia della bobina.
+5. Forcella e staffa motore sulla mensola; albero, puleggia 60T, bobina; cinghia 200 mm e tensione con le asole.
+6. Distanziali e RazorBoard sul retro.
+7. Encoder nel pezzo unico (cavo rivolto verso il basso), poi pezzo unico sulla piastra con 8 viti M3x12.
+8. Ruota sull'albero: 10.0 mm tra faccia anteriore della parete e faccia posteriore del cerchio, un grano sul piano.
+
+DA VERIFICARE PRIMA DELL'ORDINE
+- Nulla: tutte le quote sono chiuse.

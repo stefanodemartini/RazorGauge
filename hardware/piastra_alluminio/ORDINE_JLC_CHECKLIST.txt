@@ -1,0 +1,41 @@
+RazorGauge - ORDINE JLCCNC - CARRELLO NUOVO (versione definitiva, 14/10/2026)
+File: cartella piastra_alluminio\cnc  (per ogni riga: carica lo STEP, allega il PDF con lo stesso nome)
+
+0) Svuota il carrello JLCCNC (tutte le righe vecchie).
+
+IMPOSTAZIONI COMUNI LE 4 LASTRE
+Aluminum 6061 | Surface finish: Bead blasting + Anodizing, Natural, Matte (oppure No) | Tightest Tolerance: ISO 2768 medium
+Appearance: Standard | Threads: Yes (allega il PDF) | Sub-assembly: No | Qty 1
+
+1) RG_piastra_verticale.step + RG_piastra_verticale.pdf   (314 x 233 x 6)
+CNC Remark:
+Threads: 12x M3 tapped through (P1-P12) + 4x M3 tapped in plate EDGE, drill depth 10, full thread min 8 (P16-P19). Countersinks: 3x M3 90° on top face (P13-P15). Positions per attached PDF. Internal corners R1 allowed. Break sharp edges 0.3 mm.
+
+2) RG_mensola.step + RG_mensola.pdf   (95 x 116 x 6)
+CNC Remark:
+Threads: 2x M3 tapped through (M1-M2) + 3x M3 tapped in plate EDGE, drill depth 10, full thread min 8 (M5-M7). Positions per attached PDF. Internal corners R1 allowed. Break sharp edges 0.3 mm.
+
+3) RG_base.step + RG_base.pdf   (165 x 314 x 6)
+CNC Remark:
+Threads: 6x M4 tapped through (B5-B10) + 4x M3 tapped through (B14-B17). Countersinks: 6x M3 90° on BOTTOM face (B1-B4, B12-B13). Positions per attached PDF. Internal corners R1 allowed. Break sharp edges 0.3 mm.
+
+4) RG_piastrina_presa_IEC.step + RG_piastrina_presa_IEC.pdf   (56 x 47 x 6)
+CNC Remark:
+Threads: 2x M3 tapped in plate EDGE, drill depth 10, full thread min 8 (B1-B2). Positions per attached PDF. Internal corners R1 allowed. Break sharp edges 0.3 mm.
+
+5) RG_ruota_encoder.step + RG_ruota_encoder.pdf   (Ø63.66 x 16.78, alleggerita 2 tasche, ~47 g)
+Aluminum 6061 | Surface finish: NO | Tightest Tolerance: ±0.10mm | Appearance: Standard | Threads: Yes | Qty 1
+CNC Remark:
+Turned/milled wheel. OD 63.66 ±0.10. Bore Ø6.05 ±0.05 through (slip fit on Ø6 shaft). Runout OD to bore ≤ 0.05. 2x M3 radial tapped holes in hub at 90° (set screws), see attached PDF. No surface finish (as machined).
+(Facoltativo: aggiungi una riga di prova con RG_ruota_encoder_1tasca.step + lo stesso PDF per confrontare il prezzo, poi tieni solo una delle due.)
+
+PRIMA DI PAGARE
+[ ] 5 righe (o 6 con la prova), nessuna riga vecchia (ruota piena, ruota 47.49 vecchia, file provvisori)
+[ ] ogni riga ha il suo PDF
+[ ] ruota: finitura NO, tolleranza ±0.10
+[ ] lastre: stessa finitura su tutte e 4
+[ ] prezzo indicativo: lastre circa 104 € + ruota circa 47 € = circa 151 € + spedizione/IVA
+[ ] se l'ingegnere JLC chiede chiarimenti (filetti nel bordo, angoli, ecc.) mandare il messaggio a Claude
+
+NON USARE: RG_ruota_encoder_piena.step (se presente nella cartella: obsoleto)
+Viteria e montaggio: VITERIA_E_MONTAGGIO.txt

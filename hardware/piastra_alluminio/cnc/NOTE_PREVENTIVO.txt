@@ -1,0 +1,36 @@
+RazorGauge - struttura in alluminio - FILE DEFINITIVI PER L'ORDINE
+
+Per ogni pezzo: carica il .step e allega il .pdf con lo stesso nome (disegno 2D con filettature).
+
+Impostazioni da scegliere nel modulo (JLCCNC / PCBWay / Xometry ...)
+- Material: Aluminum 6061-T6 (oppure 6082-T6)
+- Process: CNC milling
+- Quantity: 1 per pezzo
+- Surface finish: As machined (oppure Anodizing natural/black, facoltativo)
+- Tolerance: ISO 2768-m (standard)
+- Threads: YES - indicare la quantita' qui sotto e allegare il PDF
+
+Pezzi
+1) RG_piastra_verticale  314 x 227 (+ linguette) x 6
+   Threads: 12 x M3 passanti (P1-P12) + 4 x M3 nel bordo inferiore, foro 10 / filetto utile min 8 (P16-P19)
+   Countersinks: 3 x M3 90° lato FRONTE = faccia superiore nello STEP (P13-P15)
+2) RG_mensola  89 (+6 linguette) x 116 x 6
+   Threads: 2 x M3 passanti (M1-M2) + 3 x M3 nel bordo anteriore, foro 10 / filetto utile min 8 (M5-M7)
+3) RG_base  314 x 165 x 6
+   Threads: 10 (6 x M4 passanti B5-B10 + 4 x M3 passanti alimentatore B14-B17)
+   Countersinks: 6 x M3 90° sul lato INFERIORE = faccia inferiore nello STEP (B1-B4, B12-B13)
+4) RG_piastrina_presa_IEC  56 x 41 (+ linguetta) x 6
+   Threads: 2 x M3 nel bordo inferiore, foro 10 / filetto utile min 8 (B1-B2)
+
+5) RG_ruota_encoder  Ø63.66 x 16.78, ALLEGGERITA con 2 tasche (~47 g), alluminio 6061-T6 - preventivo JLC 47.49 €
+   Process: CNC Machining · Tolerance: ±0.10mm · Surface finish: NO (non anodizzare: stringe il foro)
+   Threads: 2 x M3 radiali nel mozzo (grani), vedi PDF
+   CNC Remark: "Turned/milled wheel. OD 63.66 ±0.10. Bore Ø6.05 ±0.05 through (slip fit on Ø6 shaft).
+   Runout OD to bore ≤ 0.05. 2x M3 radial tapped holes in hub at 90° (set screws), see attached PDF. No surface finish (as machined)."
+   Alternativa piu' economica da provare: RG_ruota_encoder_1tasca.step (tasca solo sul lato esterno, ~67 g), stesso PDF e stesse note.
+
+Note per l'officina (in inglese, da incollare nel campo note)
+"Thread callouts per attached PDF (hole codes). Edge threads = M3 tapped holes in the plate edge: drill depth 10, full thread min 8.
+Internal corners R1 allowed (2 mm tool). Break all sharp edges 0.3 mm."
+
+Fori dei filetti nello STEP: M3 = Ø2.5, M4 = Ø3.3 (preforo). Fori passanti per vite: Ø3.4. Pulsanti: Ø12.2.

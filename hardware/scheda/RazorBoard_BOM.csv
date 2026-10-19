@@ -1,0 +1,46 @@
+Quantita;Riferimenti;Valore;Footprint;Note / codice
+1;A1;MASTER ESP32 DevKit V1 30p;ESP32_DevKitV1_30p_W25.4;2x zoccolo femmina 1x15 passo 2.54, file a 25.4 mm
+1;A2;SLAVE ESP32 DevKit V1 30p;ESP32_DevKitV1_30p_W25.4;2x zoccolo femmina 1x15 passo 2.54, file a 25.4 mm
+1;C1;100uF 50V;CP_Radial_D8.0mm_P3.50mm;
+1;C10;1nF;C_Disc_D5.0mm_W2.5mm_P5.00mm;
+1;C11;10uF 16V;CP_Radial_D5.0mm_P2.00mm;
+9;C2 C5 C6 C9 C12 C13 C14 C15 C16;100nF;C_Disc_D5.0mm_W2.5mm_P5.00mm;
+1;C3;47uF 16V;CP_Radial_D6.3mm_P2.50mm;
+1;C4;220uF 16V;CP_Radial_D8.0mm_P3.50mm;
+2;C7 C8;10nF;C_Disc_D5.0mm_W2.5mm_P5.00mm;
+1;D1;1N5822;D_DO-201AD_P15.24mm_Horizontal;1N5822 3A 40V
+1;D2;P6KE33CA;D_DO-15_P10.16mm_Horizontal;P6KE33CA
+1;D3;PWR verde;LED_D3.0mm;
+1;D4;1N5819;D_DO-41_SOD81_P10.16mm_Horizontal;1N5819 (blocca ritorno da USB master)
+1;D5;1N5819;D_DO-41_SOD81_P10.16mm_Horizontal;1N5819 (blocca ritorno da USB slave)
+1;D6;PUL giallo;LED_D3.0mm;
+1;D7;DIR giallo;LED_D3.0mm;
+1;D8;ENA rosso;LED_D3.0mm;
+2;D9 D10;1N4148;D_DO-35_SOD27_P7.62mm_Horizontal;
+1;F1;1A T 5x20;Fuseholder_Clip-5x20mm_Keystone_3517_Inline_P23.11x6.76mm_D1.70mm_Horizontal;Keystone 3517 x2 + fusibile 5x20 1A ritardato
+4;H1 H2 H3 H4;M3;MountingHole_3.2mm_M3_Pad;
+1;J1;24V IN;TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal;
+1;J2;5V EXT;TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal;
+1;J3;TB6600;TerminalBlock_Phoenix_MKDS-1,5-5-5.08_1x05_P5.08mm_Horizontal;PUL->PUL+, DIR->DIR+, ENA->ENA+, GND->PUL-/DIR-/ENA-, +5V solo per anodo comune
+1;J4;ENCODER;TerminalBlock_Phoenix_MKDS-1,5-5-5.08_1x05_P5.08mm_Horizontal;rosso +5V, nero GND, verde A, bianco B, calza GND
+1;J5;RAZORGAUGE;TerminalBlock_Phoenix_MKDS-1,5-8-5.08_1x08_P5.08mm_Horizontal;cavo schermato max 50 cm, calza al pin 8
+1;J6;PULSANTI;TerminalBlock_Phoenix_MKDS-1,5-5-5.08_1x05_P5.08mm_Horizontal;
+1;J7;UART DEBUG;PinHeader_1x03_P2.54mm_Vertical;
+1;JP1;SEL 5V;PinHeader_1x03_P2.54mm_Vertical;Header 3 pin + jumper (1-2 = convertitore interno, 2-3 = 5V esterno)
+1;JP2;SEL LASER;PinHeader_1x03_P2.54mm_Vertical;Header 3 pin + jumper (1-2 = laser a 3.3V, 2-3 = laser a 5V)
+1;Q1;2N7000;TO-92_Inline_Wide;
+7;R1 R32 R33 R51 R53 R55 R57;1k;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+2;R10 R11;470;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+7;R20 R21 R22 R50 R52 R54 R56;10k;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+7;R23 R24 R25 R40 R41 R42 R44;100;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+3;R26 R27 R28;2.2k;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+2;R30 R31;4.7k;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+1;R43;0;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;0 ohm (eventuale limitazione corrente laser)
+1;R45;100k;R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal;
+1;SW1;SCAN;SW_PUSH_6mm;
+1;SW2;FAST_S;SW_PUSH_6mm;
+1;SW3;FAST_O;SW_PUSH_6mm;
+1;SW4;WIFI_RST;SW_PUSH_6mm;
+1;U1;TSR 2-2450;Converter_DCDC_TRACO_TSR-1_THT;Traco TSR 2-2450 (5V 2A)
+1;U3;74HC14;DIP-14_W7.62mm;74HC14 DIP-14 alimentato a 3.3V (doppia inversione = polarita originale)
+1;U4;74HCT245;DIP-20_W7.62mm;74HCT245 DIP-20 (ingressi TTL: accetta 3.3V, uscite 5V)
