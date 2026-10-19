@@ -1,8 +1,7 @@
 # RazorGauge — stato del progetto e punto di ripresa
 
 > **Il software sta altrove:** app WPF, CLI e **firmware canonico** sono in
-> `C:/Users/Stefano/Documents/Arduino/flylineprofiler/` (repo git, remoto
-> `github.com/stefanodemartini/flylineprofiler`). Il firmware attivo — master **0.4.22-RB2** col
+> **questo stesso repo** (remoto `github.com/stefanodemartini/RazorGauge`). Il firmware attivo — master **0.4.22-RB2** col
 > calibro e slave **0.6.1** per ESP32 classico — è committato lì, in `master/` e `slave/`. La
 > **0.6.0 col RazorGauge** resta qui in `firmware/master/`: è preliminare e non gira.
 >

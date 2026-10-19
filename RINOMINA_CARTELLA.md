@@ -1,31 +1,47 @@
-# Ultimo passo: rinominare la cartella
+# Ultimo passo: spostare la cartella
 
-Il prodotto si chiama **RazorGauge** e il repo su GitHub pure. Resta da allineare la cartella
-locale, che si chiama ancora `flylineprofiler`.
+Il prodotto si chiama **RazorGauge**, il repo su GitHub pure
+(`github.com/stefanodemartini/RazorGauge`, il vecchio URL reindirizza). Resta da spostare la
+cartella locale, che si chiama ancora `flylineprofiler` e sta sotto `Documents/Arduino`.
 
-**Non si può fare da dentro**: con la cartella aperta in VS Code (o con una sessione che ci lavora)
-la rinomina fallisce con `Device or resource busy`. Nemmeno `dotnet build-server shutdown` basta —
-è la working directory stessa a tenerla.
+**Destinazione: `C:\Users\Stefano\Documents\Claude\RazorGauge`** — il percorso da cui lavora già
+l'altra sessione Claude. Spostando lì, **i suoi percorsi non cambiano**: `cad/`, `scheda/`,
+`STATO_PROGETTO.md` restano esattamente dov'erano per lei.
+
+**Non si può fare da dentro.** Con la cartella aperta in VS Code (o con una sessione che ci lavora)
+l'operazione fallisce con `Device or resource busy` — è la working directory stessa a tenerla, e
+nemmeno `dotnet build-server shutdown` cambia niente.
 
 ## Procedura
 
 1. **Chiudi VS Code** e ogni terminale aperto dentro la cartella
-2. Da una finestra qualsiasi *fuori* dalla cartella:
+2. In `Documents\Claude\RazorGauge` è rimasto solo un `LEGGIMI.md` e un vecchio `.git` con due
+   commit: **cancella quella cartella**
+3. Da una finestra qualsiasi fuori:
 
 ```
-cd C:\Users\Stefano\Documents\Arduino
-ren flylineprofiler RazorGauge
+move "C:\Users\Stefano\Documents\Arduino\flylineprofiler" "C:\Users\Stefano\Documents\Claude\RazorGauge"
 ```
 
-3. Riapri VS Code su `C:\Users\Stefano\Documents\Arduino\RazorGauge`
+4. Riapri VS Code su `C:\Users\Stefano\Documents\Claude\RazorGauge`
 
 ## Cosa è già pronto
 
-- Il remoto git punta già a `https://github.com/stefanodemartini/RazorGauge.git`
-- La **memoria di progetto** è già stata copiata sul nuovo percorso: aprendo la cartella rinominata
-  la sessione ritrova tutto. (La memoria è indicizzata sul percorso: senza la copia sarebbe
-  ripartita vuota.)
-- Il puntatore in `Documents/Claude/RazorGauge/LEGGIMI.md` cita il percorso **vecchio**: va corretto
-  dopo la rinomina, è l'unico riferimento rimasto da aggiornare.
+- Il remoto git punta a `https://github.com/stefanodemartini/RazorGauge.git`
+- **La memoria di progetto è già copiata** sul percorso di destinazione
+  (`c--Users-Stefano-Documents-Claude-RazorGauge`): è indicizzata sul percorso, senza la copia la
+  prima sessione nella nuova cartella ripartirebbe vuota
+- CAD e documenti sono **alla radice**, non più sotto `hardware/`: così i percorsi che l'altra
+  sessione conosce restano quelli
 
-Fatto questo, **cancella questo file**: esiste solo per ricordare un passo che si fa una volta.
+## Due cose da sapere
+
+**Il firmware esce dallo sketchbook Arduino.** Lo sketchbook è `Documents/Arduino`, e gli sketch
+andranno aperti da *File → Apri* invece che dall'elenco. Compilare continua a funzionare: le
+librerie restano risolte dallo sketchbook configurato, indipendentemente da dove sta lo sketch.
+
+**"Claude" nomina lo strumento, non il progetto.** È il prezzo di non rompere i percorsi dell'altra
+sessione. Se un giorno quella sessione non serve più, `Documents/RazorGauge` sarebbe più pulito —
+spostare allora costa quanto costa adesso.
+
+Fatto questo, **cancella questo file**.

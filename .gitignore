@@ -24,20 +24,30 @@ FlyLinePhysics/obj/
 FlyLinePhysics.Tests/bin/
 FlyLinePhysics.Tests/obj/
 
-# ── hardware/ : si versionano i sorgenti, non cio che se ne rigenera ───────
+# ── CAD, scheda, documenti: si versionano i sorgenti, non cio che se ne rigenera ───────
 # SCAD, KiCad, script e documenti stanno in pochi MB; mesh, render e PDF sono
-# ~90 MB che gli script in hardware/strumenti/ riproducono.
-hardware/**/*.stl
-hardware/**/*.3mf
-hardware/**/*.glb
-hardware/**/*.dxf
-hardware/**/*.step
-hardware/**/*.stp
-hardware/**/*.png
-hardware/**/*.jpg
-hardware/**/*.jpeg
-hardware/**/*.pdf
-hardware/**/*.html
-hardware/_archivio_NON_USARE/
+# ~90 MB che gli script in strumenti/ riproducono.
+*.stl
+*.3mf
+*.glb
+*.dxf
+*.step
+*.stp
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.html
+_archivio_NON_USARE/
 # Cronologia locale di VS Code: contiene repository annidati, git rifiuta di aggiungerli
-hardware/**/.history/
+.history/
+
+# File volatili di KiCad: stato utente, cache, backup automatici
+*.kicad_prl
+*-backups/
+fp-info-cache
+*.bak
+
+# Python
+__pycache__/
+*.pyc

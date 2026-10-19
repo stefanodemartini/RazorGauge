@@ -46,8 +46,8 @@ pulizia: non tornare indietro.
 
 ## Il banco sta altrove
 
-Meccanica, scheda, ottica e CAD sono in `C:/Users/Stefano/Documents/Claude/RazorGauge/`, e il suo
-**`STATO_PROGETTO.md` è la fonte autorevole** per come è fatto il banco — leggerlo prima di
+Meccanica, scheda, ottica e CAD sono **in questo stesso repo** — `cad/`, `scheda/`,
+`integrazione_profiler/` — e **`STATO_PROGETTO.md` è la fonte autorevole** per come è fatto il banco — leggerlo prima di
 ragionare su encoder, calibro o geometria. Due decisioni già prese che da qui non si deducono:
 
 - **contatto tangente con rullo di contrasto → nessuna correzione della lunghezza in base al

@@ -1,12 +1,14 @@
 # flylineprofiler — Coding Context
 
-> ## ⚠️ Read this first: the hardware lives in another project
+> ## ⚠️ Read this first: STATO_PROGETTO.md is the authority on the rig
 >
-> The mechanics, the board, the optics and the CAD are **not here**. They are in
-> **`C:/Users/Stefano/Documents/Claude/RazorGauge/`**, worked on from a different Claude session,
-> and its **`STATO_PROGETTO.md` is the authoritative record** — read it before reasoning about the
-> rig. It carries decisions already taken, under "Decisioni prese (non rimettere in discussione
-> senza motivo)", that are not derivable from this repo and that this repo contradicts in places.
+> The mechanics, the board, the optics and the CAD are in this same repo — `cad/`, `stl/`,
+> `scheda/`, `scheda_smd/`, `integrazione_profiler/`, `strumenti/` — worked on from a **different
+> Claude session**, which cannot see this one. **`STATO_PROGETTO.md` is the authoritative record**:
+> read it before reasoning about the rig. It carries decisions already taken, under "Decisioni
+> prese (non rimettere in discussione senza motivo)", that are not derivable from the code and that
+> the code contradicts in places. Changes made from the software side go in its dated section at
+> the top.
 >
 > Two that cost days of rediscovery:
 > - **Encoder: tangent contact with a pinch roller → no length correction by diameter.** The
