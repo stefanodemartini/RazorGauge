@@ -3,20 +3,22 @@
 // ===============================
 // FW SLAVE - Controllo Motore Passo-Passo
 // ===============================
-#define FIRMWARE_VERSION "0.5.1"
-#define FIRMWARE_DATE "2026-05-27"
-#define FIRMWARE_FEATURES "UART Control + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer"
+#define FIRMWARE_VERSION "0.6.1"
+#define FIRMWARE_DATE "2026-10-15"
+#define FIRMWARE_FEATURES "UART Control + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer + porting su ESP32 classico (DevKit V1 30p, RazorBoard)"
 
 // -----------------------------
 // Pin definitions
-#define PUL_PIN 4
-#define DIR_PIN 5
-#define ENA_PIN 6
-#define BTN_SCAN 10
-#define BTN_FAST_S 11
-#define BTN_FAST_O 12
-#define UART_RX 21
-#define UART_TX 18
+// Porting 0.6.0: slave su ESP32 classico (DevKit V1 30 pin, come il master) — pin della scheda RazorBoard.
+// Sull'ESP32 classico i GPIO 6-11 sono collegati alla flash: i vecchi pin dello S3 (6, 10, 11) non sono utilizzabili.
+#define PUL_PIN 25     // era 4 (S3)
+#define DIR_PIN 26     // era 5
+#define ENA_PIN 27     // era 6
+#define BTN_SCAN 32    // era 10
+#define BTN_FAST_S 33  // era 11
+#define BTN_FAST_O 34  // era 12 — GPIO34 e solo ingresso, senza pull-up interna: la pull-up 10k e sulla scheda
+#define UART_RX 16     // era 21 — RX2, collegato al TX2 (GPIO17) del master
+#define UART_TX 17     // era 18 — TX2, collegato al RX2 (GPIO16) del master
 
 // -----------------------------
 // UART
@@ -433,7 +435,7 @@ void setup() {
   // Configura pulsanti
   pinMode(BTN_SCAN, INPUT_PULLUP);
   pinMode(BTN_FAST_S, INPUT_PULLUP);
-  pinMode(BTN_FAST_O, INPUT_PULLUP);
+  pinMode(BTN_FAST_O, INPUT);         // GPIO34: solo ingresso, nessuna pull-up interna (evita l'errore di pinMode); pull-up 10k sulla scheda
   
   // Inizializza stepper
   engine.init();

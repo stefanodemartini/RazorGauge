@@ -10,13 +10,18 @@
 // ===============================
 // FW
 // ===============================
-#define FIRMWARE_VERSION "0.4.22"
+#define FIRMWARE_VERSION "0.4.22-RB2"
 #define FIRMWARE_DATE "2026-05-29"
 #define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune)"
 
 // -----------------------------
-#define ENCODER_DATA_PIN 12
-#define ENCODER_CLOCK_PIN 13
+// Versione "calibro" per la RazorBoard SMD: identica alla 0.4.22 originale, cambiano SOLO i pin dell'encoder.
+// Sulla RazorBoard l'encoder (morsetto J4: verde A, bianco B) arriva al master su GPIO32 (A) e GPIO33 (B)
+// attraverso pull-up 4.7k, filtro RC e 74HC14 (U3). Il calibro va sul morsetto J5: CLOCK -> pin 3 (GPIO26),
+// DATA -> pin 4 (GPIO27), GND -> pin 2, tramite il modulo traslatore (alimentato a 5 V da J3 pin 5, HV 3.3 V,
+// calibro 1.2 V). Se la lunghezza resta ferma/negativa con velocita' visibile: scambiare verde e bianco su J4.
+#define ENCODER_DATA_PIN 32   // fase A (era 12)
+#define ENCODER_CLOCK_PIN 33  // fase B (era 13)
 #define CALIPER_DATA_PIN 27
 #define CALIPER_CLOCK_PIN 26
 #define WIFI_RESET_PIN 14
@@ -173,6 +178,11 @@ volatile long  calRawValue   = 0;
 volatile int   calSign       = 1;
 volatile bool  calDataReady  = false;
 volatile unsigned long calRiseUs = 0;
+// RB2: contatori diagnostici calibro (comando caldiag / pulsante "Diagnosi Calibro")
+volatile unsigned long calDiagEdges   = 0;  // fronti sul CLOCK
+volatile unsigned long calDiagGaps    = 0;  // pause >500 us (inizio pacchetto)
+volatile unsigned long calDiagPackets = 0;  // pacchetti da 24 bit accettati
+volatile int           calDiagLastBits = 0; // bit contati prima dell'ultima pausa
 
 float caliperZeroOffset = 0.0;
 float displayZeroValue = 0.0;
@@ -296,6 +306,7 @@ int getTotalDataPoints() {
 //                  commit the completed 24-bit word, then read the new data bit.
 void IRAM_ATTR onCaliperChange() {
   unsigned long now = micros();
+  calDiagEdges++;
   if (digitalRead(CALIPER_CLOCK_PIN)) {
     // Rising edge
     calRiseUs = now;
@@ -303,8 +314,11 @@ void IRAM_ATTR onCaliperChange() {
     // Falling edge
     unsigned long highDur = now - calRiseUs;
     if (highDur > 500) {
+      calDiagGaps++;
+      calDiagLastBits = calBitCount;
       // Inter-packet gap detected — commit if we collected exactly 24 bits
       if (calBitCount == 24) {
+        calDiagPackets++;
         calRawValue  = calBitAccum;
         calSign      = calSignAccum;
         calDataReady = true;
@@ -811,6 +825,7 @@ void setup() {
                 <div class="calib-col">
                     <h4>Calibro</h4>
                     <button onclick="sendCommand('readraw')">Lettura Display Calibro</button>
+                    <button onclick="sendCommand('caldiag')">Diagnosi Calibro</button>
                     <button onclick="sendCommand('setdisplayzero')">Imposta Zero da Display</button>
                 </div>
                 <div class="calib-col">
@@ -1602,6 +1617,8 @@ void setup() {
                 const msg = JSON.parse(event.data);
                 if (msg.type === 'params') {
                     updateParamsDisplay(msg.displayZero, msg.offset, msg.ppc, msg.ppcCalibrated);
+                } else if (msg.type === 'diag') {
+                    showCommandStatus(msg.text, false, 20000, '#0d6efd');
                 } else if (msg.type === 'speed') {
                     updateSpeedDisplay(msg.speed);
                 } else if (msg.type === 'motor') {
@@ -1887,11 +1904,13 @@ void setup() {
         }
     }
 
-    function showCommandStatus(message, isError = false) {
+    let statusTimer = null;
+    function showCommandStatus(message, isError = false, ms = 3000, color = null) {
         const statusElement = document.getElementById('commandStatus');
         statusElement.textContent = message;
-        statusElement.style.color = isError ? '#dc3545' : '#28a745';
-        setTimeout(() => { statusElement.textContent = ''; }, 3000);
+        statusElement.style.color = color ? color : (isError ? '#dc3545' : '#28a745');
+        if (statusTimer) clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => { statusElement.textContent = ''; }, ms);
     }
 
     function accToggle(btn) {
@@ -2225,7 +2244,41 @@ float readCaliperBufferedMedian() {
 }
 
 // -----------------------------
+// RB2: messaggio di testo verso Serial + web UI
+void sendDiag(const String& s) {
+  Serial.println(s);
+  String e = s; e.replace("\\", "/"); e.replace("\"", "'");
+  String json = "{\"type\":\"diag\",\"text\":\"" + e + "\"}";
+  webSocket.broadcastTXT(json);
+}
+
+// RB2: diagnosi calibro, misura 1 s
+void calDiag() {
+  noInterrupts();
+  unsigned long e0 = calDiagEdges, g0 = calDiagGaps, p0 = calDiagPackets;
+  interrupts();
+  unsigned long hiClk = 0, hiDat = 0, n = 0;
+  unsigned long t0 = millis();
+  while (millis() - t0 < 1000) {
+    if (digitalRead(CALIPER_CLOCK_PIN)) hiClk++;
+    if (digitalRead(CALIPER_DATA_PIN))  hiDat++;
+    n++;
+    if ((n & 1023) == 0) yield();
+  }
+  noInterrupts();
+  unsigned long e1 = calDiagEdges, g1 = calDiagGaps, p1 = calDiagPackets;
+  int lb = calDiagLastBits;
+  interrupts();
+  String s = "CALDIAG 1s: fronti CLK=" + String(e1 - e0) + " pause=" + String(g1 - g0) +
+             " pacchetti=" + String(p1 - p0) + " bit/ultimo=" + String(lb) +
+             " | CLK alto " + String(n ? (hiClk * 100UL / n) : 0) + "%" +
+             " DATA alto " + String(n ? (hiDat * 100UL / n) : 0) + "%" +
+             " | display=" + String(lineDiameter, 2);
+  sendDiag(s);
+}
+
 void handleCommand(String cmd) {
+  if (cmd == "caldiag") { calDiag(); return; }
   if (cmd.startsWith("goto ")) {
     float target = cmd.substring(5).toFloat();
     goToPosition(target);
@@ -2256,6 +2309,7 @@ void handleCommand(String cmd) {
     Serial.println("  setoffset <val>     - Imposta offset di compensazione");
     Serial.println("  setdisplayzero      - Imposta display corrente come zero");
     Serial.println("  readraw             - Mostra lettura grezza del calibro");
+    Serial.println("  caldiag             - Diagnosi calibro (fronti, pacchetti, livelli) in 1 s");
     Serial.println("  readenc             - Mostra tick PCNT, pcntAccum e posizione calcolata (debug)");
     Serial.println("  resetoffset         - Azzera offset a 0");
     Serial.println("  getparams           - Mostra parametri correnti");
@@ -2324,8 +2378,7 @@ void handleCommand(String cmd) {
 
   if (cmd == "readraw") {
     float display = readCaliperDisplay();
-    Serial.print("Display calibro: ");
-    Serial.println(display, 2);
+    sendDiag("Display calibro: " + String(display, 2));
     return;
   }
 
