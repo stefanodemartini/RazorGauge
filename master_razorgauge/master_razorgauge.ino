@@ -11,7 +11,12 @@
 // ===============================
 // FW
 // ===============================
-#define FIRMWARE_VERSION "0.6.0"
+// Major: il laser sostituisce il calibro. Non e un passo avanti sulla linea 0.4.x col calibro, e
+// un ramo diverso - principio di misura diverso, hardware diverso, build non intercambiabili. La
+// numerazione in fila (0.6.0 accanto a 0.4.22) suggeriva il contrario, cioe "piu nuova quindi da
+// usare", mentre quella che gira e la 0.4.22-RB2. 0.x = era calibro, 1.x = era laser.
+// -alpha: scritta, compila, non ancora provata sul banco.
+#define FIRMWARE_VERSION "1.0.0-alpha"
 #define FIRMWARE_DATE "2026-10-10"
 #define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato"
 

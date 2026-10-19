@@ -8,17 +8,23 @@ contenuti diversi hanno già portato a leggere quella sbagliata per giorni.
 |---|---|---|---|
 | `master/` | **0.4.22-RB2** | ESP32 classico | **ATTIVO** — col calibro centesimale |
 | `slave/` | **0.6.1** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore |
-| `master_razorgauge/` | 0.6.0 | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
+| `master_razorgauge/` | **1.0.0-alpha** | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
 | `gauge_esp32/` | — | ESP32 classico | **banco di collaudo** del RazorGauge: laser pulsato + CCD TSL1401, comandi seriali |
 | `gauge_esp32s3/` | — | ESP32-S3 | lo stesso, per la scheda S3 precedente |
 
 I due `gauge_*` **non girano nel sistema finito**: sono firmware di banco, sugli stessi pin del
 master, per provare la testa di misura (laser + CCD) prima di flashare il master vero. Si comandano
 da seriale — `d` dark, `r` riferimento senza cavo, `m` misura, `p` profilo — e non parlano WebSocket.
-Quando il RazorGauge entra in produzione è la **0.6.0** a leggere il sensore, non questi.
+Quando il RazorGauge entra in produzione è la **1.0.0** a leggere il sensore, non questi.
 
-Si resta sulla **0.4.22-RB2 finché c'è il calibro**; si passa alla 0.6.0 quando si implementa il
-laser. Le due non sono intercambiabili: la 0.6.0 non legge il calibro e non serve la pagina web.
+Si resta sulla **0.4.22-RB2 finché c'è il calibro**; si passa alla **1.0.0** quando si implementa il
+laser. Le due non sono intercambiabili: la 1.0.0 non legge il calibro e non serve la pagina web.
+
+**Perché 1.0.0 e non 0.6.0** (come si chiamava): il laser non è un passo avanti sulla linea col
+calibro, è un **ramo diverso** — principio di misura diverso, hardware diverso. Numerate in fila,
+`0.6.0` accanto a `0.4.22` diceva "più nuova quindi da usare", mentre quella che gira è la 0.4.22.
+Così invece **0.x = era calibro, 1.x = era laser**, e la distanza fra i numeri dice che non sono la
+stessa cosa. `-alpha` perché compila ma non è ancora stata provata sul banco.
 
 ## Compilare
 
