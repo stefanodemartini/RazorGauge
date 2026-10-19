@@ -45,8 +45,15 @@ public static class StabilityMetrics
                 c[i] = double.NaN;
                 continue;
             }
-            double dPi = pi[hi] - pi[lo];
+
             double dsCm = xsCm[hi] - xsCm[lo];
+            if (Math.Abs(dsCm) < DragEpsilon)
+            {
+                c[i] = double.NaN;
+                continue;
+            }
+
+            double dPi = pi[hi] - pi[lo];
             double slope = dPi / dsCm;
             c[i] = Math.Abs(pi[i]) < DragEpsilon ? double.NaN : Math.Abs(slope) / Math.Abs(pi[i]);
         }

@@ -1,14 +1,16 @@
-# Copilot Instructions – flylineprofiler
+# Copilot Instructions – RazorGauge
 
 ## Architecture Overview
 
-This project is a **line-diameter measurement system** with three distinct components:
+This repository contains the line-diameter measurement system and its mechanical design. The
+canonical firmware locations and board/version matrix are in `FIRMWARE.md`; hardware decisions
+are in `STATO_PROGETTO.md`. Do not treat `Claude outputs/` or `_archivio_NON_USARE/` as active.
 
-### 1. `master/master.ino` — ESP32 Firmware
-- Reads a **quadrature encoder** (A/B interrupts on GPIO 12/13) → length in cm using `PULSES_PER_CM = 30`.
+### 1. `master/master.ino` — active classic ESP32 firmware (0.4.22-RB2)
+- Reads a **quadrature encoder** on GPIO 32/33 → length in cm using the configurable encoder calibration.
 - Reads a **digital caliper** (DATA/CLOCK on GPIO 27/26) for diameter.
 - Stores measured points in a **sorted linked list** (`DataPoint*`) keyed by `cm` position; duplicate cm values update the existing node.
-- Applies **EMA smoothing** (alpha hardcoded at `0.1f` in `addDataPoint`) before storing diameter.
+- Does not apply EMA smoothing in firmware; the desktop app applies optional client-side smoothing.
 - Compensated diameter: `compensated = displayValue − displayZeroValue − caliperZeroOffset`.
 - Persists `caliperZeroOffset` in **EEPROM at address 0**.
 - Serves the entire **web UI as a raw string literal** embedded directly in `master.ino` via `R"rawliteral(...)rawliteral"`.
@@ -16,19 +18,24 @@ This project is a **line-diameter measurement system** with three distinct compo
 - Connects to Wi-Fi via **WiFiManager** (AP SSID: `DiametroLinea_Setup`, password: `12345678`).
 - Relays motor commands to the slave over **UART2** (TX=GPIO17, RX=GPIO16) at 115200 8N1.
 
-### 2. `slave/slave.ino` — ESP32-S3 Firmware
-- Controls a TB6600 stepper driver via **FastAccelStepper** (PUL=GPIO4, DIR=GPIO5, ENA=GPIO6).
-- Receives ASCII commands over **UART2** (RX=GPIO21, TX=GPIO18) at 115200 8N1.
+### 2. `slave/slave.ino` — active classic ESP32 firmware (0.6.1)
+- Controls a TB6600 stepper driver via **FastAccelStepper** (PUL=GPIO25, DIR=GPIO26, ENA=GPIO27).
+- Receives ASCII commands over **UART2** (RX=GPIO16, TX=GPIO17) at 115200 8N1.
 - Maintains a `Mode` enum: `STOPPED | SCAN | FAST_S | FAST_O | GOTOPOS`.
-- `GOTOPOS` uses quadratic-curve dynamic speed reduction near the target (`DISTANCE_THRESHOLD = 500` steps, `MIN_SPEED_HZ = 300`).
-- Buttons on GPIO 10/11/12 (`INPUT_PULLUP`, active LOW) with 250 ms debounce.
+- `GOTOPOS` uses a fast approach followed by a 400 Hz creep for precise stopping.
+- Buttons: GPIO 32/33/34; GPIO 34 uses the board's external pull-up.
 
 ### 3. `app/` — WPF .NET Desktop App
 - A Windows desktop alternative to the browser UI; the ESP32 backend is unchanged.
-- MVVM architecture: `ViewModels/MainViewModel.cs`, `Services/BackendClient.cs`, `Services/SettingsService.cs`.
+- `MainViewModel` manages scan/connection state; Design Mode and much of the UI behavior live in `Views/MainWindow.xaml.cs`.
 - `BackendClient` connects to `ws://<host>:81/` using `ClientWebSocket`; it raises `RawMessageReceived` for every JSON frame.
 - Settings are loaded from `appsettings.json` into `AppSettings` → `BackendSettings` + `ChartSettings`.
-- Chart integration (ScottPlot WPF) is a placeholder; NuGet package must be added.
+- The app uses ScottPlot WPF; dependencies are declared in `app/DiametroLineaDesktop.csproj`.
+
+### 4. Shared library and CLI
+- `FlyLinePhysics/` contains the shared physics calculations and `.flp` serialization.
+- `FlyLinePhysics.Tests/` contains the library tests.
+- `cli/` provides the `flyline` command-line designer and analysis tool. It currently references the WPF app, so it is Windows-targeted.
 
 ---
 
@@ -42,7 +49,7 @@ This project is a **line-diameter measurement system** with three distinct compo
 | `FAST_S` | Fast, same direction (`FAST_HZ = 12000`) |
 | `FAST_O` | Fast, opposite direction |
 | `STATUS?` | Request status |
-| `GOTOPOS:<cm>:<max_hz>:<F\|B>` | Move to absolute position in cm |
+| `GOTOPOS:<target_cm>:<max_hz>:<encoder_cm>:<F\|B>` | Move to target using the current encoder position |
 
 ### Slave → Master
 `STATUS:<MODE>:<DIR>[:<remaining_steps>]`  
@@ -60,20 +67,20 @@ Examples: `STATUS:SCAN:FWD`, `STATUS:GOTOPOS:FWD:1500`, `STATUS:STOP:FWD`
 ---
 
 ## CSV Format
-Export endpoint `/export` and local desktop export use:
+The firmware `/export` endpoint and desktop CSV export use:
 ```
-Dataset,Lunghezza cm,Diametro mm,Display mm
+Lunghezza cm,Diametro mm
 ```
-Import supports headers `Dataset,Lunghezza (cm),Diametro (mm)` or bare `cm,mm` pairs.
+Import also supports legacy/multi-series headers such as `Dataset,Lunghezza cm,Diametro mm,Display mm`.
 
 ---
 
 ## Key Constants (must stay in sync between master and slave)
 | Constant | Value | Location |
 |---|---|---|
-| `PULSES_PER_CM` | `30` | Both `master.ino` and `slave.ino` |
-| `SCAN_HZ` | `1500` | `slave.ino` |
-| `FAST_HZ` / `MOTOR_FAST_HZ` | `12000` | Both |
+| Encoder PPR / wheel circumference | `600` / `200 mm` nominal | Both firmware sketches |
+| `SCAN_HZ` (initial slave speed) | `1500` | `slave/slave.ino`; master closed-loop adjusts it |
+| `FAST_HZ` / `MOTOR_FAST_HZ` | `12000` | Slave / master respectively |
 | UART baud | `115200, 8N1` | Both |
 
 ---
@@ -82,16 +89,16 @@ Import supports headers `Dataset,Lunghezza (cm),Diametro (mm)` or bare `cm,mm` p
 
 ### Arduino Firmware
 - Use **Arduino IDE** or **PlatformIO**.
-- Board targets: **ESP32** for master, **ESP32-S3** for slave.
+- Board targets: **classic ESP32** for both active master and slave. The `gauge_esp32s3/` folder is a bench variant only.
 - Flash **slave first**, then master.
 - Master libraries: `WiFi`, `WebServer`, `WebSocketsServer`, `EEPROM`, `WiFiManager`.
 - Slave libraries: `FastAccelStepper`.
 
 ### WPF Desktop App
 ```sh
-cd app
-dotnet build
-dotnet run
+dotnet build app\app.sln
+dotnet test FlyLinePhysics.Tests\FlyLinePhysics.Tests.csproj
+dotnet build cli\FlyLineCli.csproj
 ```
 
 ---

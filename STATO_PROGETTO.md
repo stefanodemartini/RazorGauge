@@ -1,35 +1,32 @@
 # RazorGauge — stato del progetto e punto di ripresa
 
-> **Il software sta altrove:** app WPF, CLI e **firmware canonico** sono in
-> **questo stesso repo** (remoto `github.com/stefanodemartini/RazorGauge`). Il firmware attivo — master **0.4.22-RB2** col
-> calibro e slave **0.6.1** per ESP32 classico — è committato lì, in `master/` e `slave/`. La
-> **0.6.0 col RazorGauge** resta qui in `firmware/master/`: è preliminare e non gira.
+> **Questo è il repository unificato** (`github.com/stefanodemartini/RazorGauge`): CAD, schede,
+> app WPF, CLI, libreria fisica e firmware sono versionati insieme. Il firmware attivo è il master
+> **0.4.22-RB2** col calibro e lo slave **0.6.1**, entrambi per ESP32 classico, nelle cartelle
+> `master/` e `slave/`. Il master ottico **1.0.0-alpha** è in `master_razorgauge/`: preliminare,
+> non ancora operativo.
 >
-> Le copie in `Claude outputs/` sono istantanee vecchie: non trattarle come attive.
+> Le copie in `Claude outputs/` e `_archivio_NON_USARE/` non sono sorgenti attive.
 >
-> Le "Decisioni prese" qui sotto valgono anche dal lato software, e `flylineprofiler/CONTEXT.md`
-> rimanda a questo documento.
+> Indici: `README.md` per la struttura, `FIRMWARE.md` per firmware/versioni, `MANUALE.md` per l'app.
 
 
-Aggiornato: 6 ottobre 2026 (verifica completa: vedi VERIFICA.md).
+Aggiornato: 19 ottobre 2026 (verifica completa: vedi VERIFICA.md).
 
 Documento di progetto (versione modificabile): https://claude.ai/code/artifact/2273b50c-6248-4ea4-96ce-31eaccdc175b
 Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 
 ## Modifiche dal lato software — leggere qui cosa è cambiato
 
-Questo progetto è lavorato da **due sessioni Claude che non si vedono**: una da qui (meccanica,
-ottica, scheda), una dal repo `flylineprofiler` (app, CLI, firmware). L'unico canale è il
-filesystem, quindi **ogni modifica fatta dall'altro lato che tocca questo documento va annotata
-qui, in testa, con la data.** Il dettaglio sta in `git log`.
+Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
+quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
 ### 19 ottobre 2026 — dal lato software
 
-- **Tutto il firmware è stato spostato nel repo `flylineprofiler`.** `firmware/` qui è vuota (resta
-  solo documentazione), le vecchie copie sono in `_archivio_NON_USARE/`. Esistevano **tre copie di
-  `master.ino` con contenuti diversi** e si è letta quella sbagliata per giorni. Nel repo:
-  `master/` (0.4.22-RB2, **gira**), `slave/` (0.6.1), `master_razorgauge/` (1.0.0-alpha, laser),
-  `gauge_esp32*/` (banco). Indice in `FIRMWARE.md`.
+- **Firmware e software sono riuniti in questo repository.** Le sorgenti canoniche sono
+  `master/` (0.4.22-RB2, attivo), `slave/` (0.6.1, attivo),
+  `master_razorgauge/` (1.0.0-alpha, preliminare) e `gauge_esp32*/` (banco). Indice in
+  `FIRMWARE.md`.
 - **Il master laser è stato rinumerato 0.6.0 → `1.0.0-alpha`**: il laser è un ramo diverso, non un
   passo avanti sulla linea col calibro. 0.x = era calibro, 1.x = era laser.
 - **Tutti gli sketch compilano davvero** con l'`arduino-cli` dell'IDE (core esp32 3.3.8). Prima
@@ -142,7 +139,7 @@ Cartella `integrazione_profiler/`. Sostituisce torre separata e comparatore: pia
 Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 
 ## Firmware
-- **Master 0.6.0 (10/10/2026)** — versione per il primo avvio: ADC in mV calibrati + 2 letture/pixel, scarico veloce senza lettura (meno luce ambiente), buio alla stessa posa del laser, indici di qualità per misura, `gauge_stat [n]`, pagina di servizio **http://<ip>/diag** e JSON `/gauge`; protocollo WPF invariato. Algoritmo provato su simulatore (`strumenti/firmware_sim`). Procedura di prova: `firmware/PROCEDURA_PRIMO_AVVIO.md`. Obiettivo dichiarato dall'utente: **±0.01 mm**. Non compilato col core reale (server Arduino/Espressif bloccati qui).
+- **Master ottico 1.0.0-alpha (10/10/2026)** — era numerato 0.6.0; versione per il primo avvio: ADC in mV calibrati + 2 letture/pixel, scarico veloce senza lettura (meno luce ambiente), buio alla stessa posa del laser, indici di qualità per misura, `gauge_stat [n]`, pagina di servizio **http://<ip>/diag** e JSON `/gauge`; protocollo WPF invariato. Algoritmo provato su simulatore (`strumenti/firmware_sim`). Procedura di prova: `PROCEDURA_PRIMO_AVVIO.md`. Obiettivo dichiarato dall'utente: **±0.01 mm**. È preliminare e non ancora collaudato sul banco; per compilazione e stato attuali vedere `FIRMWARE.md`.
 - Master col laser — **v1.0.0-alpha** (USE_RAZORBOARD = 1: encoder su GPIO32/33 della scheda). Era numerata 0.5.3 → 0.6.0 → **rinumerata major il 19/10/2026**: il laser non è un passo avanti sulla linea col calibro, è un ramo diverso (0.x = era calibro, 1.x = era laser). **Ora sta nel repo** in `master_razorgauge/`, non più qui.
   - Calibro rimosso, RazorGauge integrato in un task FreeRTOS su core 0; il loop legge un buffer mediano (7 misure × 8 frame).
   - UI web rimossa; restano gli endpoint `/export` e `/encoder`.
@@ -151,7 +148,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
   - Corretto il bug `goto_status completed:true` non inviato a fine GOTOPOS.
   - Nuovi comandi: `gauge_dark`, `gauge_ref`, `gauge_cal <mm>`, `gauge_calreset`, `gauge_exp <us>`, `gauge_status`, `gauge_profile`. Dati salvati in NVS (namespace `razorgauge`).
   - PPC encoder: invariato (`calibrate:<cm>`, `setppc:<val>`, `calibrate_reset`, EEPROM addr 4).
-- `firmware/RazorGauge_esp32/RazorGauge_esp32.ino` — sketch di banco (solo sensore), stessi pin del master.
+- `gauge_esp32/gauge_esp32.ino` — sketch di banco (solo sensore), non firmware attivo.
 - ~~Solo controllo di sintassi con g++ su librerie simulate: mai compilato con il core ESP32 reale~~ → **compilato davvero il 19/10/2026** con l'`arduino-cli` dentro l'IDE Arduino (core esp32 3.3.8): master laser 82% di flash, banco 23% e 25%, master calibro 85%, slave 26%. **Provato sull'hardware: ancora no.**
 - Slave — **0.6.1**, porting su ESP32 classico per la scheda (solo pin cambiati). **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
 
@@ -188,7 +185,7 @@ Cartella `scheda/`. Stato: **schema + layout PCB v0.1 completati** (175 × 125 m
 - UART master↔slave su pista con R 470 ohm, header debug.
 - Montaggio: solo PCB, componenti a foro passante saldati a mano. Ingombro libero.
 - Netlist dello schema verificata identica alla netlist sorgente (`scheda/script/board_def.py`); schema rigenerabile con `script/gen_sch.py`.
-- Slave ora ESP32 classico: PUL/DIR/ENA GPIO25/26/27, pulsanti GPIO32/33/34, UART GPIO16/17 → `firmware/slave/slave.ino` 0.6.0 (il vecchio slave S3 resta in `Claude outputs/slave.ino`).
+- Slave attivo 0.6.1 su ESP32 classico: PUL/DIR/ENA GPIO25/26/27, pulsanti GPIO32/33/34, UART GPIO16/17 → `slave/slave.ino`. La versione S3 precedente è storica e non va usata al posto dello slave attivo.
 - Master laser (1.0.0-alpha): `#define USE_RAZORBOARD 1` (scheda, encoder 32/33). Per tornare al vecchio cablaggio volante (encoder 12/13) mettere 0.
 - Da verificare: interasse file del nuovo slave CH340C (atteso 25.4 mm), dimensioni dei moduli per la serigrafia.
 - Layout: moduli con USB sul bordo superiore, aree senza rame sotto le antenne, morsetti su bordo inferiore (encoder, RazorGauge, TB6600, pulsanti) e sinistro (24 V, 5 V ext), pulsanti a destra, fori M3 agli angoli; piste di potenza 1 mm, segnali 0.4 mm, piani GND su entrambi i lati. Sbroglio con Freerouting 1.9; pipeline rigenerabile con `scheda/script/run_all.sh` (KiCad 7 + Java).
@@ -213,7 +210,7 @@ Cartella `scheda_smd/`. Stesso circuito della v0.1 (netlist identica, verificata
 | stl/ | RazorGauge_tower / lid / carriage — da stampare |
 | dxf/ | piante e sezioni 1:1 |
 | cad/ | RazorGauge.scad (sorgente parametrico), RazorGauge_dxf_views.scad, sensor.stl (modello scheda, serve per l'assieme) |
-| firmware/ | **vuota dal 19/10/2026** — tutto il firmware è nel repo `flylineprofiler` (vedi `firmware/LEGGIMI.md` e `FIRMWARE.md` là). Qui restava `master` laser 1.0.0-alpha, `slave` 0.6.1, `RazorGauge_esp32*` di banco |
+| master/, slave/, master_razorgauge/, gauge_esp32*/ | Firmware canonico attivo, firmware ottico preliminare e sketch di banco; versioni e schede in `FIRMWARE.md` |
 | immagini/ | tavola posizione sensore, anteprime, coperchio con nome |
 | scheda/ | progetto KiCad della scheda controller THT v0.1 (schema, BOM, librerie, script) |
 | scheda_smd/ | RazorBoard SMD v0.2: progetto KiCad, file JLCPCB (gerber, BOM, CPL), immagini, script |

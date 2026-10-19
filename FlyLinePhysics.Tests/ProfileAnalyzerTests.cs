@@ -1,5 +1,6 @@
 using FlyLinePhysics.Analysis;
 using FlyLinePhysics.Model;
+using FlyLinePhysics.Physics;
 using Xunit;
 
 namespace FlyLinePhysics.Tests;
@@ -130,6 +131,18 @@ public class ProfileAnalyzerTests
         Assert.Equal(string.Empty, only.Name);
         Assert.Equal(0.0, only.StartCm, precision: 9);
         Assert.False(double.IsNaN(only.TaperRatePer100Cm));
+    }
+
+    [Fact]
+    public void ContinuityIndex_ProducesNaN_WhenSpacingIsDegenerate()
+    {
+        var pi = new[] { 1.0, 2.0, 3.0 };
+        var xs = new[] { 0.0, 0.0, 10.0 };
+
+        var c = StabilityMetrics.ContinuityIndex(xs, pi);
+
+        Assert.True(double.IsNaN(c[0]) || double.IsNaN(c[1]));
+        Assert.False(double.IsInfinity(c[2]));
     }
 
     [Fact]

@@ -1,7 +1,8 @@
 # DiametroLineaDesktop
 
 Applicazione Windows WPF che sostituisce la UI web mantenendo il backend ESP32 invariato.
-Allineata con il firmware master v0.4.15.
+Compatibile con il firmware master attivo 0.4.22-RB2; il controller motore attivo e lo slave
+ESP32 classico 0.6.1. Per la matrice firmware completa vedere [`../FIRMWARE.md`](../FIRMWARE.md).
 
 ## Struttura progetto
 - `Views/MainWindow.xaml` — dashboard principale (Fluent Ribbon + ScottPlot)

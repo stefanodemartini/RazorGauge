@@ -1,46 +1,40 @@
-# flylineprofiler — Coding Context
+# RazorGauge — software and repository context
 
-> ## ⚠️ Read this first: STATO_PROGETTO.md is the authority on the rig
+> `STATO_PROGETTO.md` is the authoritative record for hardware decisions and physical measurements.
+> `FIRMWARE.md` is the authoritative firmware version/board map. The sketches in this repository
+> are version-controlled; do not use files in `Claude outputs/` or `_archivio_NON_USARE/` as active
+> firmware.
 >
-> The mechanics, the board, the optics and the CAD are in this same repo — `cad/`, `stl/`,
-> `scheda/`, `scheda_smd/`, `integrazione_profiler/`, `strumenti/` — worked on from a **different
-> Claude session**, which cannot see this one. **`STATO_PROGETTO.md` is the authoritative record**:
-> read it before reasoning about the rig. It carries decisions already taken, under "Decisioni
-> prese (non rimettere in discussione senza motivo)", that are not derivable from the code and that
-> the code contradicts in places. Changes made from the software side go in its dated section at
-> the top.
+> Current firmware:
+> - `master/master.ino`: master 0.4.22-RB2, classic ESP32, caliper-based and active.
+> - `slave/slave.ino`: slave 0.6.1, classic ESP32 (DevKit V1 30p / RazorBoard), active.
+> - `master_razorgauge/master_razorgauge.ino`: optical master 1.0.0-alpha, preliminary.
 >
-> Two that cost days of rediscovery:
-> - **Encoder: tangent contact with a pinch roller → no length correction by diameter.** The
->   `actualPositionCm` accumulator still in `master/master.ino`, and its comment about
->   `C_eff = 20 - π·d/10`, are the dead remains of an approach that does not apply. Do not revive
->   them.
-> - **The caliper reads ~7-8% under the real diameter** (PVC deforms under the spring). Nothing
->   compensates for it; the firmware's offset is additive, not a gain.
->
-> ### Which firmware is real
->
-> All of it is in this repo now, one home, no copies elsewhere — see **`FIRMWARE.md`**.
->
-> | | |
-> |---|---|
-> | **master 0.4.22-RB2** | the caliper build — **this is what runs**, and what `master/master.ino` now holds |
-> | **slave 0.6.1** | ESP32 **classic** (DevKit V1 30p, RazorBoard), not the S3. GPIO 6-11 are the flash on this part |
-> | master 0.6.0 | RazorGauge optical gauge, web UI removed — **preliminary, not running**. Lives only in RazorGauge/firmware/master/ |
->
-> RazorGauge is **not under version control**, and copies of `master.ino` and `slave.ino` exist there
-> and under `RazorGauge/Claude outputs/` with different contents. The copies in *this* repo are the
-> canonical ones; the others are snapshots and drafts.
+> The repository also contains the WPF app (`app/`), shared physics library and tests
+> (`FlyLinePhysics/`, `FlyLinePhysics.Tests/`), and the CLI (`cli/`). For the repository map and
+> build commands see `README.md`.
 
+## Hardware facts that affect software
 
-> Firmware section last updated: 2026-05-29 (v0.4.22, stable, working) | WPF app section refreshed: 2026-08-05
+- **Encoder contact is tangential with a pinch roller:** do not apply length correction based on
+  line diameter.
+- **The caliper reads approximately 7–8% below the real diameter** because the PVC deforms under
+  spring pressure. The firmware offset is additive; it does not correct this gain error.
+- The active motor slave is a **classic ESP32**, not an ESP32-S3. GPIO 6–11 are connected to flash
+  on the classic ESP32; use the pin assignments in the active `slave/slave.ino`.
+
+The detailed firmware implementation notes below describe the 0.4.22-era caliper master; confirm
+current behavior against `FIRMWARE.md` and the active source before relying on line numbers or
+implementation details.
 
 ---
 
 ## What this system does
 
 Measures the diameter profile of a fishing line as it is wound/unwound from a spool.
-A wheel rolls on the line surface and drives a quadrature encoder (length). A digital caliper head reads the instantaneous diameter. An ESP32 (master) collects the data, hosts a web UI, and sends motor commands to an ESP32-S3 (slave) via UART.
+A wheel rolls on the line surface and drives a quadrature encoder (length). The active caliper
+master collects measurements and serves the web UI; the WPF app is the desktop alternative. Motor
+commands go over UART to the active classic-ESP32 slave.
 
 ---
 
@@ -48,30 +42,38 @@ A wheel rolls on the line surface and drives a quadrature encoder (length). A di
 
 | Component | GPIO (master ESP32) | Notes |
 |---|---|---|
-| Encoder A phase | 12 | PCNT pulse input |
-| Encoder B phase | 13 | PCNT direction control |
+| Encoder A phase | 32 | PCNT pulse input (RazorBoard) |
+| Encoder B phase | 33 | PCNT direction control (RazorBoard) |
 | Caliper DATA | 27 | ISR on CLOCK |
 | Caliper CLOCK | 26 | `CHANGE` interrupt → `onCaliperChange()` |
 | WiFi reset button | 14 | Active LOW → wipes WiFiManager settings |
-| Motor UART TX | 17 | → slave RX GPIO21 |
-| Motor UART RX | 16 | ← slave TX GPIO18 |
+| Motor UART TX | 17 | → slave RX GPIO16 |
+| Motor UART RX | 16 | ← slave TX GPIO17 |
 
 **Encoder wheel:** 600 PPR, circumference = 200 mm → **PPC = 30.0 formula value**.  
-**Measured PPC:** 30.134 (encoder_test 500 cm), 30.21 (master PCNT 100 cm test).  
-**Current EEPROM-stored PPC:** 30.21 (set by user, survives reboot).
+Historical measurements: 30.134 (encoder_test, 500 cm) and 30.2100 (master PCNT, 100 cm).
+The corrected value from the graduated-metre verification is **30.1837**; see `STATO_PROGETTO.md`
+for the current calibration decision. The EEPROM value actually stored on a device cannot be
+verified from this source tree.
 
-**Slave:** ESP32-S3, TB6600 stepper (PUL=GPIO4, DIR=GPIO5, ENA=GPIO6), FastAccelStepper library.
+**Active slave:** classic ESP32 with TB6600 and FastAccelStepper; pin assignments differ from the
+older ESP32-S3 sketch and are defined in `slave/slave.ino`.
 
 ---
 
 ## File map
 
 ```
-master/master.ino       ← ESP32 master: encoder, caliper, web UI, WebSocket, motor relay
-slave/slave.ino         ← ESP32-S3: stepper motor control, receives UART commands
-encoder_test/           ← Diagnostic sketch (encoder + WiFiManager only, no caliper)
-app/                    ← WPF .NET desktop app (alternative to browser UI)
-CONTEXT.md              ← This file
+master/master.ino       ← active ESP32 master: encoder, caliper, web UI, WebSocket, motor relay
+slave/slave.ino         ← active classic-ESP32 motor controller
+master_razorgauge/      ← preliminary optical RazorGauge master
+gauge_esp32*/           ← optical sensor bench sketches
+encoder_test/           ← diagnostic encoder sketch
+app/                    ← WPF .NET desktop app
+FlyLinePhysics/         ← shared physics and serialization library
+FlyLinePhysics.Tests/   ← library unit tests
+cli/                    ← command-line design and analysis tool
+cad/, scheda*/          ← mechanical CAD and controller board designs
 ```
 
 ---
@@ -185,7 +187,7 @@ Auto-sends `STOP` to motor after 5 s of encoder inactivity. Suppressed during GO
 | URL | Method | Description |
 |---|---|---|
 | `/` | GET | Full web UI (embedded in `R"rawliteral(...)"`) |
-| `/export` | GET | CSV export: `Dataset,Lunghezza cm,Diametro mm,Display mm` |
+| `/export` | GET | CSV export: `Lunghezza cm,Diametro mm` |
 | `/import` | POST | CSV import |
 | `/params` | GET | JSON of current parameters |
 | `/encoder` | GET | Diagnostic: `{"ticks","pcntAccum","hwCounter","ppc","cm","scanEnabled","totalPoints"}` |
@@ -248,7 +250,7 @@ Examples: `STATUS:SCAN:FWD`, `STATUS:GOTOPOS:FWD:1500`, `STATUS:STOP:FWD`
 
 - `actualPositionCm` variable (line 184) is still declared and reset in `resetpos`/`clearAllData` but is **no longer updated in the scan loop** (v0.4.22). It is now unused dead code — safe to remove in a future cleanup.
 - Chart uses CDN for Chart.js — no internet → blank chart. Consider embedding the JS locally.
-- Encoder true PPC (30.21) slightly differs from formula (30.0) — EEPROM value takes precedence; formula is the fallback if EEPROM is blank.
+- Encoder PPC differs slightly from the nominal formula (30.0); the calibrated EEPROM value takes precedence, with the formula as fallback if EEPROM is blank.
 - WPF app: nearly all Design Mode logic (nozzles, compensation, plotting, PDF/CSV export) lives in `MainWindow.xaml.cs` code-behind (~4600 lines) rather than in `MainViewModel`. `MainViewModel` only handles the SCAN/backend half. Worth a ViewModel split if the file keeps growing.
 
 ---
@@ -448,7 +450,7 @@ A project has exactly 4 `NozzleDefinition` slots (color + density g/cm³ + label
 - Libraries: `WiFi`, `WebServer`, `WebSocketsServer`, `EEPROM`, `WiFiManager`, `driver/pcnt.h` (IDF built-in)
 - Flash **slave first**, then master
 
-### slave (ESP32-S3)
+### slave (classic ESP32, v0.6.1)
 - Board: **esp32:esp32:esp32s3**
 - Library: `FastAccelStepper`
 

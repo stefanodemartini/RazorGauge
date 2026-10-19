@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^dotnet build app/app\\.sln --nologo$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

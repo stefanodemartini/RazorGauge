@@ -31,12 +31,16 @@ stessa cosa. `-alpha` perché compila ma non è ancora stata provata sul banco.
 L'`arduino-cli` è dentro l'IDE, non serve installarlo:
 
 ```
-"C:/Users/Stefano/AppData/Local/Programs/Arduino IDE/resources/app/lib/backend/resources/arduino-cli.exe" \
-    compile --fqbn esp32:esp32:esp32 master/master.ino
+"C:\Users\Stefano\AppData\Local\Programs\Arduino IDE\resources\app\lib\backend\resources\arduino-cli.exe" compile --fqbn esp32:esp32:esp32 master/master.ino
 ```
 
 `gauge_esp32s3` vuole `--fqbn esp32:esp32:esp32s3`. Occupazione flash all'ultima verifica: master
 85%, slave 26%, master_razorgauge 82%, gauge 23% e 25%.
+
+Il firmware attivo del master è stato compilato per ESP32; per la scheda e la configurazione
+correnti, il target del master è il classico ESP32. Anche lo slave attivo usa il classico ESP32.
+Il master regola in retroazione la velocità di scansione; `SCAN_HZ = 1500` sullo slave è il valore
+iniziale, non una frequenza fissa garantita durante tutta la scansione.
 
 ## Lo slave non è un riordino
 

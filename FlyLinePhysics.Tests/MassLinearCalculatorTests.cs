@@ -61,4 +61,11 @@ public class MassLinearCalculatorTests
         Assert.Equal(0, cumulative[0]);
         Assert.Equal(Math.PI / 4.0 * 100.0 * 0.01, cumulative[^1], precision: 6);
     }
+
+    [Fact]
+    public void LinearMassSolid_ReturnsZero_ForNonPositiveInputs()
+    {
+        Assert.Equal(0.0, MassLinearCalculator.LinearMassSolid(0.0, 1.0), precision: 12);
+        Assert.Equal(0.0, MassLinearCalculator.LinearMassSolid(1.0, -0.5), precision: 12);
+    }
 }

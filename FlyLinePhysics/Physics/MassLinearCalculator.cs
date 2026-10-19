@@ -12,6 +12,9 @@ public static class MassLinearCalculator
     /// </summary>
     public static double LinearMassSolid(double outerDiameterMm, double coatingDensityGCm3)
     {
+        if (outerDiameterMm <= 0.0 || coatingDensityGCm3 <= 0.0)
+            return 0.0;
+
         double dM = outerDiameterMm / 1000.0;
         double rhoKgM3 = coatingDensityGCm3 * 1000.0;
         return rhoKgM3 * Math.PI / 4.0 * dM * dM;
@@ -29,13 +32,18 @@ public static class MassLinearCalculator
         double outerDiameterMm, double coatingDensityGCm3,
         double coreDiameterMm, double coreDensityGCm3)
     {
-        double dOuterM = outerDiameterMm / 1000.0;
-        double dCoreM  = Math.Min(coreDiameterMm, outerDiameterMm) / 1000.0;
-        double rhoCoatingKgM3 = coatingDensityGCm3 * 1000.0;
-        double rhoCoreKgM3    = coreDensityGCm3 * 1000.0;
+        if (outerDiameterMm <= 0.0)
+            return 0.0;
 
-        double coreArea    = Math.PI / 4.0 * dCoreM * dCoreM;
+        double dOuterM = outerDiameterMm / 1000.0;
+        double dCoreM = Math.Max(0.0, Math.Min(coreDiameterMm, outerDiameterMm)) / 1000.0;
+        double rhoCoatingKgM3 = Math.Max(0.0, coatingDensityGCm3) * 1000.0;
+        double rhoCoreKgM3 = Math.Max(0.0, coreDensityGCm3) * 1000.0;
+
+        double coreArea = Math.PI / 4.0 * dCoreM * dCoreM;
         double coatingArea = Math.PI / 4.0 * (dOuterM * dOuterM - dCoreM * dCoreM);
+
+        if (coatingArea < 0.0) coatingArea = 0.0;
 
         return rhoCoreKgM3 * coreArea + rhoCoatingKgM3 * coatingArea;
     }
