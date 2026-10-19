@@ -1,5 +1,34 @@
 # flylineprofiler — Coding Context
 
+> ## ⚠️ Read this first: the hardware lives in another project
+>
+> The mechanics, the board, the optics and the CAD are **not here**. They are in
+> **`C:/Users/Stefano/Documents/Claude/RazorGauge/`**, worked on from a different Claude session,
+> and its **`STATO_PROGETTO.md` is the authoritative record** — read it before reasoning about the
+> rig. It carries decisions already taken, under "Decisioni prese (non rimettere in discussione
+> senza motivo)", that are not derivable from this repo and that this repo contradicts in places.
+>
+> Two that cost days of rediscovery:
+> - **Encoder: tangent contact with a pinch roller → no length correction by diameter.** The
+>   `actualPositionCm` accumulator still in `master/master.ino`, and its comment about
+>   `C_eff = 20 - π·d/10`, are the dead remains of an approach that does not apply. Do not revive
+>   them.
+> - **The caliper reads ~7-8% under the real diameter** (PVC deforms under the spring). Nothing
+>   compensates for it; the firmware's offset is additive, not a gain.
+>
+> ### Which firmware is real
+>
+> | | |
+> |---|---|
+> | **master 0.4.22-RB2** | the caliper build — **this is what runs**, and what `master/master.ino` now holds |
+> | **slave 0.6.1** | ESP32 **classic** (DevKit V1 30p, RazorBoard), not the S3. GPIO 6-11 are the flash on this part |
+> | master 0.6.0 | RazorGauge optical gauge, web UI removed — **preliminary, not running**. Lives only in RazorGauge/firmware/master/ |
+>
+> RazorGauge is **not under version control**, and copies of `master.ino` and `slave.ino` exist there
+> and under `RazorGauge/Claude outputs/` with different contents. The copies in *this* repo are the
+> canonical ones; the others are snapshots and drafts.
+
+
 > Firmware section last updated: 2026-05-29 (v0.4.22, stable, working) | WPF app section refreshed: 2026-08-05
 
 ---
