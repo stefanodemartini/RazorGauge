@@ -18,6 +18,8 @@
 >
 > ### Which firmware is real
 >
+> All of it is in this repo now, one home, no copies elsewhere — see **`FIRMWARE.md`**.
+>
 > | | |
 > |---|---|
 > | **master 0.4.22-RB2** | the caliper build — **this is what runs**, and what `master/master.ino` now holds |
