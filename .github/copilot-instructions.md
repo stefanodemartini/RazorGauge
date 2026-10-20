@@ -6,7 +6,7 @@ This repository contains the line-diameter measurement system and its mechanical
 canonical firmware locations and board/version matrix are in `FIRMWARE.md`; hardware decisions
 are in `STATO_PROGETTO.md`. Do not treat `Claude outputs/` or `_archivio_NON_USARE/` as active.
 
-### 1. `master/master.ino` — active classic ESP32 firmware (0.4.22-RB2)
+### 1. `master/master.ino` — active classic ESP32 firmware (0.4.25-RB2)
 - Reads a **quadrature encoder** on GPIO 32/33 → length in cm using the configurable encoder calibration.
 - Reads a **digital caliper** (DATA/CLOCK on GPIO 27/26) for diameter.
 - Stores measured points in a **sorted linked list** (`DataPoint*`) keyed by `cm` position; duplicate cm values update the existing node.
@@ -18,9 +18,10 @@ are in `STATO_PROGETTO.md`. Do not treat `Claude outputs/` or `_archivio_NON_USA
 - Connects to Wi-Fi via **WiFiManager** (AP SSID: `DiametroLinea_Setup`, password: `12345678`).
 - Relays motor commands to the slave over **UART2** (TX=GPIO17, RX=GPIO16) at 115200 8N1.
 
-### 2. `slave/slave.ino` — active classic ESP32 firmware (0.6.1)
+### 2. `slave/slave.ino` — active classic ESP32 firmware (0.6.7)
 - Controls a TB6600 stepper driver via **FastAccelStepper** (PUL=GPIO25, DIR=GPIO26, ENA=GPIO27).
 - Receives ASCII commands over **UART2** (RX=GPIO16, TX=GPIO17) at 115200 8N1.
+- Connects to the shared Wi-Fi via WiFiManager and exposes `/diag` for direct UART diagnostics.
 - Maintains a `Mode` enum: `STOPPED | SCAN | FAST_S | FAST_O | GOTOPOS`.
 - `GOTOPOS` uses a fast approach followed by a 400 Hz creep for precise stopping.
 - Buttons: GPIO 32/33/34; GPIO 34 uses the board's external pull-up.

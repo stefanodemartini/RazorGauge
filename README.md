@@ -8,8 +8,8 @@ files.
 
 | Path | Purpose |
 |---|---|
-| `master/` | Active ESP32 master firmware (0.4.22-RB2, caliper-based) |
-| `slave/` | Active ESP32-classic motor controller firmware (0.6.1) |
+| `master/` | Active ESP32 master firmware (0.4.25-RB2, caliper-based) |
+| `slave/` | Active ESP32-classic motor controller firmware (0.6.7, Wi-Fi/RX2 diagnostics) |
 | `master_razorgauge/` | Preliminary optical RazorGauge master (1.0.0-alpha) |
 | `gauge_esp32/`, `gauge_esp32s3/`, `encoder_test/` | Bench and diagnostic firmware |
 | `app/` | Windows WPF desktop application |

@@ -49,7 +49,9 @@ public class BackendClient
 
     public async Task SendAsync(string command)
     {
-        if (_ws?.State != WebSocketState.Open) return;
+        if (_ws?.State != WebSocketState.Open)
+            throw new InvalidOperationException("WebSocket non connesso.");
+
         var bytes = Encoding.UTF8.GetBytes(command);
         await _ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
     }

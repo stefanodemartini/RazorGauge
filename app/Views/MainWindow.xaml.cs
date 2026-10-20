@@ -5198,7 +5198,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         return nodes[^1].Y;
     }
 
-    private async Task Send(string cmd) => await _vm.SendCommandAsync(cmd);
+    private async Task<bool> Send(string cmd) => await _vm.SendCommandAsync(cmd);
 
     // Connection
     private async void Connect_Click(object sender, RoutedEventArgs e)
@@ -5217,8 +5217,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // Motor / scan commands
     private async void StartScan_Click(object sender, RoutedEventArgs e)
     {
-        await Send("motor scan");
-        await Send("scan_on");
+        if (!await Send("motor scan"))
+        {
+            UiStatus = "SCAN not sent — check the ESP32 connection";
+            return;
+        }
+
+        if (!await Send("scan_on"))
+        {
+            UiStatus = "Motor command sent, but scan receiving could not be enabled";
+            return;
+        }
+
         UiStatus = "SCAN sent";
     }
 

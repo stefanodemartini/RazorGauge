@@ -6,8 +6,8 @@ contenuti diversi hanno già portato a leggere quella sbagliata per giorni.
 
 | cartella | versione | board | stato |
 |---|---|---|---|
-| `master/` | **0.4.22-RB2** | ESP32 classico | **ATTIVO** — col calibro centesimale |
-| `slave/` | **0.6.1** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore |
+| `master/` | **0.4.25-RB2** | ESP32 classico | **ATTIVO** — col calibro centesimale |
+| `slave/` | **0.6.7** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore + diagnostica Wi-Fi |
 | `master_razorgauge/` | **1.0.0-alpha** | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
 | `gauge_esp32/` | — | ESP32 classico | **banco di collaudo** del RazorGauge: laser pulsato + CCD TSL1401, comandi seriali |
 | `gauge_esp32s3/` | — | ESP32-S3 | lo stesso, per la scheda S3 precedente |
@@ -17,7 +17,7 @@ master, per provare la testa di misura (laser + CCD) prima di flashare il master
 da seriale — `d` dark, `r` riferimento senza cavo, `m` misura, `p` profilo — e non parlano WebSocket.
 Quando il RazorGauge entra in produzione è la **1.0.0** a leggere il sensore, non questi.
 
-Si resta sulla **0.4.22-RB2 finché c'è il calibro**; si passa alla **1.0.0** quando si implementa il
+Si resta sulla linea **0.x-RB2 finché c'è il calibro**; si passa alla **1.0.0** quando si implementa il
 laser. Le due non sono intercambiabili: la 1.0.0 non legge il calibro e non serve la pagina web.
 
 **Perché 1.0.0 e non 0.6.0** (come si chiamava): il laser non è un passo avanti sulla linea col
@@ -41,6 +41,57 @@ Il firmware attivo del master è stato compilato per ESP32; per la scheda e la c
 correnti, il target del master è il classico ESP32. Anche lo slave attivo usa il classico ESP32.
 Il master regola in retroazione la velocità di scansione; `SCAN_HZ = 1500` sullo slave è il valore
 iniziale, non una frequenza fissa garantita durante tutta la scansione.
+
+## Diagnostica UART master-slave
+
+Dopo aver caricato il master aggiornato, aprire `http://<IP-del-master>/motor_diag` per leggere i
+contatori UART senza collegare un monitor seriale:
+
+- `txLines`: righe trasmesse dal master;
+- `wsCommands` / `lastWsCommand`: comandi WebSocket ricevuti dal browser/app;
+- `wsControlCommands` / `lastWsControl`: comandi WebSocket, esclusi `getparams` e `motor status`;
+- `txQueued` / `lastTx` / `lastTxAgeMs`: comandi UART messi in coda, ultimo comando trasmesso
+  e sua età;
+- `controlQueued` / `lastControlQueued` e `controlTxLines` / `lastControlTx` /
+  `lastControlTxAgeMs`: conteggi e ultimo comando non periodico messo in coda e trasmesso;
+- `rxBytes` / `rxLines`: byte e righe ricevuti dal master;
+- `statusLines`: righe `STATUS:<MODE>:<DIR>` riconosciute;
+- `slaveRxBytes` / `slaveRxLines` / `slaveRxCommands`: contatori cumulativi dei byte, righe e
+  comandi ricevuti dallo slave dall'accensione;
+- `slaveLastControl`: ultimo comando di controllo ricevuto dallo slave (esclude poll, POS e SETHZ);
+- `slaveIp`: IP Wi-Fi dello slave segnalato sulla UART;
+- `lastStatusAgeMs`: millisecondi dall'ultimo stato riconosciuto (`-1` se nessuno è mai arrivato);
+- `watchdogArmed` / `watchdogStopSent`: se il watchdog encoder è attivo e se ha già inviato STOP;
+- `mode` e `txPending`: stato corrente e presenza di un comando in coda.
+
+Premere **Aggiorna Stato** nella pagina web o **Status** nell'app e ricaricare l'endpoint: `lastWsCommand`
+conferma la ricezione dal browser, `lastTx` mostra il comando UART effettivamente trasmesso,
+`rxBytes` mostra se lo slave risponde e `statusLines` indica se la risposta viene riconosciuta.
+
+Il watchdog encoder del master si arma all'avvio di `SCAN`/`FAST` (o quando riceve uno stato attivo),
+non al primo campione encoder dopo il boot. Se il motore è comandato ma l'encoder non si muove per
+5 secondi, invia `STOP`; durante l'inattività non invia più stop spurii.
+
+### Diagnostica Wi-Fi e UART sullo slave 0.6.7
+
+Lo slave si collega alla stessa rete del master tramite WiFiManager. Al primo avvio, se non ha
+credenziali salvate, crea l'AP `RazorGauge_Slave_Setup` (password `12345678`): collegarsi con
+telefono/PC, selezionare la rete condivisa nel captive portal e attendere il riavvio della pagina.
+Il motore continua a funzionare anche se il Wi-Fi non viene configurato; il portale iniziale può
+però ritardare l'avvio del loop finché non si completa la configurazione o scade il timeout.
+
+Aprire `http://<IP-slave>/diag` per leggere firmware, modalità, direzione e contatori UART. L'IP è
+anche riportato come `slaveIp` da `http://<IP-master>/motor_diag`. In risposta a `STATUS?`, lo slave
+invia inoltre `STATUS:<MODE>:<DIR>` e una riga `UARTDIAG` con contatori cumulativi e l'ultimo comando
+di controllo ricevuto.
+
+Per provare il pin RX2/GPIO16 indipendentemente dalla RazorBoard: spegnere tutto, rimuovere lo slave
+dalla scheda e alimentarlo solo via USB. Aprire `http://<IP-slave>/rx_test`. Il test ferma il motore,
+disabilita la lettura dei pulsanti fino al riavvio (GPIO34 non ha pull-up interna e fuori dalla
+scheda può flottare), scollega temporaneamente RX dalla UART, attiva il pull-up interno e restituisce
+il livello letto, poi ripristina la UART. `result: HIGH` indica che il pin RX sale alto quando il
+master è isolato; `LOW` indica che il pin resta basso anche senza la RazorBoard. Firmware slave build
+timestamp: `2026-10-20 22:10:02 +02:00`.
 
 ## Lo slave non è un riordino
 

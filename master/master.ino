@@ -10,9 +10,9 @@
 // ===============================
 // FW
 // ===============================
-#define FIRMWARE_VERSION "0.4.22-RB2"
-#define FIRMWARE_DATE "2026-05-29"
-#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune)"
+#define FIRMWARE_VERSION "0.4.25-RB2"
+#define FIRMWARE_DATE "2026-10-20 20:13:29 +02:00"
+#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + UART RX diagnostics + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog armed on motor start + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune)"
 
 // -----------------------------
 // Versione "calibro" per la RazorBoard SMD: identica alla 0.4.22 originale, cambiano SOLO i pin dell'encoder.
@@ -67,14 +67,37 @@ String motorMode = "UNKNOWN";
 String motorDir = "UNKNOWN";
 unsigned long motorLastSeenMs = 0;
 
-static char motorRxLine[48];
+static char motorRxLine[128];
 static size_t motorRxLen = 0;
 static String motorTxPending;
 static bool motorTxHasPending = false;
+static uint32_t motorTxLines = 0;
+static uint32_t motorTxQueued = 0;
+static uint32_t motorRxBytes = 0;
+static uint32_t motorRxLines = 0;
+static uint32_t motorStatusLines = 0;
+static uint32_t slaveUartRxBytes = 0;
+static uint32_t slaveUartRxLines = 0;
+static uint32_t slaveUartRxCommands = 0;
+static String slaveLastControlCommand = "UNKNOWN";
+static String slaveDiagIp = "0.0.0.0";
+static String motorLastQueued;
+static String motorLastSent;
+static unsigned long motorLastSentMs = 0;
+static uint32_t webSocketCommandCount = 0;
+static String webSocketLastCommand;
+static uint32_t webSocketControlCount = 0;
+static String webSocketLastControlCommand;
+static uint32_t motorControlQueued = 0;
+static uint32_t motorControlTxLines = 0;
+static String motorLastControlQueued;
+static String motorLastControlSent;
+static unsigned long motorLastControlSentMs = 0;
 
 static unsigned long encoderLastMoveMs = 0;
 static long encoderLastValueForWatchdog = 0;
 static bool encoderWatchdogStopSent = false;
+static bool motorWatchdogArmed = false;
 
 static unsigned long lastMotorPollMs = 0;
 static const unsigned long MOTOR_POLL_INTERVAL_MS = 2000;
@@ -228,8 +251,10 @@ void setDisplayZero();
 void motorQueueTx(const String& lineNoNewline);
 void motorPumpTx();
 void motorPumpRx();
+void armMotorWatchdog();
 void motorPollIfNeeded();
 void motorHandleStatusLine(const char* line);
+void motorHandleDiagLine(char* line);
 void goToPosition(float targetCm);
 void checkGoToStatus();
 
@@ -345,6 +370,14 @@ void motorQueueTx(const String& lineNoNewline) {
     if (motorTxHasPending && lineNoNewline.startsWith("SETHZ:")) return;  // speed trim — next one will get through
     motorTxPending = lineNoNewline + "\n";
     motorTxHasPending = true;
+    motorTxQueued++;
+    motorLastQueued = lineNoNewline;
+    if (lineNoNewline != "STATUS?" &&
+        !lineNoNewline.startsWith("POS:") &&
+        !lineNoNewline.startsWith("SETHZ:")) {
+      motorControlQueued++;
+      motorLastControlQueued = lineNoNewline;
+    }
 }
 
 void motorPumpTx() {
@@ -352,8 +385,26 @@ void motorPumpTx() {
   int freeBytes = SerialMotor.availableForWrite();
   if (freeBytes >= (int)motorTxPending.length()) {
     SerialMotor.print(motorTxPending);
+    motorTxLines++;
+    motorLastSent = motorTxPending;
+    motorLastSent.trim();
+    motorLastSentMs = millis();
+    if (motorLastSent != "STATUS?" &&
+        !motorLastSent.startsWith("POS:") &&
+        !motorLastSent.startsWith("SETHZ:")) {
+      motorControlTxLines++;
+      motorLastControlSent = motorLastSent;
+      motorLastControlSentMs = motorLastSentMs;
+    }
     motorTxHasPending = false;
   }
+}
+
+void armMotorWatchdog() {
+  encoderLastValueForWatchdog = getEncoderValue();
+  encoderLastMoveMs = millis();
+  encoderWatchdogStopSent = false;
+  motorWatchdogArmed = true;
 }
 
 void motorHandleStatusLine(const char* line) {
@@ -362,9 +413,16 @@ void motorHandleStatusLine(const char* line) {
   const char* p = line + 7;
   const char* colon = strchr(p, ':');
   if (!colon) return;
+  motorStatusLines++;
   
   String newMode = String(p).substring(0, colon - p);
   motorMode = newMode;
+  if (motorMode == "STOP") {
+    motorWatchdogArmed = false;
+  } else if ((motorMode == "SCAN" || motorMode == "FAST_S" || motorMode == "FAST_O") &&
+             !motorWatchdogArmed) {
+    armMotorWatchdog();
+  }
 
   // FW-12: parse direction field only (stop before the next colon that carries remaining steps)
   const char* dirStart = colon + 1;
@@ -422,13 +480,48 @@ void motorHandleStatusLine(const char* line) {
   webSocket.broadcastTXT(json);
 }
 
+void motorHandleDiagLine(char* line) {
+  if (strncmp(line, "UARTDIAG:", 9) != 0) return;
+
+  char* field = line + 9;
+  char* separator = strchr(field, ':');
+  if (!separator) return;
+  *separator = '\0';
+  slaveUartRxBytes = (uint32_t)strtoul(field, nullptr, 10);
+
+  field = separator + 1;
+  separator = strchr(field, ':');
+  if (!separator) return;
+  *separator = '\0';
+  slaveUartRxLines = (uint32_t)strtoul(field, nullptr, 10);
+
+  field = separator + 1;
+  separator = strchr(field, ':');
+  if (!separator) return;
+  *separator = '\0';
+  slaveUartRxCommands = (uint32_t)strtoul(field, nullptr, 10);
+  field = separator + 1;
+  separator = strchr(field, ':');
+  if (!separator) return;
+  *separator = '\0';
+  slaveLastControlCommand = field;
+  slaveDiagIp = separator + 1;
+}
+
 void motorPumpRx() {
   while (SerialMotor.available() > 0) {
     char c = (char)SerialMotor.read();
+    motorRxBytes++;
     if (c == '\r') continue;
     if (c == '\n') {
       motorRxLine[motorRxLen] = '\0';
-      if (motorRxLen > 0) motorHandleStatusLine(motorRxLine);
+      if (motorRxLen > 0) {
+        motorRxLines++;
+        if (strncmp(motorRxLine, "UARTDIAG:", 9) == 0)
+          motorHandleDiagLine(motorRxLine);
+        else
+          motorHandleStatusLine(motorRxLine);
+      }
       motorRxLen = 0;
       continue;
     }
@@ -461,6 +554,7 @@ void checkGoToStatus() {
 // ----------------------------- GOTOPOS Function -----------------------------
 void goToPosition(float targetCm) {
   if (isGoToActive) return;  // FW-08: prevent re-entrant call from WebSocket corrupting oldScanState
+  motorWatchdogArmed = false;
   if (targetCm < 0) {
     Serial.println("ERRORE: Target non valido");
     return;
@@ -1992,12 +2086,52 @@ void setup() {
     server.send(200, "application/json", json);
   });
 
+  server.on("/motor_diag", HTTP_GET, []() {
+    long lastStatusAgeMs = motorLastSeenMs == 0
+        ? -1
+        : (long)(millis() - motorLastSeenMs);
+    String json = "{\"mode\":\"" + motorMode +
+                  "\",\"wsCommands\":" + String(webSocketCommandCount) +
+                  ",\"lastWsCommand\":\"" + webSocketLastCommand +
+                  "\",\"wsControlCommands\":" + String(webSocketControlCount) +
+                  ",\"lastWsControl\":\"" + webSocketLastControlCommand +
+                  "\",\"txQueued\":" + String(motorTxQueued) +
+                  ",\"lastQueued\":\"" + motorLastQueued +
+                  "\",\"txLines\":" + String(motorTxLines) +
+                  ",\"lastTx\":\"" + motorLastSent +
+                  "\",\"lastTxAgeMs\":" + String(motorLastSentMs == 0 ? -1L : (long)(millis() - motorLastSentMs)) +
+                  ",\"controlQueued\":" + String(motorControlQueued) +
+                  ",\"lastControlQueued\":\"" + motorLastControlQueued +
+                  "\",\"controlTxLines\":" + String(motorControlTxLines) +
+                  ",\"lastControlTx\":\"" + motorLastControlSent +
+                  "\",\"lastControlTxAgeMs\":" + String(motorLastControlSentMs == 0 ? -1L : (long)(millis() - motorLastControlSentMs)) +
+                  ",\"rxBytes\":" + String(motorRxBytes) +
+                  ",\"rxLines\":" + String(motorRxLines) +
+                  ",\"statusLines\":" + String(motorStatusLines) +
+                  ",\"slaveRxBytes\":" + String(slaveUartRxBytes) +
+                  ",\"slaveRxLines\":" + String(slaveUartRxLines) +
+                  ",\"slaveRxCommands\":" + String(slaveUartRxCommands) +
+                  ",\"slaveLastControl\":\"" + slaveLastControlCommand +
+                  "\",\"slaveIp\":\"" + slaveDiagIp +
+                  "\",\"lastStatusAgeMs\":" + String(lastStatusAgeMs) +
+                  ",\"watchdogArmed\":" + String(motorWatchdogArmed ? "true" : "false") +
+                  ",\"watchdogStopSent\":" + String(encoderWatchdogStopSent ? "true" : "false") +
+                  ",\"txPending\":" + String(motorTxHasPending ? "true" : "false") + "}";
+    server.send(200, "application/json", json);
+  });
+
   server.begin();
 
   webSocket.begin();
   webSocket.onEvent([](uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
     if (type == WStype_TEXT) {
       String cmd = String((char*)payload);
+      webSocketCommandCount++;
+      webSocketLastCommand = cmd;
+      if (cmd != "getparams" && cmd != "motor status") {
+        webSocketControlCount++;
+        webSocketLastControlCommand = cmd;
+      }
       if (cmd == "getparams") {
         String json = "{\"type\":\"params\",\"displayZero\":" + String(displayZeroValue, 2) + ",\"offset\":" + String(caliperZeroOffset, 2) + ",\"ppc\":" + String(getActivePpc(), 4) + ",\"ppcCalibrated\":" + String((calibratedPpc >= 5.0f && calibratedPpc <= 500.0f) ? "true" : "false") + "}";
         webSocket.sendTXT(num, json);
@@ -2070,8 +2204,9 @@ void loop() {
   // FW-09: single consistent snapshot of hardware encoder for this iteration
   long encSnap = getEncoderValue();
 
-  // Watchdog encoder: auto-stop motore dopo 5s fermo
-  {
+  // Arm the encoder watchdog only while motor motion is expected; idle time after boot
+  // must not cause an immediate STOP when the first remote motion command arrives.
+  if (motorWatchdogArmed && !isGoToActive) {
     unsigned long now = millis();
     if (encSnap != encoderLastValueForWatchdog) {
       encoderLastValueForWatchdog = encSnap;
@@ -2081,6 +2216,7 @@ void loop() {
       // FW-10: watchdog suppressed during GOTOPOS (slow final approach looks like no movement)
       motorQueueTx("STOP");
       encoderWatchdogStopSent = true;
+      motorWatchdogArmed = false;
       Serial.println("Watchdog: encoder fermo da 5s, motore STOP");
     }
   }
@@ -2290,10 +2426,10 @@ void handleCommand(String cmd) {
     arg.replace("motor", "");
     arg.trim();
     arg.toLowerCase();
-    if (arg == "scan") { currentScanHz = SCAN_HZ_INIT; motorQueueTx("SCAN"); }
-    else if (arg == "stop") motorQueueTx("STOP");
-    else if (arg == "fast_s") motorQueueTx("FAST_S");
-    else if (arg == "fast_o") motorQueueTx("FAST_O");
+    if (arg == "scan") { currentScanHz = SCAN_HZ_INIT; armMotorWatchdog(); motorQueueTx("SCAN"); }
+    else if (arg == "stop") { motorWatchdogArmed = false; motorQueueTx("STOP"); }
+    else if (arg == "fast_s") { armMotorWatchdog(); motorQueueTx("FAST_S"); }
+    else if (arg == "fast_o") { armMotorWatchdog(); motorQueueTx("FAST_O"); }
     else motorQueueTx("STATUS?");
     return;
   }

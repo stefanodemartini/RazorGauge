@@ -2,7 +2,7 @@
 
 > **Questo è il repository unificato** (`github.com/stefanodemartini/RazorGauge`): CAD, schede,
 > app WPF, CLI, libreria fisica e firmware sono versionati insieme. Il firmware attivo è il master
-> **0.4.22-RB2** col calibro e lo slave **0.6.1**, entrambi per ESP32 classico, nelle cartelle
+> **0.4.25-RB2** col calibro e lo slave **0.6.7**, entrambi per ESP32 classico, nelle cartelle
 > `master/` e `slave/`. Il master ottico **1.0.0-alpha** è in `master_razorgauge/`: preliminare,
 > non ancora operativo.
 >
@@ -10,8 +10,9 @@
 >
 > Indici: `README.md` per la struttura, `FIRMWARE.md` per firmware/versioni, `MANUALE.md` per l'app.
 
+Aggiornato: 20 ottobre 2026, 20:13:29 +02:00.
 
-Aggiornato: 19 ottobre 2026 (verifica completa: vedi VERIFICA.md).
+Verifica hardware completa del 19 ottobre: vedi VERIFICA.md.
 
 Documento di progetto (versione modificabile): https://claude.ai/code/artifact/2273b50c-6248-4ea4-96ce-31eaccdc175b
 Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
@@ -21,10 +22,35 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 20 ottobre 2026 — firmware diagnostico
+
+- **UART master→slave non funzionante: il modulo slave è sano.** Slave fuori dalla RazorBoard,
+  alimentato da USB: GPIO16 a riposo ≈ 3 V (pull-up, nessun corto). Loopback con ponticello
+  GPIO17→GPIO16 e reset (lo slave rimanda a sé stesso il proprio `STATUS`): `/diag` riporta
+  `rxBytes` 99965, `rxLines` 5900 → RX2 e TX2 del modulo funzionano.
+  Stesso loopback sul master fuori scheda (si interroga da solo con `STATUS?` ogni 2 s):
+  `/motor_diag` riporta `txLines` 84, `rxLines` 84, `rxBytes` 672 (= 84 × `STATUS?\n`) → anche
+  il master è sano. **Entrambi i moduli funzionano: il guasto è sulla RazorBoard** — R10/R11,
+  piste UART, saldature dei fori 6/7 degli zoccoli master e slave.
+
+- **Slave 0.6.7**: `/rx_test` disabilita i pulsanti fino al riavvio, evitando l'attivazione
+  intermittente di FAST_O quando GPIO34 è flottante fuori dalla RazorBoard.
+  Build timestamp: `2026-10-20 22:10:02 +02:00`.
+- **Slave 0.6.6**: `/rx_test` ora arresta lo stepper prima della lettura, evitando il rifiuto
+  dovuto a stati transitori dei pulsanti. Build timestamp: `2026-10-20 22:09:07 +02:00`.
+- **Slave 0.6.5**: aggiunto `/rx_test`, che verifica RX2/GPIO16 con pull-up interno isolando
+  temporaneamente la UART. Build timestamp: `2026-10-20 21:41:38 +02:00`.
+- Corretto l'armamento del watchdog encoder: ora parte con un comando di movimento, non dopo
+  inattività a motore fermo. Aggiunti contatori diagnostici WebSocket/UART consultabili da
+  `/motor_diag`. Build timestamp: `2026-10-20 19:40:43 +02:00`.
+- **Master 0.4.25-RB2 e slave 0.6.4**: diagnostica UART lato slave e pagina Wi-Fi `/diag`;
+  IP dello slave esposto in `/motor_diag`. Rimosso il test LED GPIO2, non presente sul modulo.
+  Build timestamp: `2026-10-20 20:13:29 +02:00`.
+
 ### 19 ottobre 2026 — dal lato software
 
 - **Firmware e software sono riuniti in questo repository.** Le sorgenti canoniche sono
-  `master/` (0.4.22-RB2, attivo), `slave/` (0.6.1, attivo),
+  `master/` (0.4.25-RB2, attivo), `slave/` (0.6.7, attivo),
   `master_razorgauge/` (1.0.0-alpha, preliminare) e `gauge_esp32*/` (banco). Indice in
   `FIRMWARE.md`.
 - **Il master laser è stato rinumerato 0.6.0 → `1.0.0-alpha`**: il laser è un ramo diverso, non un
@@ -150,7 +176,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
   - PPC encoder: invariato (`calibrate:<cm>`, `setppc:<val>`, `calibrate_reset`, EEPROM addr 4).
 - `gauge_esp32/gauge_esp32.ino` — sketch di banco (solo sensore), non firmware attivo.
 - ~~Solo controllo di sintassi con g++ su librerie simulate: mai compilato con il core ESP32 reale~~ → **compilato davvero il 19/10/2026** con l'`arduino-cli` dentro l'IDE Arduino (core esp32 3.3.8): master laser 82% di flash, banco 23% e 25%, master calibro 85%, slave 26%. **Provato sull'hardware: ancora no.**
-- Slave — **0.6.1**, porting su ESP32 classico per la scheda (solo pin cambiati). **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
+- Slave — **0.6.7**, porting su ESP32 classico con diagnostica UART/Wi-Fi. **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
 
 ## Da fare / punti aperti
 - [x] ~~Eliminare a mano `firmware/RazorGauge_esp32s3`~~ → **fatto 19/10/2026**: archiviato in `_archivio_NON_USARE/`, e la copia nel repo (`gauge_esp32s3/`) è conservata come variante S3, non come firmware attivo.
@@ -185,7 +211,7 @@ Cartella `scheda/`. Stato: **schema + layout PCB v0.1 completati** (175 × 125 m
 - UART master↔slave su pista con R 470 ohm, header debug.
 - Montaggio: solo PCB, componenti a foro passante saldati a mano. Ingombro libero.
 - Netlist dello schema verificata identica alla netlist sorgente (`scheda/script/board_def.py`); schema rigenerabile con `script/gen_sch.py`.
-- Slave attivo 0.6.1 su ESP32 classico: PUL/DIR/ENA GPIO25/26/27, pulsanti GPIO32/33/34, UART GPIO16/17 → `slave/slave.ino`. La versione S3 precedente è storica e non va usata al posto dello slave attivo.
+- Slave attivo 0.6.7 su ESP32 classico: PUL/DIR/ENA GPIO25/26/27, pulsanti GPIO32/33/34, UART GPIO16/17 e diagnostica Wi-Fi → `slave/slave.ino`. La versione S3 precedente è storica e non va usata al posto dello slave attivo.
 - Master laser (1.0.0-alpha): `#define USE_RAZORBOARD 1` (scheda, encoder 32/33). Per tornare al vecchio cablaggio volante (encoder 12/13) mettere 0.
 - Da verificare: interasse file del nuovo slave CH340C (atteso 25.4 mm), dimensioni dei moduli per la serigrafia.
 - Layout: moduli con USB sul bordo superiore, aree senza rame sotto le antenne, morsetti su bordo inferiore (encoder, RazorGauge, TB6600, pulsanti) e sinistro (24 V, 5 V ext), pulsanti a destra, fori M3 agli angoli; piste di potenza 1 mm, segnali 0.4 mm, piani GND su entrambi i lati. Sbroglio con Freerouting 1.9; pipeline rigenerabile con `scheda/script/run_all.sh` (KiCad 7 + Java).

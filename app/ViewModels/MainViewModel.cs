@@ -166,9 +166,9 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    // Derived enables — used by XAML to disable buttons during GOTOPOS
-    public bool CanControl    => !_isGoToActive;
-    public bool CanEnableScan => !_scanReceiving && !_isGoToActive;
+    // Motor controls are unavailable until the device WebSocket is connected, and during GOTOPOS.
+    public bool CanControl    => _backend.IsConnected && !_isGoToActive;
+    public bool CanEnableScan => _backend.IsConnected && !_scanReceiving && !_isGoToActive;
 
     // ── Constructor ──────────────────────────────────────────────────────────
     public MainViewModel()
@@ -181,6 +181,8 @@ public class MainViewModel : ObservableObject
             {
                 ConnectionStatus = "Connesso";
                 AppendLog("WebSocket connesso");
+                OnPropertyChanged(nameof(CanControl));
+                OnPropertyChanged(nameof(CanEnableScan));
                 OnConnected?.Invoke();
             });
         };
@@ -191,6 +193,8 @@ public class MainViewModel : ObservableObject
             {
                 ConnectionStatus = "Disconnesso";
                 AppendLog("WebSocket disconnesso");
+                OnPropertyChanged(nameof(CanControl));
+                OnPropertyChanged(nameof(CanEnableScan));
                 if (_shouldReconnect && _settings.Backend.ReconnectSeconds > 0)
                     ScheduleReconnect();
             });
@@ -331,16 +335,18 @@ public class MainViewModel : ObservableObject
         }
     }
 
-    public async Task SendCommandAsync(string cmd)
+    public async Task<bool> SendCommandAsync(string cmd)
     {
+        AppendLog("> " + cmd);
         try
         {
-            AppendLog("> " + cmd);
             await _backend.SendAsync(cmd);
+            return true;
         }
         catch (Exception ex)
         {
             AppendLog("Errore invio: " + ex.Message);
+            return false;
         }
     }
 

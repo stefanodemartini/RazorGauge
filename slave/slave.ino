@@ -1,11 +1,14 @@
 #include <FastAccelStepper.h>
+#include <WiFi.h>
+#include <WebServer.h>
+#include <WiFiManager.h>
 
 // ===============================
 // FW SLAVE - Controllo Motore Passo-Passo
 // ===============================
-#define FIRMWARE_VERSION "0.6.1"
-#define FIRMWARE_DATE "2026-10-15"
-#define FIRMWARE_FEATURES "UART Control + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer + porting su ESP32 classico (DevKit V1 30p, RazorBoard)"
+#define FIRMWARE_VERSION "0.6.7"
+#define FIRMWARE_DATE "2026-10-20 22:10:02 +02:00"
+#define FIRMWARE_FEATURES "UART Control + WiFi diagnostics endpoint + UART RX GPIO pull-up test + UART RX counters over protocol + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer + porting su ESP32 classico (DevKit V1 30p, RazorBoard)"
 
 // -----------------------------
 // Pin definitions
@@ -23,6 +26,8 @@
 // -----------------------------
 // UART
 HardwareSerial SerialMaster(2);
+WebServer diagServer(80);
+WiFiManager wifiManager;
 
 // -----------------------------
 // Motor parameters
@@ -61,6 +66,7 @@ uint32_t currentDynamicSpeed = 0;
 // Encoder-fed position: updated by POS:<steps> messages from master.
 int32_t encoderFedPos = 0;
 bool encoderPosReceived = false;
+bool rxDiagnosticMode = false;
 // GOTOPOS two-phase state: false = phase-1 fast approach, true = phase-2 creep
 bool gotoPhase2 = false;
 
@@ -75,6 +81,11 @@ char rxBuffer[64];
 size_t rxLen = 0;
 String txPending;
 bool txPendingFlag = false;
+uint32_t uartRxBytes = 0;
+uint32_t uartRxLines = 0;
+uint32_t uartRxCommands = 0;
+String uartLastControlCommand = "NONE";
+unsigned long uartLastCommandAt = 0;
 
 // -----------------------------
 // Button debounce
@@ -101,6 +112,8 @@ uint32_t calculateDynamicSpeed(int32_t distanceToGo);
 void updateDynamicSpeed();
 void processCommand(const char* command);
 void receiveData();
+void appendUartDiagnostics();
+void setupDiagnosticsServer();
 void checkPositionReached();
 void handleButtons();
 
@@ -213,6 +226,13 @@ void sendStatus() {
   txPendingFlag = true;
 }
 
+void appendUartDiagnostics() {
+  txPending += "UARTDIAG:" + String(uartRxBytes) + ":" +
+               String(uartRxLines) + ":" + String(uartRxCommands) + ":" +
+               uartLastControlCommand + ":" + WiFi.localIP().toString() + "\n";
+  txPendingFlag = true;
+}
+
 void transmitPending() {
   if (!txPendingFlag) return;
   if (SerialMaster.availableForWrite() >= (int)txPending.length()) {
@@ -224,6 +244,13 @@ void transmitPending() {
 }
 
 void processCommand(const char* command) {
+  uartRxCommands++;
+  uartLastCommandAt = millis();
+  if (strcmp(command, "STATUS?") != 0 &&
+      strncmp(command, "POS:", 4) != 0 &&
+      strncmp(command, "SETHZ:", 6) != 0) {
+    uartLastControlCommand = command;
+  }
   Serial.print("Ricevuto comando: ");
   Serial.println(command);
   
@@ -254,6 +281,7 @@ void processCommand(const char* command) {
   
   if (strcmp(command, "STATUS?") == 0) {
     sendStatus();
+    appendUartDiagnostics();
     return;
   }
 
@@ -360,9 +388,11 @@ void processCommand(const char* command) {
 void receiveData() {
   while (SerialMaster.available()) {
     char ch = SerialMaster.read();
+    uartRxBytes++;
     if (ch == '\r') continue;
     
     if (ch == '\n') {
+      uartRxLines++;
       rxBuffer[rxLen] = '\0';
       if (rxLen > 0) {
         processCommand(rxBuffer);
@@ -378,6 +408,67 @@ void receiveData() {
       rxLen = 0;
     }
   }
+}
+
+void setupDiagnosticsServer() {
+  wifiManager.setConfigPortalTimeout(180);
+  bool connected = wifiManager.autoConnect("RazorGauge_Slave_Setup", "12345678");
+  if (!connected) {
+    Serial.println("Wi-Fi diagnostics unavailable; motor controller remains active.");
+    return;
+  }
+
+  diagServer.on("/", HTTP_GET, []() {
+    diagServer.send(200, "text/plain",
+                    "RazorGauge slave diagnostics: open /diag for JSON.");
+  });
+  diagServer.on("/diag", HTTP_GET, []() {
+    String json = "{\"firmware\":\"" + String(FIRMWARE_VERSION) +
+                  "\",\"build\":\"" + String(FIRMWARE_DATE) +
+                  "\",\"ip\":\"" + WiFi.localIP().toString() +
+                  "\",\"mode\":\"" + String(modeToString(mode)) +
+                  "\",\"direction\":\"" + String(fwd ? "FWD" : "BWD") +
+                  "\",\"rxBytes\":" + String(uartRxBytes) +
+                  ",\"rxLines\":" + String(uartRxLines) +
+                  ",\"rxCommands\":" + String(uartRxCommands) +
+                  ",\"lastControl\":\"" + uartLastControlCommand +
+                  "\",\"lastCommandAgeMs\":" +
+                  String(uartLastCommandAt == 0 ? -1L : (long)(millis() - uartLastCommandAt)) + "}";
+    diagServer.send(200, "application/json", json);
+  });
+  diagServer.on("/rx_test", HTTP_GET, []() {
+    rxDiagnosticMode = true;
+    if (mode != STOPPED || stepper->isRunning()) {
+      stepper->forceStop();
+      mode = STOPPED;
+      posActive = false;
+      currentDynamicSpeed = 0;
+      encoderPosReceived = false;
+      gotoPhase2 = false;
+    }
+
+    SerialMaster.end();
+    pinMode(UART_RX, INPUT_PULLUP);
+    delay(20);
+    uint8_t highSamples = 0;
+    constexpr uint8_t sampleCount = 20;
+    for (uint8_t i = 0; i < sampleCount; i++) {
+      highSamples += digitalRead(UART_RX) == HIGH ? 1 : 0;
+      delay(1);
+    }
+    SerialMaster.begin(115200, SERIAL_8N1, UART_RX, UART_TX);
+
+    const bool pulledHigh = highSamples == sampleCount;
+    String json = "{\"pin\":\"RX2/GPIO16\",\"motorStopped\":true,\"samples\":" +
+                  String(sampleCount) + ",\"highSamples\":" +
+                  String(highSamples) + ",\"result\":\"" +
+                  String(pulledHigh ? "HIGH" : "LOW") + "\"}";
+    diagServer.send(200, "application/json", json);
+  });
+  diagServer.begin();
+  Serial.print("Slave diagnostics: http://");
+  Serial.print(WiFi.localIP());
+  Serial.println("/diag");
 }
 
 // -----------------------------
@@ -480,6 +571,7 @@ void setup() {
   Serial.println("  GOTOPOS:cm:max_hz:dir - Vai a posizione");
   Serial.println("    Esempio: GOTOPOS:150:12000:F");
   Serial.println("========================================");
+  setupDiagnosticsServer();
 }
 
 // -----------------------------
@@ -488,6 +580,7 @@ void loop() {
   // Gestione comunicazione UART
   receiveData();
   transmitPending();
+  diagServer.handleClient();
   
   // Gestione movimento GOTOPOS
   if (mode == GOTOPOS && posActive) {
@@ -536,7 +629,7 @@ void loop() {
   }
   
   // Gestione pulsanti fisici
-  handleButtons();
+  if (!rxDiagnosticMode) handleButtons();
   
   // Piccolo delay per non sovraccaricare la CPU
   delay(1);
