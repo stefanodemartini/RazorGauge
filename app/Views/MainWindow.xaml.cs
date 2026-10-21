@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -412,6 +412,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LineWidthSlider.Value = Math.Clamp(_vm.Settings.Chart.LineWidth, (int)LineWidthSlider.Minimum, (int)LineWidthSlider.Maximum);
         FilteredOpacitySlider.Value = Math.Clamp(_vm.Settings.Chart.FilteredOpacity, FilteredOpacitySlider.Minimum, FilteredOpacitySlider.Maximum);
         RawOpacitySlider.Value = Math.Clamp(_vm.Settings.Chart.RawOpacity, RawOpacitySlider.Minimum, RawOpacitySlider.Maximum);
+        ShowScanCorrectionSetting();
         _chartControlsInitialized = true;
     }
 
@@ -612,33 +613,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (!_designMode)
             {
                 DrawLineFill(plot, series.Xs, halfYs, negYs, series.Color);
+
+                var top = plot.Add.Scatter(series.Xs, halfYs);
+                top.LegendText = series.Name;
+                top.LineWidth  = 2;
+                top.MarkerSize = 0;
+                top.Color      = series.Color.WithAlpha(0.85f);
+
+                var bot = plot.Add.Scatter(series.Xs, negYs);
+                bot.LineWidth  = 2;
+                bot.MarkerSize = 0;
+                bot.Color      = series.Color.WithAlpha(0.85f);
+                continue;
             }
-            else if (series.Xs.Length >= 2)
+
+            // Design mode: no fill at all — a tinted silhouette over the design changed the design's
+            // own colours and blurred where each outline actually runs. The overlay is instead a
+            // dashed outline in its own colour on a dark halo, drawn on top: the design keeps its
+            // solid outline and fill untouched, and the two edges read apart even where they are
+            // a few hundredths of a mm from each other.
+            foreach (double[] ys in new[] { halfYs, negYs })
             {
-                // Design mode: semi-transparent filled silhouette so this profile
-                // and the design profile both stay readable when they overlap.
-                var coords = new ScottPlot.Coordinates[series.Xs.Length * 2];
-                for (int i = 0; i < series.Xs.Length; i++)
-                    coords[i] = new ScottPlot.Coordinates(series.Xs[i], halfYs[i]);
-                for (int i = 0; i < series.Xs.Length; i++)
-                    coords[series.Xs.Length + i] =
-                        new ScottPlot.Coordinates(series.Xs[series.Xs.Length - 1 - i],
-                                                  negYs[series.Xs.Length - 1 - i]);
-                var silhouette = plot.Add.Polygon(coords);
-                silhouette.FillColor = series.Color.WithAlpha(0.30f);
-                silhouette.LineWidth = 0;
+                var halo = plot.Add.Scatter(series.Xs, ys);
+                halo.LineWidth  = 5.5f;
+                halo.MarkerSize = 0;
+                halo.Color      = new ScottColor(0, 0, 0).WithAlpha(0.55f);
+
+                var line = plot.Add.Scatter(series.Xs, ys);
+                line.LineWidth   = 2.5f;
+                line.MarkerSize  = 0;
+                line.Color       = series.Color;
+                line.LinePattern = ScottPlot.LinePattern.Dashed;
+                if (ReferenceEquals(ys, halfYs)) line.LegendText = series.Name;
             }
-
-            var top = plot.Add.Scatter(series.Xs, halfYs);
-            top.LegendText = series.Name;
-            top.LineWidth  = 2;
-            top.MarkerSize = 0;
-            top.Color      = series.Color.WithAlpha(0.85f);
-
-            var bot = plot.Add.Scatter(series.Xs, negYs);
-            bot.LineWidth  = 2;
-            bot.MarkerSize = 0;
-            bot.Color      = series.Color.WithAlpha(0.85f);
         }
 
         // Orientation labels — always show in design mode so the user knows which end is which
@@ -4112,6 +4119,98 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         UiStatus = "Profile reversed — position 0 is now the fly tip";
     }
 
+    private bool ScanCorrectionInMm => _vm.Settings.Design.ScanCorrectionUnit != "%";
+
+    /// <summary>Shows the stored value of the active unit in the box and the unit on the toggle.</summary>
+    private void ShowScanCorrectionSetting()
+    {
+        var d = _vm.Settings.Design;
+        ScanInflateBox.Text = (ScanCorrectionInMm ? d.ScanOffsetMm : d.ScanInflatePercent)
+            .ToString(ScanCorrectionInMm ? "0.###" : "0.##", CultureInfo.CurrentCulture);
+        ScanCorrUnitBtn.Content = ScanCorrectionInMm ? "mm" : "%";
+    }
+
+    private void ScanCorrUnit_Click(object sender, RoutedEventArgs e)
+    {
+        _vm.Settings.Design.ScanCorrectionUnit = ScanCorrectionInMm ? "%" : "mm";
+        _vm.SaveSettings();
+        ShowScanCorrectionSetting();
+    }
+
+    /// <summary>
+    /// Temporary scan correction, until the laser reader: the current gauge reads the line thinner
+    /// than it is, so the profile traced over the scan is corrected — either by a fixed amount in mm
+    /// added to every diameter, or by a percentage. A negative value decreases instead. On the
+    /// Phantom Hover the gap was a near-constant ~0.06 mm across 0.96–2.18 mm (3% on the belly, 7% at
+    /// the tip), so the fixed offset is the better model; % stays available. The result replaces the
+    /// traced profile — like Reverse it writes into the nodes, so it is undoable, and it asks first
+    /// because pressing it twice would apply the correction twice.
+    /// </summary>
+    private void InflateDiameters_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isCompensatedDerivative)
+        {
+            UiStatus = "C file: its geometry is the compensation result — scan correction not applied";
+            return;
+        }
+        if (_segmentNodes.Count < 2)
+        {
+            UiStatus = "Trace the profile over the scan first";
+            return;
+        }
+
+        bool inMm = ScanCorrectionInMm;
+        string text = ScanInflateBox.Text.Trim().TrimEnd('%').Trim();
+        if (text.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) text = text[..^2].Trim();
+        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out double value) &&
+            !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
+            value = double.NaN;
+        double limit = inMm ? 0.5 : 50;
+        if (double.IsNaN(value) || value == 0 || Math.Abs(value) > limit)
+        {
+            MessageBox.Show(inMm
+                    ? "Enter an amount in mm between -0.5 and 0.5, not 0 (e.g. 0.06 to increase, -0.06 to decrease)."
+                    : "Enter a percentage between -50 and 50, not 0 (e.g. 8 to increase, -8 to decrease).",
+                "Scan correction", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        double factor = 1.0 + value / 100.0;
+        Func<double, double> correct = inMm ? y => y + value : y => y * factor;
+        if (_segmentNodes.Any(n => correct(n.Y) <= 0.05))
+        {
+            MessageBox.Show("This decrease would leave a node at (or below) zero diameter.",
+                "Scan correction", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        string verb   = value > 0 ? "Increase" : "Decrease";
+        string amount = inMm ? $"{Math.Abs(value):0.###} mm" : $"{Math.Abs(value):0.##}% (×{factor:0.0000})";
+        var answer = MessageBox.Show(
+            $"{verb} every drawn diameter by {amount}?\n\n" +
+            "The corrected profile replaces the traced one. Pressing it again would apply the " +
+            "correction a second time — use Ctrl+Z to go back.",
+            "Scan correction", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.OK) return;
+
+        if (inMm) _vm.Settings.Design.ScanOffsetMm = value;
+        else      _vm.Settings.Design.ScanInflatePercent = value;
+        _vm.SaveSettings();
+
+        PushUndo();
+        var corrected = _segmentNodes.Select(n => (n.X, Math.Round(correct(n.Y), 3))).ToList();
+        _segmentNodes.Clear();
+        _segmentNodes.AddRange(corrected);
+
+        RefreshSegmentTable();
+        RefreshPlot();
+        TriggerCompRecompute();
+        MarkDirty();
+        UiStatus = inMm
+            ? $"Scan correction · diameters {value:+0.###;-0.###} mm · Ctrl+Z to undo"
+            : $"Scan correction · diameters {value:+0.##;-0.##}% (×{factor:0.0000}) · Ctrl+Z to undo";
+    }
+
     // ── Label hit-test helper ────────────────────────────────────────────────
     /// <summary>Returns the node X whose label screen centre is within LabelHitRadiusPx of pos.</summary>
     private double? FindLabelAt(System.Windows.Point pos)
@@ -5945,13 +6044,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         bool hasHeads = headSegs.Count > 0;
         double headVol  = hasHeads ? headSegs.Sum(s => s.VolumeCm3) : 0;
         double headMass = hasMass && hasHeads ? headSegs.Sum(s => s.MassG) : 0;
+        // Sum of the flagged pieces' own lengths — not the span from the first to the last, so a
+        // non-flagged gap between two head segments is not counted.
+        double headLenCm = hasHeads ? headSegs.Sum(s => s.LengthCm) : 0;
 
         var sb = new System.Text.StringBuilder();
         sb.Append($"Total: {totalVol:0.00} cm³");
         if (hasMass) sb.Append($"  |  {totalMass:0.00} g");
         if (hasHeads)
         {
-            sb.Append($"  |  Head: {headVol:0.00} cm³");
+            sb.Append($"  |  Head: {headLenCm:0.#} cm ({headLenCm / 30.48:0.0} ft) · {headVol:0.00} cm³");
             if (hasMass) sb.Append($" / {headMass:0.00} g");
         }
 

@@ -156,11 +156,30 @@ Attivare **Design Mode ON**. Il pannello sinistro mostra i controlli di design; 
 
 #### Undo
 - **Ctrl+Z** — annulla l'ultima modifica ai nodi (max 100 step)
-- Funziona per: aggiunta, rimozione, drag, edit, reverse, clear
+- Funziona per: aggiunta, rimozione, drag, edit, reverse, correzione scan Ø ±, clear
 
 #### Invertire il Profilo
 - **Reverse** — specchia le posizioni X mantenendo i diametri
 - Utile per impostare l'orientamento corretto (tip=0, reel=max)
+
+#### Correzione scan (Ø ±) — temporanea
+- Il gauge attuale legge la linea più sottile del vero: il profilo tracciato sullo scan va
+  maggiorato, in attesa del lettore laser
+- Pulsante **Ø ±**, casella del valore e pulsante dell'unità (**mm** / **%**, clic per alternare).
+  Unità e valori di entrambe le modalità sono ricordati nelle impostazioni
+  - **mm** (default, 0.06): somma la stessa quantità al diametro di **ogni nodo**. Ammesso ±0.5, non 0
+  - **%** (default 8): moltiplica ogni diametro per `1 + %/100`. Ammesso ±50, non 0
+- Le posizioni non cambiano. Valore **negativo** = diminuzione; rifiutata se porterebbe un nodo a Ø ≈ 0
+- **Perché mm è il default** — analisi del 21/10/2026 su *Phantom Hover (Real)* (design = misure
+  reali, scan = gauge): lo scarto è quasi **costante, ~0.06 mm** da Ø 0.96 a 2.18 (in percentuale
+  invece varia dal 7% in punta al 3% nel ventre). Errore medio dopo la correzione: +8% → 38 µm,
+  miglior % fissa (+5.5%) → 17 µm, **+0.06 mm → 8 µm**. Confermato su Phantom Extra Hover (due
+  scansioni) e Ballistic (galleggiante): scarto 0.05–0.06 mm, +8% sempre il peggiore. Ripetibilità
+  fra sessioni (scan e calibro) ~0.05 mm: inutile raffinare oltre
+- Attenzione: −8% non annulla un +8% (1.08 × 0.92 = 0.9936). Per annullare usa **Ctrl+Z**
+- Il profilo corretto **sostituisce** quello tracciato (scrive nei nodi). Chiede conferma perché
+  premerlo due volte applica la correzione due volte: per tornare indietro **Ctrl+Z**
+- Non disponibile su un file C (la sua geometria è il risultato della compensazione)
 
 #### Cancellare il Profilo
 - **Clear Segments** — rimuove tutti i nodi (undoable)
@@ -187,7 +206,7 @@ Con almeno 2 nodi la tabella **Segments** si popola automaticamente:
 ### Totali
 Sotto la tabella appare la riga **Totals**:
 - Volume totale (cm³) e massa totale (g) se la densità è impostata
-- Volume/Massa della testa (se marcata con flag Head)
+- Testa (segmenti con flag Head): **lunghezza** = somma delle lunghezze dei soli segmenti marcati, in cm e ft (un tratto non marcato in mezzo non conta), più volume/massa
 - **CoM** % e **Rg** % — Centro di Massa e Raggio di Girabilità
 - Classificazione del taper (hover sul testo per la descrizione completa)
 
@@ -692,6 +711,12 @@ Differenze dalle zone ugello (§5):
 - Se il progetto contiene sia design nodes sia scan points, viene chiesto quale/i importare: **Design profile only**, **Scan profile only** o **Both profiles**
 - Se il progetto ha solo uno dei due tipi di dati, viene importato direttamente senza chiedere
 - Le serie importate appaiono in legenda
+
+### Come appare l'overlay (Design Mode)
+- L'overlay è un **contorno tratteggiato** nel suo colore, con un alone scuro sotto, disegnato
+  **sopra** il design. Nessun riempimento: il design mantiene i suoi colori e il suo contorno pieno
+- Così i due bordi restano distinguibili anche quando distano pochi centesimi di mm
+- In Scan Mode l'overlay resta com'era (riempimento + contorno)
 
 ### Gestire le Overlay
 - **Clear Overlays** → rimuove tutte le serie importate (con conferma se più di una)

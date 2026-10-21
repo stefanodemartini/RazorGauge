@@ -24,6 +24,13 @@ quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `gi
 
 ### 20 ottobre 2026 — firmware diagnostico
 
+- **UART master↔slave: funziona, causa non accertata.** Continuità R10/R11 tra i fori 6/7 degli
+  zoccoli corretta (≈ 470 Ω). Ripartita dopo spegnimento e manipolazione dei moduli; il 21/10 si è
+  fermata di nuovo nella notte senza che nessuno toccasse nulla ("Motor offline") ed è ripartita
+  dopo un nuovo spegnimento. Ipotesi: contatto intermittente (saldature J7 da rifare) oppure blocco
+  firmware dopo ore. Al prossimo blocco, senza toccare: leggere `/motor_diag` e `/diag`, poi EN solo
+  sullo slave, poi solo sul master; J7 solo se nessun reset basta.
+
 - **UART master→slave non funzionante: il modulo slave è sano.** Slave fuori dalla RazorBoard,
   alimentato da USB: GPIO16 a riposo ≈ 3 V (pull-up, nessun corto). Loopback con ponticello
   GPIO17→GPIO16 e reset (lo slave rimanda a sé stesso il proprio `STATUS`): `/diag` riporta

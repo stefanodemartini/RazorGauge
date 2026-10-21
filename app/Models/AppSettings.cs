@@ -4,6 +4,23 @@ public class AppSettings
     public BackendSettings Backend { get; set; } = new();
     public ChartSettings Chart { get; set; } = new();
     public PrototypeSettings Prototype { get; set; } = new();
+    public DesignSettings Design { get; set; } = new();
+}
+public class DesignSettings
+{
+    /// <summary>
+    /// Empirical correction applied by "Ø ±" to a profile hand-traced over a scan: the current
+    /// gauge reads the line thinner than it is. Negative decreases. Temporary, until the laser
+    /// reader replaces it.
+    /// </summary>
+    public double ScanInflatePercent { get; set; } = 8.0;
+
+    /// <summary>Fixed amount added to every diameter in "mm" mode. 0.06 = the near-constant gap
+    /// measured on the Phantom Hover (2026-10-21).</summary>
+    public double ScanOffsetMm { get; set; } = 0.06;
+
+    /// <summary>"mm" (fixed offset, default) or "%" (proportional).</summary>
+    public string ScanCorrectionUnit { get; set; } = "mm";
 }
 public class PrototypeSettings
 {

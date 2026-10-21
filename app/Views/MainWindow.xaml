@@ -493,6 +493,21 @@
                                 Style="{StaticResource BtnGhost}"
                                 Click="ReverseNodes_Click"
                                 ToolTip="Flip the profile so the other end becomes the fly tip (position 0)"/>
+                        <Button Content="Ø ±"
+                                Style="{StaticResource BtnGhost}"
+                                Click="InflateDiameters_Click"
+                                ToolTip="Scan correction: change every drawn diameter by the amount at the right — in mm (0.06 = +0.06 mm) or % (8 = +8%); negative decreases. Replaces the traced profile (Ctrl+Z to undo)"/>
+                        <TextBox x:Name="ScanInflateBox" Width="44" FontSize="12"
+                                 Background="#1A1E2A"
+                                 Foreground="{StaticResource TextPrimary}"
+                                 BorderBrush="{StaticResource BorderBrush2}"
+                                 BorderThickness="1" Padding="3,1"
+                                 VerticalAlignment="Center" HorizontalContentAlignment="Right"
+                                 ToolTip="Correction applied by Ø ± — positive increases, negative decreases"/>
+                        <Button x:Name="ScanCorrUnitBtn" Content="mm"
+                                Style="{StaticResource BtnGhost}" MinWidth="34" Margin="0,0,4,0"
+                                Click="ScanCorrUnit_Click"
+                                ToolTip="Switch the correction between a fixed amount in mm (measured gap is ~constant, ~0.06 mm) and a percentage"/>
                         <Button Content="Export Seg. CSV"
                                 Style="{StaticResource BtnGhost}"
                                 Click="ExportSegmentsCsv_Click"/>
