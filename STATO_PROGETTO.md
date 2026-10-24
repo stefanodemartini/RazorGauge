@@ -10,7 +10,7 @@
 >
 > Indici: `README.md` per la struttura, `FIRMWARE.md` per firmware/versioni, `MANUALE.md` per l'app.
 
-Aggiornato: 20 ottobre 2026, 20:13:29 +02:00.
+Aggiornato: 24 ottobre 2026, 22:42:16 +02:00.
 
 Verifica hardware completa del 19 ottobre: vedi VERIFICA.md.
 
@@ -21,6 +21,46 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
+
+### 24 ottobre 2026 — prima prova del sensore CCD (senza laser)
+
+In attesa della ristampa MJF, il modulo **Hiwonder TSL1401** è stato collegato a un **ESP32 di
+ricambio** (DevKit V1, identico agli altri) con lo sketch nuovo **`ccd_test/`**: stessi pin del
+master (VCC 3V3, SI 26, CLK 27, AO 34; laser non collegato), integrazione regolabile in ms
+(`t <us>`), profilo ASCII continuo (`g`), dump raw (`w`), test di linearità (`a`). Il
+`gauge_esp32` non serviva: senza laser integra solo ~1.5 ms, troppo poco con luce ambiente.
+
+Risultati:
+- **Il sensore funziona.** I pixel **14–127** rispondono alla luce: buio con la mano, ~2400 LSB
+  uniformi sotto la torcia del telefono, transizioni morbide e coerenti spostando la luce.
+- Luce della stanza a 5 ms: **satura** (4095) su parte del sensore → con la luce ambiente usare
+  `t 1000` o meno.
+- **Lettura lenta: ~43 µs per pixel** (analogRead del core 3.3.12; dedotto dal primo output, dove
+  il valore errato −774 µs era proprio il tempo di 18 letture). Un frame intero richiede ~5.5 ms, e
+  la lettura stessa aggiunge ~4.7 ms di integrazione: l'integrazione effettiva di 5728 µs letta
+  dopo la correzione è compatibile con `t 1000` + 4.7 ms. **Conta per il master 1.0.0**: con
+  laser pulsato la luce ambiente si integra anche durante la lettura, e 8 frame per misura sono
+  ~45 ms, non i ~35 ms stimati. Da verificare: è il valore stampato con `t` noto, oppure misurare
+  con `t 200`.
+- **Punto aperto: i pixel 0–13 leggono 0 fisso, anche con la torcia puntata sopra** (~0.9 mm a
+  un'estremità). Lo 0 è il valore del buio pieno, e il passaggio a valore pieno è netto: ipotesi
+  principale **copertura fisica della finestrella** (residuo del supporto dell'obiettivo rimosso,
+  colla, bordo di plastica), non un difetto di lettura. Non ancora verificato.
+- Restano comunque 114 pixel ≈ 7.2 mm di campo, sufficienti per un cavo da 3 mm, ma l'ombra non
+  sarebbe più centrata sul fascio.
+
+**Si riprende da qui:**
+1. Guardare il chip con lente / macro del telefono sull'estremità dei pixel 0–13: finestrella
+   trasparente per tutti gli ~8 mm?
+2. Con `g` attivo far passare lentamente l'ombra di una matita verso quell'estremità: se sparisce
+   di colpo entrando nella zona → copertura netta.
+3. `w` e leggere i primi 20 valori: salto 0 → pieno in un pixel = bordo dell'ostacolo appoggiato
+   sul chip; salita graduale = ombra di un bordo più alto (supporto).
+4. Lanciare `a` (linearità) con luce costante e annotare l'esito; non è ancora stato fatto.
+
+Corretti nello sketch durante la prova: esecuzione dei comandi anche con il Serial Monitor su
+"No Line Ending" (dopo 100 ms di silenzio), e calcolo del tempo d'integrazione effettivo (veniva
+negativo → 4294966522 µs).
 
 ### 20 ottobre 2026 — firmware diagnostico
 
@@ -182,12 +222,14 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
   - Nuovi comandi: `gauge_dark`, `gauge_ref`, `gauge_cal <mm>`, `gauge_calreset`, `gauge_exp <us>`, `gauge_status`, `gauge_profile`. Dati salvati in NVS (namespace `razorgauge`).
   - PPC encoder: invariato (`calibrate:<cm>`, `setppc:<val>`, `calibrate_reset`, EEPROM addr 4).
 - `gauge_esp32/gauge_esp32.ino` — sketch di banco (solo sensore), non firmware attivo.
+- `ccd_test/ccd_test.ino` — prova del solo modulo TSL1401 **senza laser** (24/10/2026): integrazione regolabile, profilo ASCII, test di linearità. **Provato sull'hardware**: sensore OK sui pixel 14–127, vedi sezione 24 ottobre.
 - ~~Solo controllo di sintassi con g++ su librerie simulate: mai compilato con il core ESP32 reale~~ → **compilato davvero il 19/10/2026** con l'`arduino-cli` dentro l'IDE Arduino (core esp32 3.3.8): master laser 82% di flash, banco 23% e 25%, master calibro 85%, slave 26%. **Provato sull'hardware: ancora no.**
 - Slave — **0.6.7**, porting su ESP32 classico con diagnostica UART/Wi-Fi. **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
 
 ## Da fare / punti aperti
 - [x] ~~Eliminare a mano `firmware/RazorGauge_esp32s3`~~ → **fatto 19/10/2026**: archiviato in `_archivio_NON_USARE/`, e la copia nel repo (`gauge_esp32s3/`) è conservata come variante S3, non come firmware attivo.
 - [x] ~~Leggere dal vecchio ESP32 il PPC attivo e annotarlo~~ → **fatto 19/10/2026. PPC attivo letto: 30.2100 (calibrato).** Verificato su linea graduata al metro, 18 punti da 100 a 1798 cm: un solo errore di scala dello **0.087%** (il salto da −1 a −2 cm è il troncamento `(int)`, non due regimi). **PPC corretto da impostare: 30.1837** (`setppc:30.1837`). Niente slittamento, nessuna dipendenza dal diametro — conferma sperimentale della decisione "contatto tangente → nessuna correzione".
+- [ ] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): capire se la finestrella è coperta — procedura nella sezione 24 ottobre
 - [ ] Ricontrollare col calibro l'interasse dei fori della scheda sensore (20 mm a mano vs 21.2 mm nello STL — le asole accettano entrambi)
 - [ ] Misurare lo spot del laser a 5–10 cm (serve ≥ ~1.3 mm per i cavi da 3 mm)
 - [x] `MEAS_OFFSET_CM` = 2.800 cm da CAD nel master 0.5.5 — [ ] verifica al collaudo (segno sulla linea)
