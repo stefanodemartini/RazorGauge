@@ -420,7 +420,7 @@ static bool gaugeMeasureRaw(int nAvg, float& diamMm, float& centerMm) {
   for (int i = L; i <= R; i++) { float d = 1.0f - gNorm[i]; area += d; moment += d * i; }
   if (area <= 0) return gFail("area nulla");
   diamMm   = area * G_PIXEL_MM;
-  centerMm = (moment / area - (G_PIX_FIRST + G_PIX_LAST) / 2.0f) * G_PIXEL_MM;   // 0 = centro della zona utile
+  centerMm = (moment / area - (G_NPIX - 1) / 2.0f) * G_PIXEL_MM;   // 0 = centro fisico del chip
   // diametro di controllo: fronti al 50% interpolati (sensibile alle frange, serve solo come confronto)
   float xl = l + (G_EDGE_FIND - gNorm[l]) / (gNorm[l + 1] - gNorm[l] + 1e-6f);
   float xr = r - 1 + (gNorm[r - 1] - G_EDGE_FIND) / (gNorm[r - 1] - gNorm[r] + 1e-6f);

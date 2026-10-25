@@ -43,7 +43,10 @@ download mode.
 - **Master laser 1.0.1-alpha:** `G_PIX_FIRST` = 16 / `G_PIX_LAST` = 125 (pixel usati, inclusi).
   Prima i pixel morti venivano forzati a 1.0 ed entravano nella stima dell'energia `k` e
   nell'uniformità, falsando il diametro; ora ricerca dell'ombra, `k`, uniformità, picco e controllo
-  "ombra al bordo" usano solo la zona utile, e `center` è riferito al centro di quella zona.
+  "ombra al bordo" usano solo la zona utile; `center` resta riferito al centro fisico del chip.
+  Margine: l'ombra sta sempre entro 1.5 mm dal centro della gola J (larga 3.0) + 0.51 mm di frange;
+  verso il lato morto restano 3.02 mm → la gola tollera ~1.0 mm di disallineamento da quel lato
+  (1.9 mm dall'altro). Lato fisico del pixel 0 ancora da individuare (segno di `center` in `/diag`).
   Con un sensore sano rimettere `G_PIX_FIRST` = 2. Compilato (82%), non provato sul banco.
   Il simulatore `strumenti/firmware_sim/gauge_v06.inc` ha una sua copia dell'algoritmo, non aggiornata.
 
