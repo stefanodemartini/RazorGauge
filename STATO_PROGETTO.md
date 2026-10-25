@@ -22,6 +22,62 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 25 ottobre 2026 — precisione teorica del laser e misura della densità
+
+**Precisione attesa (stima teorica, da confermare al banco):** ripetibilità **1–3 µm**, accuratezza
+**±3–5 µm** dopo la calibrazione con le spine. Il diametro è l'area dell'ombra, quindi la risoluzione
+non è limitata dal pixel (63.5 µm) ma dal rumore. Diffrazione: a 2.5 mm dal chip le frange sono
+larghe √(λ·z) ≈ 40 µm, la finestra con 8 pixel di margine (~12 volte) le conteggia quasi tutte.
+
+| Sorgente (Ø 2 mm, finestra ~48 px) | Stima | Tipo |
+| --- | --- | --- |
+| Rumore ADC (~8 mV su ~2000, 2 letture/px, 8 frame) | ~0.5 µm | casuale |
+| Stima energia `k` (~60 px fuori ombra) | < 0.1 µm | casuale |
+| Non linearità ADC sui pixel di bordo | ~3 µm | sistematico → offset della calibrazione |
+| **Frange d'interferenza che si spostano (temperatura → λ del diodo)** | **2–5 µm** | **deriva: il limite vero** |
+| Altezza linea ±0.1 mm con 5 µm/mm di collimazione residua | ~0.5 µm | casuale |
+| Linea inclinata 2° sulla fila di pixel | ~1 µm | sistematico |
+| Spine di calibrazione | ±1–2 µm | sistematico |
+
+- Controllo della deriva: indice **`flat`** in `/diag` (residuo RMS fuori ombra). Sotto ~1% → deriva
+  di pochi µm; se cresce, rifare `gauge_ref`. Far scaldare il laser qualche minuto prima di calibrare.
+- Esclusi dal bilancio: ovalità (un solo asse), pixel morti (nessun effetto, vedi sotto).
+- Rispetto al calibro (ripetibilità ~50 µm + offset da schiacciamento ~0.05–0.06 mm): 10–20 volte meglio.
+- **Tempi di misura da ricontrollare:** con `G_OVERSAMPLE` = 2 e ~43 µs per lettura ADC un frame dura
+  ~11 ms, quindi 8 frame ≈ 90 ms per misura e la mediana di 7 ≈ 0.6 s, non i ~35 ms / 0.25 s della
+  tabella in "Sviluppi futuri". A 2 cm/s ogni punto mediarebbe ~1.3 cm di linea: misurare il tempo
+  reale al primo avvio (`gauge_stat`) e, se serve, scendere a 1 lettura/pixel o meno frame.
+
+**Densità da scan + pesata** (l'app ha già "From Weight", `WeightToDensityDialog`):
+ρ = m / Σ V_slice, con V = π/4 · d² · 1 cm. L'errore sul volume è il **doppio** di quello sul
+diametro (δρ/ρ ≈ 2·δd/d); peso e lunghezza contano poco (bilancia 0.01 g su 10–20 g ≈ 0.1%,
+encoder < 0.5%). Il rumore casuale si media sulle slice, l'offset sistematico no.
+
+| Errore sistematico su Ø | Punta Ø 1.0 | Ventre Ø 2.0 |
+| --- | --- | --- |
+| Calibro, ~0.05 mm | ~10% | ~5% |
+| Laser ±0.01 mm | 2% | 1% |
+| Laser ±0.005 mm | 1% | 0.5% |
+
+Floating/neutra differiscono del 5–10%: col calibro non si distinguono, col laser sì.
+Limiti che restano: ovalità (sezione non circolare, un solo asse misurato), core incluso (per il
+coating: ρ = (m − m_core)/(V − V_core)), una pesata = una sola densità media (le zone richiedono tagli).
+
+**Riferimento indipendente: pesata idrostatica (Archimede)**, ρ = m_aria / (m_aria − m_liquido) · ρ_liquido.
+Problema riscontrato: bolle d'aria tra le spire a contatto. Ordine di grandezza: testa 10 m Ø 1.2 ≈ 11 cm³,
+l'1% sono 0.11 cm³ d'aria (una bolla Ø ~6 mm o decine di millimetriche). Metodo consigliato:
+- **spezzoni dritti** da 20–30 cm appesi a un gancio sottile (niente spire a contatto), oppure telaio
+  aperto con spire distanziate (tarato a parte in aria e immerso);
+- **etanolo/isopropanolo** invece dell'acqua: bagna meglio (niente bolle) e con ρ ≈ 0.79 fa affondare
+  anche le floating senza zavorra. ρ_liquido varia ~−0.1%/°C e con l'umidità: misurarla a ogni sessione
+  con un corpo di riferimento (cilindro acciaio/vetro pesato in aria e immerso). Immersione di pochi
+  minuti (il PVC plastificato non va lasciato a bagno);
+- immersione lenta e inclinata, picchiettare, ripetere finché 3 letture sono stabili (le bolle fanno
+  salire le letture successive).
+Uso previsto: una volta su uno spezzone già scansionato → errore reale del gauge (e ovalità, se il
+volume Archimede è sistematicamente minore di quello dello scan). Se concordano entro 1–2%, da lì in
+poi basta scan + pesata.
+
 ### 25 ottobre 2026 — pixel 0–13 del TSL1401: morti
 
 Ripresa dai passi del 24/10, con l'ESP32 di prova su COM8 letto direttamente dal PC.
@@ -259,6 +315,8 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 - [x] ~~Leggere dal vecchio ESP32 il PPC attivo e annotarlo~~ → **fatto 19/10/2026. PPC attivo letto: 30.2100 (calibrato).** Verificato su linea graduata al metro, 18 punti da 100 a 1798 cm: un solo errore di scala dello **0.087%** (il salto da −1 a −2 cm è il troncamento `(int)`, non due regimi). **PPC corretto da impostare: 30.1837** (`setppc:30.1837`). Niente slittamento, nessuna dipendenza dal diametro — conferma sperimentale della decisione "contatto tangente → nessuna correzione".
 - [x] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): morti, esclusi nel master 1.0.1-alpha (`G_PIX_FIRST`) — vedi sezione 25 ottobre
 - [ ] Ordinare un TSL1401 di scorta
+- [ ] Al primo avvio: misurare il tempo reale di una misura (8 frame) e rifare la tabella velocità/rumore
+- [ ] Prova Archimede in etanolo su spezzoni dritti già scansionati (verifica indipendente del gauge)
 - [ ] Ricontrollare col calibro l'interasse dei fori della scheda sensore (20 mm a mano vs 21.2 mm nello STL — le asole accettano entrambi)
 - [ ] Misurare lo spot del laser a 5–10 cm (serve ≥ ~1.3 mm per i cavi da 3 mm)
 - [x] `MEAS_OFFSET_CM` = 2.800 cm da CAD nel master 0.5.5 — [ ] verifica al collaudo (segno sulla linea)
@@ -270,7 +328,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 - [ ] Confermare i diametri delle spine (domanda lasciata come commento nel documento)
 
 ## Sviluppi futuri (decisi di rimandare)
-- **Velocità di scansione** (6/10/2026, non implementato per scelta): oggi 2 cm/s, limite ereditato dal calibro. Il firmware registra 1 punto/cm; il RazorGauge fa ~1 misura ogni 35 ms (8 letture) e il punto è la mediana delle ultime 7 misure (~0.25 s).
+- **Velocità di scansione** (6/10/2026, non implementato per scelta): oggi 2 cm/s, limite ereditato dal calibro. Il firmware registra 1 punto/cm; il RazorGauge fa ~1 misura ogni 35 ms (8 letture) e il punto è la mediana delle ultime 7 misure (~0.25 s). **[25/10/2026: probabilmente ottimistico — con 2 letture ADC/pixel a ~43 µs servono ~90 ms per misura e ~0.6 s per punto; vedi sezione 25 ottobre, tabella da rifare coi tempi misurati.]**
   | Velocità | Media | Cavo per punto | Rumore atteso |
   | --- | --- | --- | --- |
   | 2 cm/s (oggi) | 8 × 7 | 0.5 cm | ±3–5 µm |
