@@ -15,6 +15,7 @@ blu = segnale, grigio = riferimento, nero = buio, rosso = normalizzato (1 = luce
 I pulsanti mandano gli stessi comandi `gauge_*` che si possono dare da seriale o dall'app.
 
 ## 2. Allineamento del laser (senza cavo, coperchio montato)
+- Prima di montare: **LED del modulo Hiwonder coperto** (nastro nero/vernice) o dissaldato. Acceso aggiunge ~100 mV di luce continua (~5% del segnale, prova del 25/10/2026).
 - Senza buio/riferimento la pagina mostra il frame grezzo ogni 0.2 s.
 - La curva blu deve essere una campana centrata, che copre bene i pixel, senza tratti piatti in alto (saturazione).
 - **I pixel 0–13 di questo sensore sono morti** (sempre 0, prova del 25/10/2026): è normale vederli a zero. Il firmware usa solo i pixel 16–125 (`G_PIX_FIRST` / `G_PIX_LAST`); la campana deve coprire bene quella zona.
