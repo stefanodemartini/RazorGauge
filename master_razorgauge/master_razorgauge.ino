@@ -16,7 +16,7 @@
 // numerazione in fila (0.6.0 accanto a 0.4.22) suggeriva il contrario, cioe "piu nuova quindi da
 // usare", mentre quella che gira e la 0.4.22-RB2. 0.x = era calibro, 1.x = era laser.
 // -alpha: scritta, compila, non ancora provata sul banco.
-#define FIRMWARE_VERSION "1.0.0-alpha"
+#define FIRMWARE_VERSION "1.0.1-alpha"
 #define FIRMWARE_DATE "2026-10-10"
 #define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato"
 
@@ -235,6 +235,10 @@ WebSocketsServer webSocket(81);
 
 static const int      G_NPIX       = 128;
 static const float    G_PIXEL_MM   = 0.0635f;
+// Pixel usati per la misura (inclusi). Il TSL1401 montato ha i pixel 0-13 morti (0 fisso anche col laser
+// diretto, prova del 25/10/2026): si parte dal 16 con 2 di margine. Con un sensore sano: 2 .. G_NPIX - 3.
+static const int      G_PIX_FIRST  = 16;
+static const int      G_PIX_LAST   = G_NPIX - 3;
 static const int      G_MARGIN_PX  = 8;        // pixel oltre i bordi inclusi nell'area (frange di diffrazione)
 static const float    G_EDGE_FIND  = 0.5f;     // soglia usata SOLO per localizzare l'ombra (e per il diametro "a soglia" di controllo)
 static const float    G_SHADOW_MIN = 0.3f;     // minimo normalizzato sopra cui "nessun cavo"
@@ -362,7 +366,7 @@ static void gAverage(bool laser, float* out, int n) {
 
 static float gPeak(const float* f) {
   float mx = 0;
-  for (int i = 2; i < G_NPIX - 2; i++) mx = max(mx, f[i] - gDark[i]);
+  for (int i = G_PIX_FIRST; i <= G_PIX_LAST; i++) mx = max(mx, f[i] - gDark[i]);
   return mx;
 }
 
@@ -387,28 +391,28 @@ static bool gaugeMeasureRaw(int nAvg, float& diamMm, float& centerMm) {
   }
   gDiagTmp.sat = sat;
   gDiagTmp.peak = gPeak(gAcc);
-  int imin = 2;
-  for (int i = 2; i < G_NPIX - 2; i++) if (gNorm[i] < gNorm[imin]) imin = i;
+  int imin = G_PIX_FIRST;
+  for (int i = G_PIX_FIRST; i <= G_PIX_LAST; i++) if (gNorm[i] < gNorm[imin]) imin = i;
   bool shadow = gNorm[imin] <= G_SHADOW_MIN;
   int l = imin, r = imin, L = 0, R = -1;
   if (shadow) {
-    while (l > 0 && gNorm[l] < G_EDGE_FIND) l--;
-    while (r < G_NPIX - 1 && gNorm[r] < G_EDGE_FIND) r++;
+    while (l > G_PIX_FIRST && gNorm[l] < G_EDGE_FIND) l--;
+    while (r < G_PIX_LAST && gNorm[r] < G_EDGE_FIND) r++;
     L = l - G_MARGIN_PX; R = r + G_MARGIN_PX;
   }
   // correzione energia impulso: i pixel illuminati fuori finestra devono valere 1
   float sumK = 0; int nK = 0;
-  for (int i = 2; i < G_NPIX - 2; i++) if (!shadow || i < L || i > R) { sumK += gNorm[i]; nK++; }
+  for (int i = G_PIX_FIRST; i <= G_PIX_LAST; i++) if (!shadow || i < L || i > R) { sumK += gNorm[i]; nK++; }
   float k = (nK > 0) ? sumK / nK : 1.0f;
   gDiagTmp.k = k;
   if (nK >= 10 && k > 0.5f && k < 1.5f) {
     float s2 = 0;
-    for (int i = 2; i < G_NPIX - 2; i++) if (!shadow || i < L || i > R) { float e = gNorm[i] / k - 1.0f; s2 += e * e; }
+    for (int i = G_PIX_FIRST; i <= G_PIX_LAST; i++) if (!shadow || i < L || i > R) { float e = gNorm[i] / k - 1.0f; s2 += e * e; }
     gDiagTmp.flat = 100.0f * sqrtf(s2 / nK);
   }
   for (int i = 0; i < G_NPIX; i++) gDiagTmp.norm[i] = (int16_t)constrain(lroundf(1000.0f * gNorm[i] / (k > 0.5f && k < 1.5f ? k : 1.0f)), -32000L, 32000L);
   if (!shadow) return gFail("nessun cavo");
-  if (L < 0 || R > G_NPIX - 1) return gFail("ombra al bordo del sensore");
+  if (L < G_PIX_FIRST || R > G_PIX_LAST) return gFail("ombra al bordo del sensore");
   if (nK < 10) return gFail("troppo pochi pixel illuminati");
   if (k > 0.5f && k < 1.5f) for (int i = L; i <= R; i++) gNorm[i] /= k;
   else return gFail("energia laser anomala");
@@ -416,7 +420,7 @@ static bool gaugeMeasureRaw(int nAvg, float& diamMm, float& centerMm) {
   for (int i = L; i <= R; i++) { float d = 1.0f - gNorm[i]; area += d; moment += d * i; }
   if (area <= 0) return gFail("area nulla");
   diamMm   = area * G_PIXEL_MM;
-  centerMm = (moment / area - (G_NPIX - 1) / 2.0f) * G_PIXEL_MM;
+  centerMm = (moment / area - (G_PIX_FIRST + G_PIX_LAST) / 2.0f) * G_PIXEL_MM;   // 0 = centro della zona utile
   // diametro di controllo: fronti al 50% interpolati (sensibile alle frange, serve solo come confronto)
   float xl = l + (G_EDGE_FIND - gNorm[l]) / (gNorm[l + 1] - gNorm[l] + 1e-6f);
   float xr = r - 1 + (gNorm[r - 1] - G_EDGE_FIND) / (gNorm[r - 1] - gNorm[r] + 1e-6f);
@@ -517,7 +521,7 @@ static void gServeRequest(int req) {
     gAverage(true, gRef, 32);
     gHaveRef = true;
     float pk = gPeak(gRef), mn = 1e9f;
-    for (int i = 2; i < G_NPIX - 2; i++) mn = min(mn, gRef[i] - gDark[i]);
+    for (int i = G_PIX_FIRST; i <= G_PIX_LAST; i++) mn = min(mn, gRef[i] - gDark[i]);
     gSaveRefs();
     portENTER_CRITICAL(&gMux); gBufCount = 0; gBufIdx = 0; portEXIT_CRITICAL(&gMux);
     snprintf(gReqMsg, sizeof(gReqMsg), "gauge_ref OK: esposizione %u us, picco %.0f mV, minimo %.0f mV (uniformita %.0f%%)%s%s",

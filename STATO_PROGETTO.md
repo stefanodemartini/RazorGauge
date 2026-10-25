@@ -22,6 +22,31 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 25 ottobre 2026 — pixel 0–13 del TSL1401: morti
+
+Ripresa dai passi del 24/10, con l'ESP32 di prova su COM8 letto direttamente dal PC.
+`ccd_test` ha tre comandi nuovi: `z` (primi 24 pixel + zeri in testa), `o <us>` (attesa dopo SI),
+`p <us>` (attesa per pixel). Per caricare serve il tasto **BOOT**: il reset automatico non entra in
+download mode.
+
+- **Non è un problema di tempi.** Da 0.2 a 20 ms di integrazione, con attesa dopo SI 0–3 ms e
+  1–100 µs per pixel (frame da 5.5 a 18 ms), i pixel a zero sono sempre **esattamente 0–13**.
+- **Non è una copertura.** Il bordo è netto, senza penombra: pixel 13 = 0 col pixel 14 a 4095. Col
+  laser nudo puntato a mano sul chip (circa 25 s, spazzando anche l'estremità 0–13) i pixel 14–127
+  sono quasi sempre saturi per la luce diffusa nel package, e i 0–13 non escono mai da 0. Una
+  copertura esterna lascerebbe passare almeno la luce diffusa.
+- **Conclusione: pixel 0–13 morti** (danno sul chip a quell'estremità o difetto di fabbrica; le
+  connessioni invertite non spiegano un blocco di pixel contigui). Restano 114 pixel ≈ 7.2 mm,
+  sufficienti fino a 3 mm. Un TSL1401 di scorta conviene ordinarlo comunque.
+- Il laser nudo satura tutto il sensore già alla posa minima di `ccd_test` (~5 ms, lettura lenta):
+  normale, nel master la posa è un impulso di µs.
+- **Master laser 1.0.1-alpha:** `G_PIX_FIRST` = 16 / `G_PIX_LAST` = 125 (pixel usati, inclusi).
+  Prima i pixel morti venivano forzati a 1.0 ed entravano nella stima dell'energia `k` e
+  nell'uniformità, falsando il diametro; ora ricerca dell'ombra, `k`, uniformità, picco e controllo
+  "ombra al bordo" usano solo la zona utile, e `center` è riferito al centro di quella zona.
+  Con un sensore sano rimettere `G_PIX_FIRST` = 2. Compilato (82%), non provato sul banco.
+  Il simulatore `strumenti/firmware_sim/gauge_v06.inc` ha una sua copia dell'algoritmo, non aggiornata.
+
 ### 24 ottobre 2026 — prima prova del sensore CCD (senza laser)
 
 In attesa della ristampa MJF, il modulo **Hiwonder TSL1401** è stato collegato a un **ESP32 di
@@ -229,7 +254,8 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 ## Da fare / punti aperti
 - [x] ~~Eliminare a mano `firmware/RazorGauge_esp32s3`~~ → **fatto 19/10/2026**: archiviato in `_archivio_NON_USARE/`, e la copia nel repo (`gauge_esp32s3/`) è conservata come variante S3, non come firmware attivo.
 - [x] ~~Leggere dal vecchio ESP32 il PPC attivo e annotarlo~~ → **fatto 19/10/2026. PPC attivo letto: 30.2100 (calibrato).** Verificato su linea graduata al metro, 18 punti da 100 a 1798 cm: un solo errore di scala dello **0.087%** (il salto da −1 a −2 cm è il troncamento `(int)`, non due regimi). **PPC corretto da impostare: 30.1837** (`setppc:30.1837`). Niente slittamento, nessuna dipendenza dal diametro — conferma sperimentale della decisione "contatto tangente → nessuna correzione".
-- [ ] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): capire se la finestrella è coperta — procedura nella sezione 24 ottobre
+- [x] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): morti, esclusi nel master 1.0.1-alpha (`G_PIX_FIRST`) — vedi sezione 25 ottobre
+- [ ] Ordinare un TSL1401 di scorta
 - [ ] Ricontrollare col calibro l'interasse dei fori della scheda sensore (20 mm a mano vs 21.2 mm nello STL — le asole accettano entrambi)
 - [ ] Misurare lo spot del laser a 5–10 cm (serve ≥ ~1.3 mm per i cavi da 3 mm)
 - [x] `MEAS_OFFSET_CM` = 2.800 cm da CAD nel master 0.5.5 — [ ] verifica al collaudo (segno sulla linea)

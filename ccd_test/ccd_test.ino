@@ -21,6 +21,9 @@
     w          dump dei 128 valori raw (per Serial Plotter)
     t <us>     tempo d'integrazione (200 .. 200000 us)
     a          test automatico: linearità segnale/tempo e uniformità
+    z          una riga: primi 24 pixel + quanti zeri in testa
+    o <us>     attesa dopo SI prima del primo pixel (0 .. 20000 us)
+    p <us>     attesa extra per pixel prima di analogRead (1 .. 1000 us)
     ?          aiuto
 */
 
@@ -37,6 +40,8 @@ uint16_t buf[NPIX];
 uint32_t integUs = 5000;
 uint32_t tIntStart = 0, tIntEnd = 0;   // integrazione effettiva misurata
 bool continuous = false;
+uint32_t preDelayUs = 0;               // diagnosi pixel 0-13: dipende dai tempi?
+uint32_t pixDelayUs = 1;
 
 // Un ciclo SI + 129 clock: legge i 128 pixel integrati dal ciclo precedente.
 // La nuova integrazione parte al 18° clock e finisce col prossimo SI.
@@ -45,8 +50,9 @@ void readFrame(uint16_t *b) {
   digitalWrite(PIN_SI, HIGH);
   digitalWrite(PIN_CLK, HIGH);
   digitalWrite(PIN_SI, LOW);
+  if (preDelayUs) delayMicroseconds(preDelayUs);
   for (int i = 0; i < NPIX; i++) {
-    delayMicroseconds(1);
+    delayMicroseconds(pixDelayUs);
     b[i] = analogRead(PIN_AO);
     digitalWrite(PIN_CLK, LOW);
     digitalWrite(PIN_CLK, HIGH);
@@ -138,8 +144,18 @@ void autoTest() {
     Serial.println("ATTENZIONE: segnale quasi nullo -> più luce, più integrazione, o AO non collegato");
 }
 
+void leadingZeros() {
+  capture(buf, integUs);
+  int nz = 0;
+  while (nz < NPIX && buf[nz] == 0) nz++;
+  for (int i = 0; i < 24; i++) Serial.printf("%d ", buf[i]);
+  Serial.printf("| zeri in testa %d  (o %lu us, p %lu us)\n", nz,
+                (unsigned long)preDelayUs, (unsigned long)pixDelayUs);
+}
+
 void help() {
   Serial.println("g=profilo continuo  s=un frame  w=raw per plotter  t <us>=integrazione  a=test  ?=aiuto");
+  Serial.println("z=primi 24 pixel  o <us>=attesa dopo SI  p <us>=attesa per pixel");
   Serial.printf("Integrazione attuale %lu us\n", (unsigned long)integUs);
 }
 
@@ -155,6 +171,11 @@ void handleCommand(String s) {
     case 't': integUs = constrain((uint32_t)arg.toInt(), 200UL, 200000UL);
               Serial.printf("Integrazione %lu us\n", (unsigned long)integUs); break;
     case 'a': continuous = false; autoTest(); break;
+    case 'z': leadingZeros(); break;
+    case 'o': preDelayUs = constrain((uint32_t)arg.toInt(), 0UL, 20000UL);
+              Serial.printf("Attesa dopo SI %lu us\n", (unsigned long)preDelayUs); break;
+    case 'p': pixDelayUs = constrain((uint32_t)arg.toInt(), 1UL, 1000UL);
+              Serial.printf("Attesa per pixel %lu us\n", (unsigned long)pixDelayUs); break;
     default: help();
   }
 }

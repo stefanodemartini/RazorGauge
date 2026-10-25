@@ -5,7 +5,7 @@
         xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         xmlns:local="clr-namespace:DiametroLineaDesktop.Views"
         Title="Prototype — assemble from pieces"
-        Icon="pack://application:,,,/FlyLineProfiler;component/Assets/icon.ico"
+        Icon="/Assets/icon.ico"
         Height="880" Width="1440" MinHeight="600" MinWidth="900"
         Background="#12151C"
         FontFamily="Segoe UI"
