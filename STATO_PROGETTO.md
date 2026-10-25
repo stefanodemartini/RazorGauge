@@ -22,6 +22,27 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 25 ottobre 2026 — LED del modulo Hiwonder: va coperto
+
+Prova con `ccd_test`, modulo sotto una scatola (stanza esclusa), laser spento, media dei pixel 16–125
+su 5 frame. Integrazione effettiva = `t` + ~5.5 ms di lettura.
+
+| Integrazione effettiva | LED acceso | LED coperto con nastro |
+| --- | --- | --- |
+| ~5.7 ms | 0 | 0 |
+| ~10.5 ms | 33 LSB | 0 |
+| ~25.5 ms | 197 LSB (gradiente 174–212 lungo il chip) | 0 |
+
+- Il LED vale circa **11 LSB/ms (~9 mV/ms)**. Lo 0 a 5.7 ms non vuol dire assenza di luce: la retta
+  passa per lo zero a ~85 LSB (~70 mV), cioè la **zona morta dell'ADC** dell'ESP32 sotto ~70 mV.
+- Nel master la luce continua si integra per tutta la lettura (~11 ms con 2 letture/pixel), contro un
+  impulso laser di µs: il LED aggiunge ~100 mV, circa il **5% del picco** di riferimento (1700–2300 mV).
+- Se costante lo toglie il frame di buio, ma consuma scala dell'ADC e, se varia (temperatura,
+  alimentazione), entra nella misura: un 2% di variazione del LED vale ~2 µm sul diametro, più l'effetto
+  del gradiente. Il buio della stanza col LED coperto è sotto la soglia dell'ADC anche a 25 ms.
+- **Decisione: coprire il LED** (nastro nero o vernice) oppure dissaldarlo con la sua resistenza, come
+  già previsto. Nella torre chiusa sarebbe l'unica luce parassita.
+
 ### 25 ottobre 2026 — precisione teorica del laser e misura della densità
 
 **Precisione attesa (stima teorica, da confermare al banco):** ripetibilità **1–3 µm**, accuratezza
