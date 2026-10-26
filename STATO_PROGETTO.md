@@ -22,6 +22,32 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 26 ottobre 2026 — TSL1401 con mappa dei pixel sul display (ESP-WROVER-KIT)
+
+Sketch nuovo **`ccd_lcd/`** per l'ESP-WROVER-KIT v4.1 (board Arduino "ESP32 Wrover Kit", PSRAM
+abilitata): stessi pin del sensore di `ccd_test` e del master (SI 26, CLK 27, AO 34), che sul kit
+sono liberi **solo senza fotocamera montata**. Sul display 320×240: testata con integrazione, fps,
+min/max/media sui pixel 16–125 e ombra trovata (bordi interpolati, larghezza in px e mm); grafico a
+aste (rosso = saturo, fondo scuro = pixel morti); striscia con la mappa del frame; cascata degli
+ultimi 66 frame. BOOT congela l'immagine. Comandi seriali in testa allo sketch.
+
+**Provato sull'hardware**, funziona:
+- Il display del kit è un **ILI9341** che risponde **0** sia a RDDID (04) sia a ID4 (D3). Lo
+  sketch quindi sceglie ILI9341 di ripiego e ST7789 solo se legge l'ID 85 85 52. Con ST7789 forzato
+  rosso e blu escono scambiati.
+- **Svuotamento del sensore con soli clock** (senza `analogRead`): pochi µs invece dei ~5.5 ms di un
+  frame letto. L'integrazione minima scende da ~5.2 ms a ~0.2 ms. Con la luce della stanza la
+  prima versione restava satura su tutti i 110 pixel anche al minimo; ora l'esposizione automatica si
+  ferma a ~2 ms con i pixel tra 2750 e 3500.
+- Pixel 0–13 a zero, come sul primo banco: è il sensore, non la scheda.
+- Pixel 31 a ~2400 contro ~2800 dei vicini, in un frame sotto luce ambiente: forse polvere sulla
+  finestra, **non verificato**.
+
+Pratico: il kit è su **COM10** (FT2232: COM9 = JTAG, COM10 = UART). L'upload vuole **BOOT premuto**
+(l'auto-reset non entra in download). Dopo l'upload non riparte da solo: serve un reset (EN, o RTS
+da seriale). Aprire la porta seriale può resettare la scheda; le impostazioni del display sono in NVS
+(namespace `ccdlcd`) e sopravvivono.
+
 ### 25 ottobre 2026 — LED del modulo Hiwonder: va coperto
 
 Prova con `ccd_test`, modulo sotto una scatola (stanza esclusa), laser spento, media dei pixel 16–125
@@ -328,6 +354,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
   - PPC encoder: invariato (`calibrate:<cm>`, `setppc:<val>`, `calibrate_reset`, EEPROM addr 4).
 - `gauge_esp32/gauge_esp32.ino` — sketch di banco (solo sensore), non firmware attivo.
 - `ccd_test/ccd_test.ino` — prova del solo modulo TSL1401 **senza laser** (24/10/2026): integrazione regolabile, profilo ASCII, test di linearità. **Provato sull'hardware**: sensore OK sui pixel 14–127, vedi sezione 24 ottobre.
+- `ccd_lcd/ccd_lcd.ino` — prova del TSL1401 sull'**ESP-WROVER-KIT** con profilo, mappa dei pixel e cascata sul display (26/10/2026). **Provato sull'hardware**, vedi sezione 26 ottobre.
 - ~~Solo controllo di sintassi con g++ su librerie simulate: mai compilato con il core ESP32 reale~~ → **compilato davvero il 19/10/2026** con l'`arduino-cli` dentro l'IDE Arduino (core esp32 3.3.8): master laser 82% di flash, banco 23% e 25%, master calibro 85%, slave 26%. **Provato sull'hardware: ancora no.**
 - Slave — **0.6.7**, porting su ESP32 classico con diagnostica UART/Wi-Fi. **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
 
