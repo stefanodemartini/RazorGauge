@@ -43,6 +43,15 @@ ultimi 66 frame. BOOT congela l'immagine. Comandi seriali in testa allo sketch.
 - Pixel 31 a ~2400 contro ~2800 dei vicini, in un frame sotto luce ambiente: forse polvere sulla
   finestra, **non verificato**.
 
+**La larghezza dell'ombra in mm è molto approssimativa** (osservato da Stefano): senza laser non
+misura il diametro. La luce della stanza è una sorgente estesa: penombra larga e ingrandimento che
+dipendono dalla distanza del filo dal chip (errore di solito in eccesso). In più la soglia è a metà
+fra min e max di tutto il profilo, che non è uniforme (~1400 → saturo), e la misura è su un solo frame.
+Il conto di precisione del 25/10 vale col laser collimato, non qui. Migliorie possibili, **non fatte**:
+soglia locale per ciascun bordo, media su N frame con deviazione standard, fattore di calibrazione
+con un filo noto (come `gauge_cal`); sul banco filo appoggiato sulla finestra e sorgente piccola e
+lontana.
+
 Pratico: il kit è su **COM10** (FT2232: COM9 = JTAG, COM10 = UART). L'upload vuole **BOOT premuto**
 (l'auto-reset non entra in download). Dopo l'upload non riparte da solo: serve un reset (EN, o RTS
 da seriale). Aprire la porta seriale può resettare la scheda; le impostazioni del display sono in NVS
