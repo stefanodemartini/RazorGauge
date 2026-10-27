@@ -22,6 +22,38 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 27 ottobre 2026 — TSL1401 col laser acceso fisso attraverso L1–L2 (banco `ccd_lcd`)
+
+Laser 650 nm 1 mW alimentato con 2 pile da 1.5 V (acceso fisso, non pulsato), fascio attraverso
+L1 + L2, sensore sul kit WROVER con `ccd_lcd`. Misure lette da seriale (`w`) a integrazione fissa.
+
+- **Luce ambiente da sola** (laser spento): risposta lineare ~0.5 LSB/µs al centro, profilo liscio,
+  più scuro verso il pixel 14 (~1/3 del centro). Pixel 46, 75, 81 (forse 31) 7–10% sotto i vicini
+  in tutti i frame: probabile polvere sulla finestra, **non verificato**.
+- **Laser acceso: satura.** Senza filtri, alla posa minima di allora (200 µs richiesti, ~342 µs
+  effettivi) i pixel 31–127 sono a 4095. Il fascio ha un bordo verso i pixel 31–40 (salita in
+  ~10 px ≈ 0.6 mm) e prosegue oltre il pixel 127: o è **decentrato di ~4 mm** verso i pixel alti
+  (fascio atteso Ø13–14 dopo l'espansione ×5.2), o qualcosa lo taglia. **Da verificare**; la
+  collimazione non è giudicabile finché satura e non si vedono entrambi i bordi.
+- Col fascio in luce piena il profilo è "a buccia d'arancia" (±30–40% fra pixel vicini) ma
+  **identico fra un frame e l'altro**: frange/speckle del laser attraverso lenti e finestra, non
+  rumore del sensore (con la sola luce ambiente il profilo è liscio). Una soglia sui bordi ne
+  risentirebbe; l'algoritmo ad area del master lo media.
+- **Sacchetto antistatico argentato** come attenuatore: 1 tentativo ~7–15× (ancora ~20 pixel saturi
+  a 200 µs); al secondo il fascio passava in parte fuori dal film (luce ×8). Pellicola solare OD 5.6
+  scartata (~10⁴ volte troppo scura); scelto un **ND16 Cokin P** (OD 1.2, da verificare a 650 nm:
+  le resine economiche nel rosso attenuano meno del dichiarato).
+- **`ccd_lcd`: minimo d'integrazione da 200 a 1 µs** (comando `t` ed esposizione auto) e stampa
+  dell'integrazione effettiva in `?`. Minimo effettivo misurato **143 µs** (era ~342): sono i 110
+  clock di svuotamento con `digitalWrite` (~1 µs l'uno) + 20 µs di trasferimento carica. Risposta
+  lineare con intercetta ~0 fra 143 e 342 µs (px 14: 300 → 768). Ancora 92/110 pixel saturi.
+  Con clock via registri si scenderebbe a ~35–45 µs (limite TSL1401 ≈ (n−18) clock a 8 MHz + 20 µs
+  ≈ 34 µs), probabilmente non abbastanza da solo.
+- **Conclusione:** col laser acceso fisso la saturazione non si toglie dal software. Il laser da
+  1 mW **non** è da sostituire: nel master la posa è l'impulso di µs e si regola accorciandolo.
+  Sul banco: ND16 (eventualmente + clock veloci) oppure pulsare il laser dal kit con un NPN come
+  nel master.
+
 ### 26 ottobre 2026 — TSL1401 con mappa dei pixel sul display (ESP-WROVER-KIT)
 
 Sketch nuovo **`ccd_lcd/`** per l'ESP-WROVER-KIT v4.1 (board Arduino "ESP32 Wrover Kit", PSRAM
@@ -363,7 +395,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
   - PPC encoder: invariato (`calibrate:<cm>`, `setppc:<val>`, `calibrate_reset`, EEPROM addr 4).
 - `gauge_esp32/gauge_esp32.ino` — sketch di banco (solo sensore), non firmware attivo.
 - `ccd_test/ccd_test.ino` — prova del solo modulo TSL1401 **senza laser** (24/10/2026): integrazione regolabile, profilo ASCII, test di linearità. **Provato sull'hardware**: sensore OK sui pixel 14–127, vedi sezione 24 ottobre.
-- `ccd_lcd/ccd_lcd.ino` — prova del TSL1401 sull'**ESP-WROVER-KIT** con profilo, mappa dei pixel e cascata sul display (26/10/2026). **Provato sull'hardware**, vedi sezione 26 ottobre.
+- `ccd_lcd/ccd_lcd.ino` — prova del TSL1401 sull'**ESP-WROVER-KIT** con profilo, mappa dei pixel e cascata sul display (26/10/2026). **Provato sull'hardware**, vedi sezione 26 ottobre. Dal 27/10 integrazione minima 1 µs richiesti (~143 µs effettivi), vedi sezione 27 ottobre.
 - ~~Solo controllo di sintassi con g++ su librerie simulate: mai compilato con il core ESP32 reale~~ → **compilato davvero il 19/10/2026** con l'`arduino-cli` dentro l'IDE Arduino (core esp32 3.3.8): master laser 82% di flash, banco 23% e 25%, master calibro 85%, slave 26%. **Provato sull'hardware: ancora no.**
 - Slave — **0.6.7**, porting su ESP32 classico con diagnostica UART/Wi-Fi. **Nel repo** in `slave/`. Sul classico i GPIO 6-11 sono la flash, quindi i pin S3 della 0.5.1 non possono funzionare: non è un riordino.
 

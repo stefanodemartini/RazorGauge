@@ -21,7 +21,8 @@
   Tasto BOOT: congela / riprende l'immagine.
 
   COMANDI SERIALI (115200, terminatore newline)
-    t <us>     tempo d'integrazione (200 .. 200000 us), spegne l'automatico
+    t <us>     tempo d'integrazione (1 .. 200000 us), spegne l'automatico; l'effettiva
+               aggiunge i clock di svuotamento + 20 µs (la stampa ?)
     e          esposizione automatica on/off (picco ~3000)
     k          scala verticale: assoluta 0..4095 / automatica sul massimo
     h          congela / riprende
@@ -63,6 +64,8 @@ const int WF_Y = 174, WF_H = H - WF_Y;
 
 uint16_t buf[NPIX];
 uint32_t integUs = 5000;
+const uint32_t INTEG_MIN = 1, INTEG_MAX = 200000;   // attesa richiesta; l'effettiva è in lastEff
+uint32_t lastEff = 0;
 uint32_t tIntStart = 0, tIntEnd = 0;
 bool autoExp = true, autoScale = false, hold = false;
 float fps = 0;
@@ -100,7 +103,7 @@ void readFrame(uint16_t *b) {
 }
 
 // Svuota il sensore con i soli clock, senza ADC: pochi µs invece dei ~5.5 ms di readFrame,
-// così l'integrazione minima scende a ~200 µs (sotto luce forte readFrame da solo satura)
+// così l'integrazione minima scende a qualche decina di µs (laser acceso fisso sul banco)
 void flushFrame() {
   digitalWrite(PIN_SI, HIGH);
   digitalWrite(PIN_CLK, HIGH);
@@ -390,7 +393,8 @@ void dumpRaw() {
 void help() {
   Serial.println("t <us>=integrazione  e=esposizione auto  k=scala  h=fermo  w=raw  ?=aiuto");
   Serial.println("display: L=controller  r=rotazione  b=rosso/blu  i=inverti colori");
-  Serial.printf("Integrazione %lu us %s\n", (unsigned long)integUs, autoExp ? "(auto)" : "");
+  Serial.printf("Integrazione %lu us %s, effettiva %lu us\n", (unsigned long)integUs, autoExp ? "(auto)" : "",
+                (unsigned long)lastEff);
 }
 
 void handleCommand(String s) {
@@ -399,7 +403,7 @@ void handleCommand(String s) {
   char cmd = s.charAt(0);
   String arg = s.substring(1); arg.trim();
   switch (cmd) {
-    case 't': integUs = constrain((uint32_t)arg.toInt(), 200UL, 200000UL); autoExp = false;
+    case 't': integUs = constrain((uint32_t)arg.toInt(), INTEG_MIN, INTEG_MAX); autoExp = false;
               Serial.printf("Integrazione %lu us\n", (unsigned long)integUs); break;
     case 'e': autoExp = !autoExp; Serial.printf("Esposizione auto %s\n", autoExp ? "on" : "off"); break;
     case 'k': autoScale = !autoScale; break;
@@ -418,7 +422,7 @@ void adjustExposure(const Stats &s) {
   if (s.nSat) integUs /= 2;
   else if (s.mx > 50) integUs = integUs * (0.5f + 0.5f * 3000.0f / s.mx);
   else integUs *= 2;
-  integUs = constrain(integUs, 200UL, 200000UL);
+  integUs = constrain(integUs, INTEG_MIN, INTEG_MAX);
 }
 
 void setup() {
@@ -455,7 +459,7 @@ void setup() {
 
 void loop() {
   static String line;
-  static uint32_t lastCharMs = 0, lastFrameUs = 0, lastEff = 0;
+  static uint32_t lastCharMs = 0, lastFrameUs = 0;
   static bool bootPrev = true;
   static uint32_t bootMs = 0;
 
