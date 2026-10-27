@@ -53,6 +53,23 @@ L1 + L2, sensore sul kit WROVER con `ccd_lcd`. Misure lette da seriale (`w`) a i
   1 mW **non** è da sostituire: nel master la posa è l'impulso di µs e si regola accorciandolo.
   Sul banco: ND16 (eventualmente + clock veloci) oppure pulsare il laser dal kit con un NPN come
   nel master.
+- **Fascio ricentrato, sacchetto tolto** (Stefano scarta la soluzione del sacchetto): a 143 µs
+  effettivi saturano 109/110 pixel, solo px 125–127 in scala (3228 → 2385, bordo destro del fascio).
+  Il bordo sinistro di prima era quindi il fascio decentrato, non un taglio. Col fascio centrato i
+  bordi del fascio escono dal chip: la prova successiva è l'ombra di un filo appoggiato sulla finestra.
+
+**Prossimo passo (da riprendere il 28/10):** attenuare agendo sul laser.
+- Il modulo ha **solo due fili**: non si vede se dentro c'è una resistenza o un driver a corrente
+  costante (APC). I Ø4 mm da 1 mW economici di solito hanno solo la resistenza.
+- **Trimmer 500 Ω–1 kΩ in serie**, partendo da 0 Ω, regolato mentre si legge il sensore (centro a
+  2500–3500). Zona utile stimata 50–200 Ω con 3 V. Se la luce cala gradualmente → resistenza, ok; se
+  resta uguale e poi si spegne di colpo → driver, il trimmer non serve. Limite: per ridurre di 10–30×
+  il diodo lavora pochi decimi di mA sopra la soglia, quindi la potenza deriva con temperatura e
+  tensione delle pile.
+- In alternativa (più stabile, indipendente dal tipo di modulo): **laser pulsato dal kit** con NPN
+  (2N2222/BC337 + 1 kΩ) su un GPIO libero, impulso di µs dentro l'integrazione, come il master.
+  Sketch da scrivere; prima verificare quale GPIO è libero sul WROVER-KIT (GPIO25 è il MISO del display).
+- Oppure ND16 Cokin P quando arriva.
 
 ### 26 ottobre 2026 — TSL1401 con mappa dei pixel sul display (ESP-WROVER-KIT)
 
@@ -404,6 +421,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 - [x] ~~Leggere dal vecchio ESP32 il PPC attivo e annotarlo~~ → **fatto 19/10/2026. PPC attivo letto: 30.2100 (calibrato).** Verificato su linea graduata al metro, 18 punti da 100 a 1798 cm: un solo errore di scala dello **0.087%** (il salto da −1 a −2 cm è il troncamento `(int)`, non due regimi). **PPC corretto da impostare: 30.1837** (`setppc:30.1837`). Niente slittamento, nessuna dipendenza dal diametro — conferma sperimentale della decisione "contatto tangente → nessuna correzione".
 - [x] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): morti, esclusi nel master 1.0.1-alpha (`G_PIX_FIRST`) — vedi sezione 25 ottobre
 - [ ] Ordinare un TSL1401 di scorta
+- [ ] Banco `ccd_lcd` col laser: togliere la saturazione (trimmer in serie, laser pulsato dal kit o ND16), poi ombra di un filo sulla finestra — vedi sezione 27 ottobre
 - [ ] Al primo avvio: misurare il tempo reale di una misura (8 frame) e rifare la tabella velocità/rumore
 - [ ] Prova Archimede in etanolo su spezzoni dritti già scansionati (verifica indipendente del gauge)
 - [ ] Ricontrollare col calibro l'interasse dei fori della scheda sensore (20 mm a mano vs 21.2 mm nello STL — le asole accettano entrambi)
