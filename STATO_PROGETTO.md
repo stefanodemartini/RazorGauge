@@ -58,7 +58,12 @@ L1 + L2, sensore sul kit WROVER con `ccd_lcd`. Misure lette da seriale (`w`) a i
   Il bordo sinistro di prima era quindi il fascio decentrato, non un taglio. Col fascio centrato i
   bordi del fascio escono dal chip: la prova successiva è l'ombra di un filo appoggiato sulla finestra.
 
-**Prossimo passo (da riprendere il 28/10):** attenuare agendo sul laser.
+**Deciso: il 28/10 si prova con la RazorBoard e il master**, che già pulsa il laser: Q1
+(2N7000/2N7002) su GPIO25, JP2 per 3.3/5 V, R43 = 0 Ω pronta per limitare la corrente; firmware
+`gCapture` accende il laser solo per `gExposureUs` (default 20 µs, 2–20000 con `gauge_exp`), cioè
+7–70 volte meno luce dei 143 µs del banco `ccd_lcd`. Le opzioni qui sotto restano di riserva.
+
+**Opzioni di riserva:** attenuare agendo sul laser.
 - Il modulo ha **solo due fili**: non si vede se dentro c'è una resistenza o un driver a corrente
   costante (APC). I Ø4 mm da 1 mW economici di solito hanno solo la resistenza.
 - **Trimmer 500 Ω–1 kΩ in serie**, partendo da 0 Ω, regolato mentre si legge il sensore (centro a
