@@ -22,6 +22,33 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
+
+Laser + TSL1401 montati sulla RazorBoard SMD; sul modulo master c'era ancora il master del calibro.
+Il modulo non si può tenere sulla scheda con l'USB collegato: **caricato fuori scheda** (COM5,
+`arduino-cli upload`), poi rimesso sulla scheda. Prova tutta via WiFi con `/gauge/cmd?c=...` e
+`/gauge` (JSON), IP **192.168.1.213**. EEPROM comune ai due firmware: PPC 30.21 e WiFi conservati.
+JP2 su 3.3 V.
+
+- **Niente saturazione con l'impulso corto.** Picco (mV) / pixel saturi su 16–125 al variare di
+  `gauge_exp`: 2 µs 1345/0 · 4 µs 1368/0 · 8 µs 1813/0 · 16 µs 2981/8 · 30 µs 3155/88. 2 e 4 µs
+  danno quasi lo stesso segnale: sotto ~4–5 µs l'impulso effettivo non si accorcia più (commutazione
+  Q1 + accensione del diodo), non serve. Saturazione ADC a ~3155 mV. Il problema del banco `ccd_lcd`
+  è risolto: R43 = 0 Ω va bene, **trimmer/ND16 non servono**.
+- **Buio** (`gauge_dark`, 10 µs): 142 mV identico su tutti i 128 pixel = fondo scala dell'ADC
+  dell'ESP32 (sotto ~140 mV non legge), cioè 0 V. I pixel 0–13 a 142 mV sono quindi gli stessi
+  pixel morti del 25/10.
+- **Riferimento** (`gauge_ref`, 10 µs): picco 1655 mV, accettato ma "uniformita 0% — bordi poco
+  illuminati". Pixel 16–24 al buio, salita fra 28 e 40 (metà altezza ~px 32), poi luce fino al 127:
+  il bordo sinistro del fascio cade dentro la finestra di misura, il destro fuori dal chip.
+  **Fascio decentrato di ~4 mm verso i pixel alti** (come sul banco prima del ricentraggio):
+  va ricentrato nella sede prima di buio/riferimento definitivi.
+- Profilo in luce ancora "a buccia d'arancia" (±30% fra pixel vicini), come il 27/10.
+
+**Prossimo passo:** ricentrare il fascio guardando `http://192.168.1.213/diag` (campana che copra
+16–125 senza tratti piatti), esposizione ~10–14 µs per picco 1700–2300 mV, poi `gauge_dark` +
+`gauge_ref` e prove di `PROCEDURA_PRIMO_AVVIO.md` dal punto 3.
+
 ### 27 ottobre 2026 — TSL1401 col laser acceso fisso attraverso L1–L2 (banco `ccd_lcd`)
 
 Laser 650 nm 1 mW alimentato con 2 pile da 1.5 V (acceso fisso, non pulsato), fascio attraverso
