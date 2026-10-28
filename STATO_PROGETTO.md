@@ -51,6 +51,11 @@ JP2 su 3.3 V.
   ora a destra. Larghezza illuminata ~100 px ≈ 6.3 mm, **meno dei Ø13 attesi**. Il bordo netto segue il
   fascio: probabile **diaframma nel percorso** (vicino al laser/L1, ingrandito ×5.2 sul chip), non
   verificato.
+- **"Rumore" del blu su /diag** (12 frame a 10 µs, pixel 4–105 illuminati): differenza fra pixel
+  vicini 12.9% in media ma **ferma** fra un frame e l'altro (frange/speckle, come il 27/10). Nel tempo
+  ogni pixel varia del 2.7%, ma quasi tutto è energia dell'impulso comune a tutti i pixel (2.6%);
+  dopo la normalizzazione sull'energia, come fa il master, resta **0.16%**. Lo schema fisso lo toglie
+  la divisione per il riferimento.
 - **I pixel 0–13 rispondono alla luce** (px 0 208 mV, px 9 876 mV): non sono morti. Il 24–25/10 a 0
   fisso, probabilmente perché non illuminati; da ricontrollare prima di cambiare `G_PIX_FIRST`.
 
