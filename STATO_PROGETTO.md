@@ -59,6 +59,12 @@ JP2 su 3.3 V.
 - **I pixel 0–13 rispondono alla luce** (px 0 208 mV, px 9 876 mV): non sono morti. Il 24–25/10 a 0
   fisso, probabilmente perché non illuminati; da ricontrollare prima di cambiare `G_PIX_FIRST`.
 
+- **Sede laser instabile** (Stefano): i 3 grani M3 non tengono fermo il laser. Sezione in
+  `immagini/sede_laser_sezione.png`: solo 4 mm guidati nel perno Ø4.3 (0.15 mm per lato), 10 mm liberi
+  nel Ø5 (0.5 mm per lato), grani a 11.5 mm dalla battuta con ~4 mm di filetto nella plastica.
+  Inclinazione libera ~44 mrad ≈ ±3.5 mm sul chip. Rimedi: nastro/guaina sulla punta, guaina sotto i grani,
+  allineare e incollare; per la ristampa sede più lunga e precisa con molla o O-ring.
+
 **Prossimo passo:** ricentrare il fascio guardando `http://192.168.1.213/diag` (campana che copra
 16–125 senza tratti piatti), esposizione ~10–14 µs per picco 1700–2300 mV, poi `gauge_dark` +
 `gauge_ref` e prove di `PROCEDURA_PRIMO_AVVIO.md` dal punto 3.
