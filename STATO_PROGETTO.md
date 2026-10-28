@@ -45,6 +45,15 @@ JP2 su 3.3 V.
   va ricentrato nella sede prima di buio/riferimento definitivi.
 - Profilo in luce ancora "a buccia d'arancia" (±30% fra pixel vicini), come il 27/10.
 
+- **Dopo un primo spostamento del laser** (10 µs, picco ~2050 mV, 0 saturi): luce da px 0 a ~103,
+  salita lenta da sinistra (px 8 ≈ 770 mV, px 90 ≈ 1900) e **taglio netto a destra** (px 100 → 108:
+  1420 → 480 mV, dal 113 buio). Il fascio è passato oltre: prima il bordo netto era a sinistra (px 33),
+  ora a destra. Larghezza illuminata ~100 px ≈ 6.3 mm, **meno dei Ø13 attesi**. Il bordo netto segue il
+  fascio: probabile **diaframma nel percorso** (vicino al laser/L1, ingrandito ×5.2 sul chip), non
+  verificato.
+- **I pixel 0–13 rispondono alla luce** (px 0 208 mV, px 9 876 mV): non sono morti. Il 24–25/10 a 0
+  fisso, probabilmente perché non illuminati; da ricontrollare prima di cambiare `G_PIX_FIRST`.
+
 **Prossimo passo:** ricentrare il fascio guardando `http://192.168.1.213/diag` (campana che copra
 16–125 senza tratti piatti), esposizione ~10–14 µs per picco 1700–2300 mV, poi `gauge_dark` +
 `gauge_ref` e prove di `PROCEDURA_PRIMO_AVVIO.md` dal punto 3.
