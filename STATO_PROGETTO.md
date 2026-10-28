@@ -60,7 +60,8 @@ JP2 su 3.3 V.
   fisso, probabilmente perché non illuminati; da ricontrollare prima di cambiare `G_PIX_FIRST`.
 
 - **Sede laser instabile** (Stefano): i 3 grani M3 non tengono fermo il laser. Sezione in
-  `immagini/sede_laser_sezione.png`: solo 4 mm guidati nel perno Ø4.3 (0.15 mm per lato), 10 mm liberi
+  `immagini/sede_laser_sezione.png` (schema) e `immagini/sede_laser_pezzo_unico.png` (sezioni reali
+  dell'STL del pezzo unico, quote verificate: Ø3 / Ø4.3 / Ø5 come nel CAD): solo 4 mm guidati nel perno Ø4.3 (0.15 mm per lato), 10 mm liberi
   nel Ø5 (0.5 mm per lato), grani a 11.5 mm dalla battuta con ~4 mm di filetto nella plastica.
   Inclinazione libera ~44 mrad ≈ ±3.5 mm sul chip. Rimedi: nastro/guaina sulla punta, guaina sotto i grani,
   allineare e incollare; per la ristampa sede più lunga e precisa con molla o O-ring.
