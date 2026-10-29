@@ -248,6 +248,9 @@ Dopo la conferma:
 - Accanto alle colonne di disegno compaiono anche **Comp. Start / Comp. End / ρ Start / ρ End**: con l'adattamento di massa i diametri da produrre non sono quelli disegnati, e servono al produttore
 - Le colonne **Sp.W.** e **Mass** mostrano la densità e la massa **realmente applicate** in quel tratto: dentro una zona è quella della zona, non la densità base del design (che resta invariata nel campo sottostante ed è ciò che si modifica digitando nella cella)
 - Il profilo viene ricostruito automaticamente anche riaprendo il file e a ogni modifica della geometria, riusando in silenzio la scelta sulla massa salvata nel progetto
+- La **tabella nodi** (in basso a sinistra) mostra i diametri **prodotti** ed è **di sola lettura**, e "＋ Add Node" sparisce: sono valori calcolati, una modifica a mano verrebbe ricalcolata. I nodi si spostano trascinandoli sul grafico. Il blocco c'è **solo** se almeno una zona ha densità diversa da M1 (> 0.02): zone con la stessa densità di M1 sono solo colore e lasciano la tabella libera. Togliere l'ultima zona "vera", o riportarne la densità uguale a M1, sblocca subito la tabella
+- Attenzione: un ugello appena aggiunto con "＋ Material" parte con ρ = 0, e una zona su ρ = 0 conta come materiale diverso (blocca la tabella) finché non gli si scrive la densità
+- *Corretto il 29/10/2026:* aprendo (o creando/chiudendo) un progetto dopo uno con una zona vera, la tabella nodi restava bloccata e le colonne Comp. restavano visibili anche se il nuovo progetto non aveva zone vere. Corretto anche: togliendo l'ultima zona vera, i colori di M1–M4 tornavano quelli di default (il verde di M1 diventava rosso)
 
 ### Il bordo della zona e il gradino di diametro
 Con l'adattamento di massa attivo (**Yes**), un cambio netto di densità impone matematicamente un

@@ -31,16 +31,16 @@ errors means your code is fine).
 
 ```bash
 # 1. verify closed (see above), then compile-check
-cd "C:\Users\Stefano\Documents\Arduino\flylineprofiler\app"
+cd "C:\Users\Stefano\Documents\Claude\RazorGauge\app"
 dotnet build DiametroLineaDesktop.csproj -c Debug -v q --nologo
 
 # 2. self-contained single-file publish
 dotnet publish DiametroLineaDesktop.csproj -c Release -r win-x64 \
   --self-contained true -p:PublishSingleFile=true \
-  -o "C:\Users\Stefano\Documents\Arduino\flylineprofiler\publish"
+  -o "C:\Users\Stefano\Documents\Claude\RazorGauge\publish"
 
 # 3. the copy he actually runs (~200 MB, takes a moment)
-cp "C:\Users\Stefano\Documents\Arduino\flylineprofiler\publish\RazorGauge.exe" \
+cp "C:\Users\Stefano\Documents\Claude\RazorGauge\publish\RazorGauge.exe" \
    "C:\Users\Stefano\Desktop\RazorGauge.exe"
 ls -la "C:\Users\Stefano\Desktop\RazorGauge.exe"   # confirm the timestamp moved
 

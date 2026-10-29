@@ -243,6 +243,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // NC nozzle state: saved before each comp sync, restored when switching back to NC mode
     private readonly string[] _ncNozzleColors = { "DC3232", "F5F5F5", "28A428", "3296FF" };
     private readonly string[] _ncNozzleLabels = { "", "", "", "" };
+    // True only between SyncNozzleDensitiesFromComp overwriting the nozzles and UpdateCompModeUI
+    // putting them back — otherwise there is nothing to restore, and "restoring" the defaults
+    // above wiped the user's own M1 colour every time the last real zone was removed.
+    private bool _ncNozzleSnapshotTaken = false;
 
     private bool   _waterIsSalt = false;
     private double _waterTempC  = 20.0;
@@ -1010,7 +1014,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Nozzles[ni].ColorHex    = defaultNozzleColors[ni];
             Nozzles[ni].DensityGCm3 = 0;
             Nozzles[ni].Label       = string.Empty;
+            _ncNozzleColors[ni]     = defaultNozzleColors[ni];
+            _ncNozzleLabels[ni]     = string.Empty;
         }
+        _ncNozzleSnapshotTaken = false;
         NozzleZones.Clear();
         SetActiveNozzle(0);
         _zoneDerivedComp     = false;
@@ -1042,6 +1049,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _waterIsSalt      = false;
         _isCompensatedDerivative = false;
         _inCompMode       = false;
+        // _zoneDerivedComp/_inCompMode were just reset, but the node table's read-only lock, the
+        // hidden "+ Add Node" and the Comp. columns only follow them through UpdateCompModeUI —
+        // and a plain NC file with no real zone never calls it on load (MaybeApplyZoneDensityChange
+        // returns early), so after a zone-locked project the next one opened stayed locked.
+        UpdateCompModeUI();
 
         // Clear analysis chart
         if (_plotInitialized)
@@ -3843,6 +3855,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 _ncNozzleLabels[i] = Nozzles[i].Label;
             }
         }
+        _ncNozzleSnapshotTaken = true;
 
         double minD = qDens[0];
         double rng  = qDens[qDens.Length - 1] - minD;
@@ -3904,13 +3917,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 // overwrite, never a real zone's data, so restoring it into a zone slot would
                 // silently clobber the user's own material with the base density/default colour.
                 double ncDens = _sharedDensity > 0 ? _sharedDensity : 0;
-                var usedByZone = new HashSet<int>(NozzleZones.Select(z => z.NozzleIndex));
-                for (int i = 0; i < 4; i++)
+                Nozzles[0].DensityGCm3 = ncDens;
+                if (_ncNozzleSnapshotTaken)
                 {
-                    if (i > 0 && usedByZone.Contains(i)) continue;
-                    Nozzles[i].ColorHex    = _ncNozzleColors[i];
-                    Nozzles[i].Label       = _ncNozzleLabels[i];
-                    Nozzles[i].DensityGCm3 = (i == 0) ? ncDens : 0;
+                    var usedByZone = new HashSet<int>(NozzleZones.Select(z => z.NozzleIndex));
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (i > 0 && usedByZone.Contains(i)) continue;
+                        Nozzles[i].ColorHex = _ncNozzleColors[i];
+                        Nozzles[i].Label    = _ncNozzleLabels[i];
+                        if (i > 0) Nozzles[i].DensityGCm3 = 0;
+                    }
+                    _ncNozzleSnapshotTaken = false;
                 }
                 NozzleDefsGrid?.Items.Refresh();
                 UpdateNozzleBadge();
