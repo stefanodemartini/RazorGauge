@@ -2844,7 +2844,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void AddNozzleMaterial_Click(object sender, RoutedEventArgs e)
     {
         if (VisibleNozzles.Count >= Nozzles.Count) return;
-        SetActiveNozzle(VisibleNozzles.Count);
+        // A new slot starts at M1's density, not 0: a zone put on ρ = 0 counted as a real,
+        // different material and locked the node table until a density was typed in.
+        int index = VisibleNozzles.Count; // setting the density reveals the slot and grows the list
+        if (Nozzles[index].DensityGCm3 <= 0 && Nozzles[0].DensityGCm3 > 0)
+            Nozzles[index].DensityGCm3 = Nozzles[0].DensityGCm3;
+        SetActiveNozzle(index);
         MarkDirty();
     }
 
