@@ -1,0 +1,86 @@
+/usr/local/lib/python3.11/dist-packages/trimesh/triangles.py:302: RuntimeWarning: invalid value encountered in divide
+  center_mass = integrated[1:4] / volume
+OK Interferenze statiche tra 22 parti: nessuna
+OK lente_L1 nella sede: nessuna compenetrazione oltre 0.03 mm (contatto min 0.15)
+OK laser nella sede: nessuna compenetrazione oltre 0.03 mm (contatto min 0.00)
+OK lente L2 nel carrello: nessuna compenetrazione
+OK Carrello L2 libero su tutta la corsa −5/+6 mm (max compenetrazione 0.000 mm3)
+OK Asola del coperchio libera sull'asse della vite del carrello per tutta la corsa
+/usr/local/lib/python3.11/dist-packages/trimesh/triangles.py:302: RuntimeWarning: divide by zero encountered in divide
+  center_mass = integrated[1:4] / volume
+OK Slitta + scheda v2: estrazione libera per 45 mm (max compenetrazione 0.000)
+OK slitta_sensore: gioco ruota 1.63 mm (Ø64.2: 1.36), rullo inferiore 2.50 mm
+OK scheda_sensore: gioco ruota 2.70 mm (Ø64.2: 2.43), rullo inferiore 8.23 mm
+OK Mensola: gioco ruota 1.49 mm, rullo inferiore 1.48 mm
+OK Ruota CNC (X 10.44-27.22, Ø63.65): giochi minimi pezzo_unico 0.79 a (21.1, 65.1, 37.0); slitta_sensore 1.64 a (17.9, 58.1, 25.4)
+OK Ruota originale (X 6.85-29.84, Ø63.82): giochi minimi pezzo_unico 0.71 a (20.3, 65.1, 37.0); slitta_sensore 1.56 a (20.3, 58.1, 25.4)
+OK Mozzi lontani dal codolo dell'encoder: originale 1.63 mm, CNC 5.22 mm; albero nel foro della ruota CNC per 7.8 mm (grani a X 13.83)
+OK M1 viti encoder: 6 fori con appoggio testa a X 3.0 (tasca anteriore), accesso dal davanti libero (Ø6) 
+OK M2 ruota CNC: percorso di montaggio in asse dal davanti libero 
+OK M2 ruota originale: percorso di montaggio in asse dal davanti libero 
+OK M3 grani del mozzo ruota CNC raggiungibili radialmente in 16 direzioni su 24 (es. [0, 15, 30, 75, 180, 195] gradi)
+OK M4 viti pezzo -> piastra: corridoio testa Ø5.8 dal fronte libero nel pezzo per tutte le 8 viti 
+OK S1 sportellino: scorre sulle guide da chiuso ad aperto (+13) e si sfila in alto (+40) senza toccare nulla (max 0.000)
+OK S2 nottolini: liberi negli incavi da chiuso (0.000) e da aperto (0.000), premono a meta' corsa (0.91 mm3)
+OK S3 luce ambiente diretta sul chip (frazione dell'emisfero, pixel -4/0/+4 mm): senza sportellino 0.0689 0.1084 0.1435 -> chiuso 0.0000 0.0000 0.0008
+OK S4 sportellino aperto: fondo a Y 76.5, sopra i labbri delle guide J e la coda di topo Ø3 sollevata (Y 73.5): si carica dal fronte
+OK S5 slitta + scheda estraibili con lo sportellino aperto (max 0.000)
+OK Q mesh pezzo unico: superficie con materiale < 0.5 mm = 0.50 mm2 (solo STL originale), zona encoder spessore minimo 0.93 mm, piani [np.float64(0.0), np.float64(3.0), np.float64(7.22)]
+OK TU tappino gola d'uscita: si sfila verso l'alto senza toccare nulla (max 0.000); la clip deve aprirsi per uscire (dente 2.05 mm3 sul fronte del braccio)
+OK TU senza tappino la gola e' aperta in alto per tutta la lunghezza (Z 60.6-83.4): la coda di topo si cala dall'alto (ostacoli 0.000 mm3)
+OK Q2 slitta_sensore: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 1.18)
+OK Q2 sportello_luce: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.99); nelle scritte incise 34.1 mm2 di creste sottili tra lettere vicine (dettaglio grafico, non strutturale)
+OK Q2 tappo_uscita: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.59)
+OK Q2 coperchio: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 1.05); nelle scritte incise 5.4 mm2 di creste sottili tra lettere vicine (dettaglio grafico, non strutturale)
+OK Q2 carrello: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.95)
+OK Fascio laser (Ø16 tra chip e L2, cono L2→L1) libero da ostacoli 
+OK Linea Ø0.5: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 0.0 gradi
+OK Linea Ø2.0: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 0.0 gradi
+OK Linea Ø3.0: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 2.9 gradi
+OK Distanza chip ↔ fondo linea 2.50 mm
+OK Linguette anti-gioco: i 2 denti di ogni sede premono la forcella su tutta la corsa (compenetrazione voluta min 1.03 mm3)
+OK Linguette anti-gioco: spazio libero per la flessione verso l'esterno 
+OK Forcelle + rulli + bulloni: liberi da senza cavo a cavo 3 mm +2 mm (max compenetrazione 0.000)
+OK Fori M2 della scheda v2 sopra la slitta (foro Ø1.7 autofilettante, parete >= 2 mm)
+OK Viti M3 della slitta raggiungibili dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)
+OK Interferenze statiche tra 22 parti: nessuna
+OK lente_L1 nella sede: nessuna compenetrazione oltre 0.03 mm (contatto min 0.15)
+OK laser nella sede: nessuna compenetrazione oltre 0.03 mm (contatto min 0.00)
+OK lente L2 nel carrello: nessuna compenetrazione
+OK Carrello L2 libero su tutta la corsa −5/+6 mm (max compenetrazione 0.000 mm3)
+OK Asola del coperchio libera sull'asse della vite del carrello per tutta la corsa
+OK Slitta + scheda v2: estrazione libera per 45 mm (max compenetrazione 0.000)
+OK slitta_sensore: gioco ruota 1.63 mm (Ø64.2: 1.36), rullo inferiore 2.50 mm
+OK scheda_sensore: gioco ruota 2.70 mm (Ø64.2: 2.43), rullo inferiore 8.23 mm
+OK Mensola: gioco ruota 1.49 mm, rullo inferiore 1.48 mm
+OK Ruota CNC (X 10.44-27.22, Ø63.65): giochi minimi pezzo_unico 0.79 a (21.1, 65.1, 37.0); slitta_sensore 1.64 a (17.9, 58.1, 25.4)
+OK Ruota originale (X 6.85-29.84, Ø63.82): giochi minimi pezzo_unico 0.71 a (20.3, 65.1, 37.0); slitta_sensore 1.56 a (20.3, 58.1, 25.4)
+OK Mozzi lontani dal codolo dell'encoder: originale 1.63 mm, CNC 5.22 mm; albero nel foro della ruota CNC per 7.8 mm (grani a X 13.83)
+OK M1 viti encoder: 6 fori con appoggio testa a X 3.0 (tasca anteriore), accesso dal davanti libero (Ø6) 
+OK M2 ruota CNC: percorso di montaggio in asse dal davanti libero 
+OK M2 ruota originale: percorso di montaggio in asse dal davanti libero 
+OK M3 grani del mozzo ruota CNC raggiungibili radialmente in 16 direzioni su 24 (es. [0, 15, 30, 75, 180, 195] gradi)
+OK M4 viti pezzo -> piastra: corridoio testa Ø5.8 dal fronte libero nel pezzo per tutte le 8 viti 
+OK S1 sportellino: scorre sulle guide da chiuso ad aperto (+13) e si sfila in alto (+40) senza toccare nulla (max 0.000)
+OK S2 nottolini: liberi negli incavi da chiuso (0.000) e da aperto (0.000), premono a meta' corsa (0.91 mm3)
+OK S3 luce ambiente diretta sul chip (frazione dell'emisfero, pixel -4/0/+4 mm): senza sportellino 0.0689 0.1084 0.1435 -> chiuso 0.0000 0.0000 0.0008
+OK S4 sportellino aperto: fondo a Y 76.5, sopra i labbri delle guide J e la coda di topo Ø3 sollevata (Y 73.5): si carica dal fronte
+OK S5 slitta + scheda estraibili con lo sportellino aperto (max 0.000)
+OK Q mesh pezzo unico: superficie con materiale < 0.5 mm = 0.50 mm2 (solo STL originale), zona encoder spessore minimo 0.93 mm, piani [np.float64(0.0), np.float64(3.0), np.float64(7.22)]
+OK TU tappino gola d'uscita: si sfila verso l'alto senza toccare nulla (max 0.000); la clip deve aprirsi per uscire (dente 2.05 mm3 sul fronte del braccio)
+OK TU senza tappino la gola e' aperta in alto per tutta la lunghezza (Z 60.6-83.4): la coda di topo si cala dall'alto (ostacoli 0.000 mm3)
+OK Q2 slitta_sensore: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 1.18)
+OK Q2 sportello_luce: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.99); nelle scritte incise 34.1 mm2 di creste sottili tra lettere vicine (dettaglio grafico, non strutturale)
+OK Q2 tappo_uscita: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.59)
+OK Q2 coperchio: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 1.05); nelle scritte incise 5.4 mm2 di creste sottili tra lettere vicine (dettaglio grafico, non strutturale)
+OK Q2 carrello: superficie con materiale < 0.5 mm = 0.00 mm2 (spessore minimo fuori dalle scritte 0.95)
+OK Fascio laser (Ø16 tra chip e L2, cono L2→L1) libero da ostacoli 
+OK Linea Ø0.5: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 0.0 gradi
+OK Linea Ø2.0: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 0.0 gradi
+OK Linea Ø3.0: libera tra i rulli si; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera, piega massima 2.9 gradi
+OK Distanza chip ↔ fondo linea 2.50 mm
+OK Linguette anti-gioco: i 2 denti di ogni sede premono la forcella su tutta la corsa (compenetrazione voluta min 1.03 mm3)
+OK Linguette anti-gioco: spazio libero per la flessione verso l'esterno 
+OK Forcelle + rulli + bulloni: liberi da senza cavo a cavo 3 mm +2 mm (max compenetrazione 0.000)
+OK Fori M2 della scheda v2 sopra la slitta (foro Ø1.7 autofilettante, parete >= 2 mm)
+OK Viti M3 della slitta raggiungibili dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)

@@ -15,33 +15,47 @@ C=trimesh.load("carriage.stl"); C.apply_translation([0,0,24.5]); parts["carrello
 vs=[cylX(30.22,36.22,64.41+24.5+3.8,ZM-6.5,1.5,24), cylX(36.22,39.22,64.41+24.5+3.8,ZM-6.5,2.75,24)]   # vite M3x6 di blocco del carrello, dal davanti
 parts["vite_M3_carrello"]=col(trimesh.util.concatenate(vs),[60,60,60,255])
 L=trimesh.load("lid.stl"); Ml=T.rotation_matrix(math.radians(-90),[0,1,0]) @ T.translation_matrix([-14,0,0]); L.apply_transform(np.linalg.inv(Ml)); parts["coperchio"]=col(tp(L),[120,120,125,140])
-las=cylinder(radius=2,height=14,sections=48); las.apply_translation([0,0,127.2]); parts["laser"]=col(tp(las),[200,30,30,255])
+las=cylinder(radius=4.5,height=20,sections=64); las.apply_translation([0,0,114.2+10]); parts["laser"]=col(tp(las),[200,30,30,255])   # Picotronic Ø9 x 20 (29/10/2026)
+parts["tappo_laser"]=col(tp(trimesh.load("laser_cap.stl")),[150,150,160,255])
+vg=[]                                                       # 2 grani M3 x 8 (frontale +X, laterale +Y) a Z_LF + 14
+for d in ((1,0),(0,1)):
+    g_=cylinder(radius=1.5,height=8,sections=20); g_.apply_transform(T.rotation_matrix(np.pi/2,[-d[1],d[0],0])); g_.apply_translation([d[0]*(4.6+4),d[1]*(4.6+4),114.2+14]); vg.append(g_)
+parts["grani_laser"]=col(tp(trimesh.util.concatenate(vg)),[60,60,60,255])
 l1=cylinder(radius=12.47/2,height=3.11,sections=64); l1.apply_translation([0,0,105.2]); parts["lente_L1"]=col(tp(l1),[150,200,255,200])
 l2=cylinder(radius=19.95/2,height=2.8,sections=64); l2.apply_translation([0,0,24.5]); parts["lente_L2"]=col(tp(l2),[150,200,255,200])
+_sp=trimesh.load("/home/claude/pu/run_sportello/sportello.stl"); _sp.apply_translation([0,13.0 if pull>0 else 0.0,0])   # sportellino (aperto quando la slitta e' estratta)
+parts["sportello_luce"]=col(_sp,[45,45,50,255])
+parts["tappo_uscita"]=col(trimesh.load("/home/claude/pu/run_tappo_uscita/tappo_uscita.stl"),[45,45,50,255])   # copertura removibile della gola di uscita (31/10/2026)
 tray=tp(trimesh.load("tray.stl")); tray.apply_translation([pull,0,0]); parts["slitta_sensore"]=col(tray,[230,160,40,255])
-S=trimesh.load("/mnt/user-data/outputs/RazorGauge/cad/sensor.stl"); S=trimesh.intersections.slice_mesh_plane(S,[0,0,-1],[0,0,4.2],cap=True); S.apply_transform(T.translation_matrix([-12.6,15.5,0.2]) @ T.rotation_matrix(np.pi,[1,0,0])); S=tp(S); S.apply_translation([pull,0,0]); parts["scheda_sensore"]=col(S,[20,130,40,255])
-scr=cylinder(radius=1.5,height=10,sections=24); scr.apply_translation([17.0,16.65,-5.5-3]); scr=tp(scr); scr.apply_translation([pull,0,0]); parts["vite_M3_slitta"]=col(scr,[60,60,60,255])
-# spina XH 5 poli sotto la scheda + 5 fili che passano dalla tacca della piastra verso il retro
-def boxp(x0,x1,y0,y1,z0,z1):
-    b=trimesh.creation.box([x1-x0,y1-y0,z1-z0]); b.apply_translation([(x0+x1)/2,(y0+y1)/2,(z0+z1)/2]); return b
-# fili saldati direttamente nei 5 fori (fila a ty 9.7 -> Z 11.3, misurata), uscita verso il basso; fascetta sull'aletta della slitta
-tie=[boxp(14.92,29.52,54.6,57.1,11.9,12.9),boxp(14.92,29.52,54.6,57.1,7.6,8.6),boxp(14.92,15.92,54.6,57.1,7.6,12.9),boxp(28.52,29.52,54.6,57.1,7.6,12.9),boxp(29.52,33.5,54.3,57.4,11.7,15.7)]
-for t_ in tie: t_.apply_translation([0,0,ZM-21.0])
-tie=trimesh.util.concatenate(tie); tie.apply_translation([pull,0,0]); parts["fascetta_2_5mm"]=col(tie,[250,250,250,255])
-wcols=[[30,30,30,255],[200,30,30,255],[230,200,40,255],[40,90,210,255],[40,160,60,255]]   # GND VCC AO CLK SI
-for i,x in enumerate([17.22,19.72,22.22,24.72,27.22]):
-    ya=42.0+1.3*(i%3); za=11.8+1.4*(i//3)+0.7*(i%2)
-    pts=np.array([[x+pull,61.0,ZM-9.7],[x+pull,46.5,ZM-9.7],[x+pull-1.5,ya,za],[3.5,ya,za],[-25,ya,za]])
-    segs=[]
-    for a_,b_ in zip(pts[:-1],pts[1:]):
-        L=np.linalg.norm(b_-a_); c=cylinder(radius=0.6,height=L,sections=12)
-        c.apply_transform(trimesh.geometry.align_vectors([0,0,1],(b_-a_)/L)); c.apply_translation((a_+b_)/2); segs.append(c)
-        sp=trimesh.creation.icosphere(subdivisions=1,radius=0.6); sp.apply_translation(b_); segs.append(sp)
-    parts["filo_%d"%(i+1)]=col(trimesh.util.concatenate(segs),wcols[i])
+# scheda sensore v2 (TSL1401CL, 28/10/2026): ingombro da cad/FlylineProfiler_RazorGauge.scad VIEW="pcb"
+S=tp(trimesh.load("pcb.stl")); S.apply_translation([pull,0,0]); parts["scheda_sensore"]=col(S,[20,130,40,255])
+vv=[]                                                       # 2 viti M3 x 12 verticali: slitta 3.5 + 8.5 nella mensola
+for (sx,sy) in ((15.9,9.0),(16.0,14.3)):
+    sh=cylinder(radius=1.5,height=12,sections=24); sh.apply_translation([sx,sy,-6.3+3.5-6]); vv.append(sh)
+    if sy < 12:                                              # svasata ISO 10642 a filo della slitta (sotto la spina del connettore)
+        hd=trimesh.creation.cone(radius=3.0,height=3.0,sections=32); hd.apply_transform(T.rotation_matrix(np.pi,[1,0,0])); hd.apply_translation([sx,sy,-6.3+3.5])
+        hd=trimesh.boolean.intersection([hd,trimesh.creation.box(bounds=[[sx-4,sy-4,-6.3+3.5-1.6],[sx+4,sy+4,-6.3+3.5-0.02]])],engine="manifold"); vv.append(hd)
+    else:
+        hd=cylinder(radius=2.75,height=3,sections=24); hd.apply_translation([sx,sy,-6.3+3.5+1.5]); vv.append(hd)
+scr=tp(trimesh.util.concatenate(vv)); scr.apply_translation([pull,0,0]); parts["viti_M3_slitta"]=col(scr,[60,60,60,255])
+# cavo schermato Ø4 dalla spina (bordo anteriore della scheda) giu' davanti alla mensola, sotto di essa fino alla tacca della piastra
+pts=np.array([[43.2,63.5,15.05],[46.0,63.5,15.05],[46.0,44.5,15.05],[43.5,44.0,13.0],[3.5,43.5,13.0],[-25,43.5,13.0]])
+segs=[]
+for a_,b_ in zip(pts[:-1],pts[1:]):
+    L_=np.linalg.norm(b_-a_); c=cylinder(radius=2.0,height=L_,sections=16)
+    c.apply_transform(trimesh.geometry.align_vectors([0,0,1],(b_-a_)/L_)); c.apply_translation((a_+b_)/2); segs.append(c)
+    sp=trimesh.creation.icosphere(subdivisions=1,radius=2.0); sp.apply_translation(b_); segs.append(sp)
+if pull == 0: parts["cavo_sensore"]=col(trimesh.boolean.union(segs,engine="manifold"),[30,30,30,255])
 R=200/(2*math.pi)
-wheel=trimesh.boolean.difference([cylX(17.22,27.22,35,49.55,R,180), cylX(17,27.5,35,49.55,4)]); parts["ruota_encoder_200mm"]=col(wheel,[60,170,90,255])
-parts["albero_encoder"]=col(cylX(-2,26.5,35,49.55,3),[160,160,160,255])
-parts["encoder_LPD3806"]=col(cylX(4.2-35.5,4.2,35,49.55,19),[40,40,40,255])   # corpo Ø38 appoggiato sul fondo della sede (X 4.22)
+# ruota CNC reale (STEP RG_ruota_encoder, 30/10/2026): mozzo Ø18 verso la parete, faccia posteriore del mozzo a X 10.44,
+# cerchio X 17.22-27.22 (10.0 mm dalla faccia anteriore del pezzo, mezzeria sulla linea X 22.22)
+_W=trimesh.load("/home/claude/cnc/RG_ruota_encoder.step"); _W=_W.to_geometry() if hasattr(_W,"to_geometry") else _W
+_W.apply_scale(1000.0); _W.merge_vertices(); _W.apply_transform(np.array([[0,0,1,10.44],[0,1,0,35.0],[1,0,0,49.55],[0,0,0,1]],float))
+parts["ruota_encoder_200mm"]=col(_W,[60,170,90,255])
+# encoder LPD3806 col fondo della sede riportato a X 0-3 (30/10/2026): faccia di montaggio a X 0 (retro del pezzo),
+# corpo Ø38.2 x 34.3 nel foro Ø42 della piastra in alluminio, codolo Ø20 x 5.22, albero Ø6 x 13 (punta a X 18.22)
+parts["albero_encoder"]=col(cylX(5.22,18.22,35,49.55,2.98),[160,160,160,255])
+parts["encoder_LPD3806"]=col(trimesh.boolean.union([cylX(-34.3,0.0,35,49.55,19.1),cylX(-0.01,5.22,35,49.55,10.0)],engine="manifold"),[40,40,40,255])
 for nm,(y,z) in {"rullo_inferiore_spostato":(58.91,-6.45),"rullo_spintore_lato_misura":(76.91,-6.45),"rullo_superiore_su_ruota":(76.91,49.55)}.items():
     parts[nm]=col(cylX(17.22,27.22,y,z,8),[40,70,200,255])
     if nm=="rullo_inferiore_spostato": parts["perno_"+nm]=col(cylX(14.2,30.2,y,z,2.4),[170,170,170,255])
@@ -75,7 +89,13 @@ line=cylinder(radius=1,height=150,sections=32); line.apply_translation([22.22,67
 sc=trimesh.Scene()
 for k,m in parts.items(): sc.add_geometry(m, node_name=k, geom_name=k)
 if pull == 0:
-    sc.export(O+"FlylineProfiler_RazorGauge_assieme.glb"); sc.export(O+"FlylineProfiler_RazorGauge_assieme.3mf")
-    trimesh.util.concatenate(list(parts.values())).export(O+"FlylineProfiler_RazorGauge_assieme.stl")
+    sc.export(O+"FlylineProfiler_RazorGauge_assieme.glb")          # GLB: Y in alto (convenzione glTF) -> piastra verticale
+    # STL e 3MF: Z in alto (Windows 3D Viewer, slicer) -> ruoto come in realta: piastra verticale, torre in alto,
+    # fronte (lato cavo) verso l'osservatore della vista frontale, coda di topo orizzontale
+    R = T.rotation_matrix(-np.pi/2, [0,0,1]) @ T.rotation_matrix(np.pi/2, [1,0,0])
+    sc_r = trimesh.Scene()
+    for k,m in parts.items(): mm = m.copy(); mm.apply_transform(R); sc_r.add_geometry(mm, node_name=k, geom_name=k)
+    sc_r.export(O+"FlylineProfiler_RazorGauge_assieme.3mf")
+    trimesh.util.concatenate(list(sc_r.geometry.values())).export(O+"FlylineProfiler_RazorGauge_assieme.stl")
 sc.export("assieme_%d.glb" % int(pull))
 print("ok", pull)

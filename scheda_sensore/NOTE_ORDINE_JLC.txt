@@ -1,0 +1,50 @@
+RazorGauge - scheda sensore TSL1401CL v1 - NOTE PER L'ORDINE JLCPCB (29/10/2026)
+
+STATO: BOZZA - NON ORDINARE ANCORA
+  I fori di fissaggio della scheda sono DA DEFINIRE (verifiche in corso). Nel PCB ci sono solo 3 aree vietate
+  al rame nelle posizioni provvisorie (FORO_TBD_1..3: X 1.5 Y 14 / X 1.5 Y 6 / X 22.5 Y 14.5, coordinate KiCad);
+  quando le posizioni sono confermate si aggiungono i fori e si rigenerano gerber e CPL (script/run_all.sh).
+
+FILE (cartella produzione/)
+  RazorSensor_gerber.zip      -> "Add gerber file"
+  RazorSensor_BOM_JLCPCB.csv  -> BOM del montaggio
+  RazorSensor_CPL_JLCPCB.csv  -> Pick & place (CPL)
+
+PCB
+  2 strati, 24 x 18 mm, FR-4, spessore 1.6 mm (la quota del chip nel pezzo unico conta su 1.6)
+  Finitura: ENIG consigliata (piazzole piatte per il TSL1401CL), in alternativa HASL lead free
+  Solder mask: nero opaco consigliato (meno riflessi del laser), altrimenti verde
+  Quantita PCB: 5 (minimo) - montaggio: 2 o 3 schede (una di scorta)
+
+PRE-ORDINE DEL SENSORE (prima dell'ordine PCBA)
+  jlcpcb.com/parts -> C2802316 (AMS TSL1401CL, Extended, SMD-8P 9.4 x 3) -> pre-order
+  Quantita = numero di schede da montare (+ eventuali scarti richiesti da JLCPCB). Restano nella "parts library".
+  Prezzo LCSC al 28/10/2026: ~21.82 $ cad., 100 pezzi disponibili.
+
+PCBA
+  Economic, solo lato TOP, 17 componenti / 10 righe BOM (tutti a magazzino LCSC; U1 da pre-ordine)
+  Nell'anteprima del montaggio CONTROLLARE:
+   - U1 TSL1401CL: pallino del pin 1 verso il bordo ANTERIORE (lato connettore), fila dei pin 1-4 verso il lato
+     dei condensatori (lato rullo). Il CPL usa il centro del package (Y 11.695), non il centro dei pixel (Y 12.0).
+   - U2 LMV321 (SOT-23-5): pin 1 (OUT) verso il chip; correzione di rotazione +180 gia applicata, verificare.
+   - J1 GH 6 poli: apertura verso il bordo anteriore (destra); correzione +180 applicata, verificare.
+  Remark da incollare nell'ordine:
+   "U1 (TSL1401CL, C2802316) is an optical sensor with a clear molded window: please handle it as MSL 5a
+    (bake before reflow if exposed), do not clean the window with aggressive solvents, keep the top surface free
+    of flux residues and scratches. Thank you."
+
+PINOUT CONNETTORE J1 (JST GH 1.25 mm, 6 poli) -> RazorBoard J5
+  1 3V3 (J5-1)  2 GND (J5-2)  3 SI (J5-3)  4 CLK (J5-4)  5 AO (J5-5)  6 calza/GND (J5-8)
+  Cavo: JST GH 6 poli precrimpato + cavo schermato fino ai morsetti di J5 (calza solo lato RazorBoard o su J1-6).
+
+CIRCUITO
+  TSL1401CL a 3.3 V (dal master), 100 nF + 10 uF, R serie 100 su SI e CLK, carico 330 su AO (come nel datasheet).
+  Buffer LMV321: Vout = 0.958 x AO + 0.154 V (zero spostato sopra la zona morta di ~70 mV dell'ADC ESP32;
+  l'offset lo toglie il frame di buio, il guadagno lo assorbe la calibrazione). Uscita con 100 ohm in serie.
+  Pixel 1 = lato pin 1 = verso il fronte (lontano dalla piastra).
+
+MECCANICA (pezzo unico v. 28/10/2026)
+  Centro della linea di pixel = centro scheda X 12 / Y 12 (KiCad) = asse laser. Lato ruota (Y 12-18) senza componenti.
+  Sotto la guida J lato rullo solo 0603; U2 a 0.3 mm in pianta dallo spigolo della guida J (gioco 0.53 in diagonale,
+  anche durante l'estrazione della slitta).
+  DRC: 0 errori, 0 collegamenti mancanti (restano solo avvisi di libreria non pertinenti).

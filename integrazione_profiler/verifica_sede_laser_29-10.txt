@@ -1,0 +1,37 @@
+!! Interferenze statiche tra 20 parti: pezzo_unico ∩ coperchio = 2.191
+OK lente_L1 nella sede: nessuna compenetrazione (contatto min 0.15)
+OK laser nella sede: nessuna compenetrazione (contatto min 0.00)
+OK lente L2 nel carrello: nessuna compenetrazione
+OK Carrello L2 libero su tutta la corsa −5/+6 mm (max compenetrazione 0.000 mm3)
+OK Asola del coperchio libera sull'asse della vite del carrello per tutta la corsa
+OK Slitta + scheda v2: estrazione libera per 45 mm (max compenetrazione 0.000)
+OK slitta_sensore: gioco ruota 1.63 mm (Ø64.2: 1.36), rullo inferiore 2.50 mm
+OK scheda_sensore: gioco ruota 2.70 mm (Ø64.2: 2.43), rullo inferiore 8.23 mm
+OK Mensola: gioco ruota 1.49 mm, rullo inferiore 1.48 mm
+OK Fascio laser (Ø16 tra chip e L2, cono L2→L1) libero da ostacoli 
+OK Linea Ø0.5: passa libera (guide J, guida originale, scheda, coperchio) 
+!! Linea Ø2.0: passa libera (guide J, guida originale, scheda, coperchio) ['pezzo_unico']
+!! Linea Ø3.0: passa libera (guide J, guida originale, scheda, coperchio) ['pezzo_unico']
+OK Distanza chip ↔ fondo linea 2.50 mm
+OK Forcelle + rulli + bulloni: liberi da senza cavo a cavo 3 mm +2 mm (max compenetrazione 0.000)
+OK Fori M2 della scheda v2 sopra la slitta (foro Ø1.7 autofilettante, parete >= 2 mm)
+OK Viti M3 della slitta raggiungibili dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)
+!! Interferenze statiche tra 20 parti: pezzo_unico ∩ coperchio = 2.191
+OK lente_L1 nella sede: nessuna compenetrazione (contatto min 0.15)
+OK laser nella sede: nessuna compenetrazione (contatto min 0.00)
+OK lente L2 nel carrello: nessuna compenetrazione
+OK Carrello L2 libero su tutta la corsa −5/+6 mm (max compenetrazione 0.000 mm3)
+OK Asola del coperchio libera sull'asse della vite del carrello per tutta la corsa
+OK Slitta + scheda v2: estrazione libera per 45 mm (max compenetrazione 0.000)
+OK slitta_sensore: gioco ruota 1.63 mm (Ø64.2: 1.36), rullo inferiore 2.50 mm
+OK scheda_sensore: gioco ruota 2.70 mm (Ø64.2: 2.43), rullo inferiore 8.23 mm
+OK Mensola: gioco ruota 1.49 mm, rullo inferiore 1.48 mm
+OK Fascio laser (Ø16 tra chip e L2, cono L2→L1) libero da ostacoli 
+OK Linea Ø0.5: passa libera (guide J, guida originale, scheda, coperchio) 
+!! Linea Ø2.0: passa libera (guide J, guida originale, scheda, coperchio) ['pezzo_unico']
+!! Linea Ø3.0: passa libera (guide J, guida originale, scheda, coperchio) ['pezzo_unico']
+OK Distanza chip ↔ fondo linea 2.50 mm
+OK Forcelle + rulli + bulloni: liberi da senza cavo a cavo 3 mm +2 mm (max compenetrazione 0.000)
+OK Fori M2 della scheda v2 sopra la slitta (foro Ø1.7 autofilettante, parete >= 2 mm)
+OK Viti M3 della slitta raggiungibili dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)
+exit 0

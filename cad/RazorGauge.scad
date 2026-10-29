@@ -21,14 +21,21 @@ L2_TRAVEL = 6;              // regolazione ± di L2
 L1_F     = -19.3;           // L1 biconcava f = -19.3
 L2_F     = 100;
 Z_L1     = Z_L2 + L2_F + L1_F;  // 105.2  (L1-L2 = 80.7, collimazione)
-Z_LF     = Z_L1 + 15;       // 120.2  faccia anteriore laser
+Z_LF     = Z_L1 + 9;        // 114.2  faccia anteriore laser (v3, 29/10/2026: laser Ø9 x 20 abbassato di 6 mm: Z_TOP invariato 138.2)
 
 // ---------- Componenti ----------
-LASER_D = 4.0;  LASER_L = 14.0;
+LASER_D = 9.0;  LASER_L = 20.0;   // v3: Picotronic LFD650-1-12(9x20), ottone Ø9 x 20, fronte piano con foro Ø6, fascio ~3 mm
+// sede laser v3: appoggio a cono sul bordo anteriore (punto di rotazione all'uscita del fascio), foro Ø11 (gioco 1 mm),
+// 2 grani M3 a 90° in inserti a caldo contro un O-ring 8 x 1.5 sul corpo, tappo con O-ring di precarico; poi epossidica
+LAS_GAP   = 1.0;            // gioco radiale attorno al corpo: inclinazione +/- 1.0/14 = +/- 4°
+LAS_SCR_DZ = 14;            // quota dei grani sopra la faccia del laser (leva 14 mm: 1 giro M3 = 36 mrad ~ 2°)
+LAS_OR_DZ  = 8;             // O-ring 8 x 1.5 sul corpo (forza di ritorno), sotto i grani: l'epossidica si cola sopra
+INS_D = 4.0; INS_L = 6.0;   // inserti a caldo M3 (es. OD 4.6 x 5.7): foro Ø4.0
+LAS_BOSS_D = 22;
 LENS_D  = 12.7;             // (v1) L2 Ø12.7 — non più usata
 L2_D    = 19.95;            // v2: L2 piano-convessa Ø20 f=100 (misurata 19.95)
 L2_EDGE = 2.35;             // spessore al bordo misurato (lente Ø20)
-L2_CLEAR = 14;              // foro libero per il fascio nel carrello
+L2_CLEAR = 17;              // foro libero per il fascio nel carrello (v3: fascio laser 3 mm x 5.2 = ~15.6 mm; era 14)
 L1_T    = 3.11;             // biconcava F12F-19.3: spessore al bordo misurato
 L1_D    = 12.47;            // diametro misurato L1
 L2_R = L2_F * 0.5168;       // raggio di curvatura (N-BK7, n = 1.5168)
@@ -66,7 +73,7 @@ CAR_SCREW_X = -4;           // posizione vite di blocco carrello (lungo X)
 CAR_SCREW_Z = 3.5;          // v2: vite sopra la sede lente (evita la lente Ø20)
 CAR_FRONT_SCREW = false;    // true: vite di blocco del carrello DAL DAVANTI, attraverso un'asola nel coperchio (montaggio integrato FlylineProfiler)
 CAR_FS_Y = 6.5;             // posizione laterale della vite frontale (fuori dalla costola del coperchio)
-CAR_FS_L = 5.5;             // profondità del foro M3 nel carrello (>= 1.2 mm di parete verso il foro centrale) -> vite M3 x 6
+CAR_FS_L = 4.1;             // profondità del foro M3 nel carrello -> vite M3 x 6 (3.8 in presa). 31/10/2026: era 5.5, con il foro centrale Ø17 (29/10) la punta lo sfondava (parete 0.01): ora 0.8
 CAR_FS_Z = 3.8;             // quota della vite frontale nel carrello: ~1 mm di parete sopra e sotto (sede lente sotto)
 BAND_Z = [36, Z_TOP - 12 - 40];   // v2: fascia superiore abbassata di 40 mm (Z 86.2, era 126.2)
 
@@ -79,6 +86,45 @@ module lens_seat(zc, t, clear_d, D = LENS_D, clear_h = 40) {   // lente inserita
         cylinder(d = D + 2*fit, h = t + 2*fit, center = true);
         translate([0, -(D/2 + fit), -(t + 2*fit)/2]) cube([30, D + 2*fit, t + 2*fit]);
         cylinder(d = clear_d, h = clear_h, center = true);
+    }
+}
+// --- sede laser v3 (coordinate torre). Parti aggiunte e tagli separati: usati da tower() e da column_v3()
+module laser_block() {
+    z0 = Z_L1 + 4 - 0.01;
+    translate([0, 0, z0]) cylinder(d = LAS_BOSS_D, h = Z_TOP - z0);
+    translate([0, -4, z0]) cube([CI, 8, Z_TOP - z0]);                        // razza anteriore (inserto del grano frontale), a filo del coperchio
+    translate([-4, 0, z0]) cube([8, CI + 0.01, Z_TOP - z0]);                 // razza laterale +Y (grano laterale)
+    translate([-CI - 0.01, -1.5, z0]) cube([CI + 0.01, 3, Z_TOP - z0]);      // razze di collegamento
+    translate([-1.5, -CI - 0.01, z0]) cube([3, CI + 0.01, Z_TOP - z0]);
+    translate([-CI, -CI, Z_TOP - 2]) cube([2*CI, 2*CI, 2]);                 // solaio superiore
+    // 30/10/2026: bossoli Ø8 attorno agli inserti delle viti del tappo (a r 10 dall'asse il foro Ø4 usciva dal mozzo Ø22: pareti 0.03-0.1)
+    for (s = [-1, 1]) translate([-6, s*8, Z_TOP - INS_L - 1.5]) cylinder(d = 8, h = INS_L + 1.5);
+}
+module laser_cuts() {
+    R = LASER_D/2;
+    translate([0, 0, Z_L1 + 4 - 1]) cylinder(d = 6.0, h = Z_LF - (Z_L1 + 4) + 1 - 0.99);          // passaggio fascio Ø6 sotto il cono
+    translate([0, 0, Z_LF - 1]) cylinder(r1 = R - 1, r2 = R + LAS_GAP, h = 1 + LAS_GAP + 0.001);  // cono 90°: il bordo Ø9 tocca a Z_LF
+    translate([0, 0, Z_LF + LAS_GAP]) cylinder(r = R + LAS_GAP, h = Z_TOP - Z_LF);                // foro Ø11
+    zs = Z_LF + LAS_SCR_DZ;
+    // grano frontale (+X): inserto dal davanti (sotto il coperchio), accesso dal foro nel coperchio
+    translate([CI - INS_L, 0, zs]) rotate([0, 90, 0]) cylinder(d = INS_D, h = INS_L + 0.5);
+    translate([R, 0, zs]) rotate([0, 90, 0]) cylinder(d = M3_CLR, h = CI);
+    // grano laterale (+Y): inserto dall'esterno della parete
+    translate([0, CI + WT - INS_L, zs]) rotate([-90, 0, 0]) cylinder(d = INS_D, h = INS_L + 0.5);
+    translate([0, R, zs]) rotate([-90, 0, 0]) cylinder(d = M3_CLR, h = CI + WT);
+    // inserti M3 per le 2 viti del tappo (sulla faccia superiore)
+    for (s = [-1, 1]) translate([-6, s*8, Z_TOP - INS_L]) cylinder(d = INS_D, h = INS_L + 0.5);
+}
+module laser_cap() {           // tappo: preme il laser sul cono tramite un O-ring 6 x 1.5 appoggiato sul fondo del corpo
+    R = LASER_D/2;
+    difference() {
+        union() {
+            translate([0, 0, Z_TOP]) hull() { cylinder(d = 14, h = 2); for (s = [-1, 1]) translate([-6, s*8, 0]) cylinder(d = 7, h = 2); }
+            translate([0, 0, Z_LF + LASER_L + 1.2]) cylinder(r = R + LAS_GAP - 0.2, h = Z_TOP - (Z_LF + LASER_L + 1.2) + 0.01);   // perno: 0.3 di schiacciamento dell'O-ring
+        }
+        translate([0, 0, Z_LF + LASER_L]) cylinder(d = 4.0, h = 30);                                         // fili
+        for (a = [45, 225]) rotate([0, 0, a]) translate([R + LAS_GAP/2 - 0.1, 0, Z_LF + LASER_L]) cylinder(d = 1.6, h = 30);   // colata e sfiato resina
+        for (s = [-1, 1]) translate([-6, s*8, Z_TOP - 1]) cylinder(d = M3_CLR, h = 5);
     }
 }
 module front_groove(z1, z2, x0 = L1_D/2) { translate([x0, -1.6, z1]) cube([20, 3.2, z2 - z1]); }
@@ -104,10 +150,8 @@ module tower() {
             for (s=[-1,1]) translate([-CI, s > 0 ? CI - 1.5 : -CI, Z_COL]) cube([2*CI, 1.5, 1.5]);
             // blocco L1
             translate([-CI, -CI, Z_L1 - 4]) cube([2*CI, 2*CI, 8]);
-            // sede laser alleggerita: fondo con battuta, boccola Ø13, tappo superiore (tenuta luce)
-            translate([-CI, -CI, Z_LF - 2.5]) cube([2*CI, 2*CI, 2.5]);
-            translate([0, 0, Z_LF - 0.01]) cylinder(d = 13, h = Z_TOP - Z_LF);
-            translate([-CI, -CI, Z_TOP - 2]) cube([2*CI, 2*CI, 2]);
+            // sede laser v3
+            laser_block();
             // --- telaio inferiore
             // guance sottili con la guida cavo, fino al piano di fissaggio
             for (s=[-1,1]) translate([X_BACK, s > 0 ? CHEEK_Y1 : -CHEEK_Y2, 0]) cube([X_FRONT - X_BACK, CHEEK_Y2 - CHEEK_Y1, Z_COL + 4]);
@@ -131,12 +175,8 @@ module tower() {
         // --- L1
         lens_seat(Z_L1, L1_T, 9, L1_D, clear_h = 8.2);   // L1 biconcava: foro libero solo nel blocco L1 (Z 101.2-109.2)
         front_groove(Z_L1 - 4.1, Z_L1 + 4.1);
-        // --- laser: labbro Ø3 (battuta) / perno Ø4.3 / zona regolazione Ø5 aperta in alto
-        translate([0,0,Z_LF - 6]) cylinder(d = 3.0, h = 6.01);
-        translate([0,0,Z_LF]) cylinder(d = LASER_D + 2*fit, h = 4.01);
-        translate([0,0,Z_LF + 4]) cylinder(d = 5.0, h = 20);
-        // 3 grani M3 di puntamento a 120° (0° = fronte, accesso dal coperchio; gli altri dai fianchi)
-        for (a = [0, 120, 240]) translate([0,0,Z_LF + LASER_L - 2.5]) rotate([0,0,a]) rotate([0,90,0]) cylinder(d = M3_TAP, h = 40);
+        // --- laser v3: cono + foro Ø11 + 2 grani in inserti + inserti del tappo
+        laser_cuts();
         // --- asola verticale per bloccare il carrello L2 (vite M3 + rondella dal fianco +Y)
         hull() for (dz=[-L2_DOWN, L2_UP]) translate([CAR_SCREW_X, CI - 1, Z_L2 + CAR_SCREW_Z + dz]) rotate([-90,0,0]) cylinder(d = M3_CLR, h = WT + 2);
         // --- guida cavo
@@ -175,9 +215,9 @@ module lid() {
         }
         for (p = lid_screws()) translate([CI - 1, p[0], p[1]]) rotate([0,90,0]) cylinder(d = M3_CLR, h = 10);
         if (CAR_FRONT_SCREW) hull() for (dz = [-L2_DOWN, L2_UP]) translate([CI - 1, CAR_FS_Y, Z_L2 + CAR_FS_Z + dz]) rotate([0,90,0]) cylinder(d = M3_CLR, h = LID_T + 2);   // asola vite carrello
-        translate([CI - 1, 0, Z_LF + LASER_L - 2.5]) rotate([0,90,0]) cylinder(d = 3.5, h = 10);  // accesso grano anteriore
+        translate([CI - 1, 0, Z_LF + LAS_SCR_DZ]) rotate([0,90,0]) cylinder(d = 3.5, h = 10);  // accesso al grano frontale del laser (chiave 1.5)
         // nome inciso sul fronte (0.6 mm, leggibile dal basso verso l'alto)
-        translate([CI + LID_T - 0.6, 0, 62]) rotate([90,0,90]) rotate([0,0,90])
+        translate([CI + LID_T - 0.6, 0, 76]) rotate([90,0,90]) rotate([0,0,90])   // 30/10/2026: da z 62 a 76, sopra lo sportellino aperto
             linear_extrude(height = 1) text("RazorGauge", size = 6, font = "Liberation Sans:style=Bold", halign = "center", valign = "center");
         // alleggerimento ai lati della colonna (fuori dalle pareti): il coperchio copre solo dove serve
         for (s=[-1,1]) for (z=lid_windows()) translate([CI - 1, s > 0 ? CI + WT + 0.01 : -BOSS_Y - 0.01, z[0]]) cube([LID_T + 2, BOSS_Y - CI - WT, z[1] - z[0]]);
@@ -189,6 +229,7 @@ module assembly() {
     color("slategray") translate([0,0,Z_L2]) carriage();
     color("gray", 0.3) lid();
     color("red") translate([0,0,Z_LF]) cylinder(d = LASER_D, h = LASER_L);
+    color("gray") laser_cap();
     color("lightblue", 0.8) translate([0,0,Z_L1]) cylinder(d = L1_D, h = 2.5, center = true);
     color("lightblue", 0.8) translate([0,0,Z_L2]) cylinder(d = L2_D, h = 2.5, center = true);
     color("orange") translate([0, 0, CABLE_FLOOR + 1.5]) rotate([90,0,0]) cylinder(d = 3, h = 90, center = true);
@@ -197,6 +238,7 @@ module assembly() {
 }
 
 if (PART == "tower") tower();
+else if (PART == "laser_cap") laser_cap();
 else if (PART == "lid") rotate([0,-90,0]) translate([-CI - LID_T, 0, 0]) lid();
 else if (PART == "carriage") carriage();
 else if (PART == "assembly") assembly();

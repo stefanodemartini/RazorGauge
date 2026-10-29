@@ -1,0 +1,26 @@
+OK Piastra verticale dallo STEP: 378435 mm3, 24 fori/aperture, contorno Z -222.0..92.0 Y -26.0..207.0
+OK Impronta posteriore del pezzo unico (faccia X 0): 6656 mm2
+OK Impronta dentro il contorno della piastra (fuori: 0.00 mm2)
+OK Pezzo unico non sporge dietro la faccia della piastra (X min -0.000)
+OK Foro distanziale RazorBoard Z 85.00 Y 61.00: libero
+OK Vite M3x12 Z 80.44 Y 57.97: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Vite M3x12 Z 80.40 Y 3.00: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Apertura piastra Z 49.6 Y 35.0 (42.0 x 42.0): coperta dal pezzo per il 100%
+OK Vite M3x12 Z 49.20 Y 133.00: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Vite M3x12 Z 49.20 Y 169.50: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Vite M3x12 Z 18.70 Y 3.00: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Vite M3x12 Z 18.67 Y 52.00: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Apertura piastra Z 12.5 Y 43.0 (9.0 x 10.0): coperta dal pezzo per il 19%
+OK Foro distanziale RazorBoard Z -2.00 Y 61.00: coperto dal pezzo (filetto maschio max 6 mm, a filo)
+OK Vite M3x12 Z -6.10 Y 169.50: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Vite M3x12 Z -6.10 Y 133.00: foro Ø3.2 libero nel pezzo si, appoggio testa X 7.22 -> filetto in piastra 4.8 mm
+OK Fori viti pezzo unico -> piastra trovati: 8 (attesi 8)
+OK Fori passanti Ø3-4 del pezzo senza foro corrispondente nella piastra: nessuno
+   (tasche cieche dal retro, non interessano la piastra: Z 53.46 Y 129.21, Z 53.32 Y 173.50, Z -10.22 Y 173.50, Z -10.36 Y 129.21)
+OK Piastra verticale: nessuna compenetrazione con le parti dell'assieme 
+OK Corpo encoder nel foro Ø42 della piastra: raggio max 19.10 (gioco 1.90)
+OK Ruota CNC dallo STEP: Ø63.66 x 16.78
+OK Ruota CNC (mozzo Ø18 + battistrada, tolleranza Ø ±0.10, eccentricità 0.05): gioco minimo >= 0.5 mm | sotto 1 mm: pezzo_unico 0.79 mm a X 22.3 Y 65.1 Z 37.0
+OK Pezzo unico sotto il bordo superiore della piastra (Y 202.61 < 207.00)
+
+RISULTATO: TUTTO OK

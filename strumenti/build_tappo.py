@@ -1,5 +1,5 @@
 # Tappo removibile dei blocchi guida delle forcelle (2 pezzi uguali): sostituisce il cappello integrato.
-# Stesso spessore (6 mm) e stessa quota (Y 111.8-117.8) del supporto originale, foro Ø5.5 per lo stelo M5, centraggio con
+# Stesso spessore (6 mm) e stessa quota (Y 111.8-117.8) del supporto originale, foro Ø5.2 per lo stelo M5 (era 5.5 fino al 30/10/2026), centraggio con
 # un dente 16.2 x 12.2 x 1.5 nella sede, 2 viti M3 x 12 nelle spalle del blocco. Uscita: tappo in coordinate piastra (Z del
 # blocco lato rullo) e copia orientata per la stampa.
 import trimesh, numpy as np, sys
@@ -11,7 +11,8 @@ def cylY(x,z,r,y0,y1,sec=48):
     c=trimesh.creation.cylinder(radius=r,height=y1-y0,sections=sec); c.apply_transform(T.rotation_matrix(np.pi/2,[1,0,0])); c.apply_translation([x,(y0+y1)/2,z]); return c
 def tappo(c):
     body=trimesh.boolean.union([B(XBK,XF,GTOP,GTOP+CAPT,c-GZ,c+GZ), B(XB-SX/2+0.2,XB+SX/2-0.2,GTOP-1.5,GTOP+0.01,c-SZ/2+0.2,c+SZ/2-0.2)])
-    cuts=[cylY(XB,c,2.75,GTOP-2,GTOP+CAPT+1)]+[cylY(x,c,1.7,GTOP-1,GTOP+CAPT+1) for x in TAP_X]
+    # 30/10/2026: foro stelo Ø5.2 (era 5.5): guida piu' precisa della forcella
+    cuts=[cylY(XB,c,2.6,GTOP-2,GTOP+CAPT+1)]+[cylY(x,c,1.7,GTOP-1,GTOP+CAPT+1) for x in TAP_X]
     # smussi di stampa: spigoli verticali anteriori 0.7 (uguali a quelli delle spalle del blocco), perimetro della faccia
     # superiore 0.5, invito 0.3 sul bordo inferiore del dente di centraggio. Faccia inferiore (appoggio sul blocco) e fori: vivi.
     YT=GTOP+CAPT
