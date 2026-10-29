@@ -1051,9 +1051,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _inCompMode       = false;
         // _zoneDerivedComp/_inCompMode were just reset, but the node table's read-only lock, the
         // hidden "+ Add Node" and the Comp. columns only follow them through UpdateCompModeUI —
-        // and a plain NC file with no real zone never calls it on load (MaybeApplyZoneDensityChange
-        // returns early), so after a zone-locked project the next one opened stayed locked.
-        UpdateCompModeUI();
+        // every caller must run it once the new project is in place (Load does it after its
+        // segments exist, New/Close right after this), or a zone-locked project leaves the next
+        // one locked.
 
         // Clear analysis chart
         if (_plotInitialized)
@@ -1467,6 +1467,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // an edit, so the dirty flag must survive it.
             bool wasDirty = _isDirty;
             MaybeApplyZoneDensityChange(forcePrompt: false);
+            // Without a real zone that returns early without touching the UI — align it here
+            // (ClearProjectState only reset the flags).
+            UpdateCompModeUI();
             _isDirty = wasDirty;
         }
         WarnIfZonesOverlap(); // a hand-edited or older file could carry an invalid overlap
@@ -1531,6 +1534,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(name)) return;
 
         ClearProjectState();
+        UpdateCompModeUI();
         _projectName        = name.Trim();
         _projectCreatedAt   = DateTime.UtcNow;
         _currentProjectPath = null;
@@ -1676,6 +1680,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (!ConfirmDiscardIfDirty()) return;
 
         ClearProjectState();
+        UpdateCompModeUI();
         _projectName        = "Untitled";
         _projectCreatedAt   = DateTime.UtcNow;
         _currentProjectPath = null;
@@ -3960,18 +3965,31 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         //
         // La colonna Comp. Sink resta nascosta nel caso zonesInNc perché lì Sink riporta già la
         // velocità reale per zona.
-        OrigStartDiamColumn.Visibility = c ? Visibility.Collapsed : Visibility.Visible;
-        OrigEndDiamColumn.Visibility   = c ? Visibility.Collapsed : Visibility.Visible;
-        ShapeColumn.Visibility         = c ? Visibility.Collapsed : Visibility.Visible;
-        TaperColumn.Visibility         = c ? Visibility.Collapsed : Visibility.Visible;
-        SpWeightColumn.Visibility      = c ? Visibility.Collapsed : Visibility.Visible;
-        OrigSinkColumn.Visibility      = c ? Visibility.Collapsed : Visibility.Visible;
-        CompStartDiamColumn.Visibility = (c || zonesInNc) ? Visibility.Visible : Visibility.Collapsed;
-        CompEndDiamColumn.Visibility   = (c || zonesInNc) ? Visibility.Visible : Visibility.Collapsed;
-        CompStartDensColumn.Visibility = (c || zonesInNc) ? Visibility.Visible : Visibility.Collapsed;
-        CompEndDensColumn.Visibility   = (c || zonesInNc) ? Visibility.Visible : Visibility.Collapsed;
-        CompSinkColumn.Visibility      = c ? Visibility.Visible   : Visibility.Collapsed;
-        RestoreSegmentsColumnOrder();
+        //
+        // Le colonne si toccano solo se la visibilità cambia davvero: spostarle a vuoto (ora che
+        // questa funzione gira anche a ogni apertura file) ha fatto crashare il layout della
+        // tabella (ArgumentOutOfRange in DataGridCellsPanel.ArrangeOverride, 29/10/2026).
+        bool changed = false;
+        changed |= SetColumnVisible(OrigStartDiamColumn, !c);
+        changed |= SetColumnVisible(OrigEndDiamColumn,   !c);
+        changed |= SetColumnVisible(ShapeColumn,         !c);
+        changed |= SetColumnVisible(TaperColumn,         !c);
+        changed |= SetColumnVisible(SpWeightColumn,      !c);
+        changed |= SetColumnVisible(OrigSinkColumn,      !c);
+        changed |= SetColumnVisible(CompStartDiamColumn, c || zonesInNc);
+        changed |= SetColumnVisible(CompEndDiamColumn,   c || zonesInNc);
+        changed |= SetColumnVisible(CompStartDensColumn, c || zonesInNc);
+        changed |= SetColumnVisible(CompEndDensColumn,   c || zonesInNc);
+        changed |= SetColumnVisible(CompSinkColumn,      c);
+        if (changed) RestoreSegmentsColumnOrder();
+    }
+
+    private static bool SetColumnVisible(System.Windows.Controls.DataGridColumn col, bool visible)
+    {
+        var v = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (col.Visibility == v) return false;
+        col.Visibility = v;
+        return true;
     }
 
     // Ripristina l'ordine fisico delle colonne nella Columns collection al loro ordine XAML.
