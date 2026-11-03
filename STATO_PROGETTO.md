@@ -81,6 +81,8 @@ era legato all'X di partenza, quindi inserire un nodo lasciava buchi (S6, S9) e 
 nel Phantom: il cambio di pendenza a 1760 cm spariva dal C). Ora i nomi automatici `S{n}` sono
 sempre rinumerati per posizione (`SegmentNaming`), i nomi scritti a mano restano; i file C non
 vengono rinumerati. Phantom V.2: S1…S10, S8 1530–1760, S9 1760–1900.
+Temperatura/acqua su un file C aperto: la tabella non cambiava (righe raggruppate costruite a
+parte, mai ricostruite). Ora sì: test C 0.55 ips, prima riga 0.580 → 0.498 in/s a 5 °C.
 
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 

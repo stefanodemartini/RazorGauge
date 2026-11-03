@@ -3609,7 +3609,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
         if (_zoneDerivedComp && _isCompensatedDerivative)
+        {
             BakeLoadedSegmentsAsCompensation();
+            // A C file's table shows grouped rows built apart from ProjectSegments, each with its
+            // own speed solved at build time — rebuild them or the table keeps the old water's.
+            RefreshDisplaySegments();
+        }
 
         UpdateSinkingSpeeds();
         // The Sink column and the Sink Map now read the very same numbers (see
