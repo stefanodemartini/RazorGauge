@@ -112,6 +112,7 @@ public static class ChartGeometry
         TryParseHexColor(hi.ColorHex, out var ch);
         double t = hi.DensityGCm3 > lo.DensityGCm3
             ? Math.Clamp((density - lo.DensityGCm3) / (hi.DensityGCm3 - lo.DensityGCm3), 0, 1) : 0;
+        t = Math.Round(t * 10) / 10; // ten steps: runs of a few cm, drawn as one fill each
         byte Mix(byte a, byte b) => (byte)Math.Round(a + (b - a) * t);
         return new ScottColor(Mix(cl.R, ch.R), Mix(cl.G, ch.G), Mix(cl.B, ch.B));
     }
@@ -421,6 +422,55 @@ public static class ChartGeometry
     }
 
     /// <summary>Draws a filled band between top/bottom Y arrays, either flat-tinted or with Lambert cylindrical shading.</summary>
+    /// <summary>
+    /// Fills a compensated profile: one shaded body per run of slices sharing a colour, never one
+    /// per slice. Per-slice fills (21 translucent layers each, overlapped to hide gaps) stacked
+    /// their alpha where neighbours met and drew a dark seam at every slice edge — and cost ~84k
+    /// polygons for a C file. A single-colour line is now one fill.
+    /// </summary>
+    public static void DrawCompensatedProfile(ScottPlot.Plot plot, IEnumerable<ProjectSegment> compSegs,
+        Func<double, double, ScottColor> colorAt)
+    {
+        var xs = new List<double>(); var ds = new List<double>();
+        ScottColor? runColor = null;
+
+        void Flush()
+        {
+            if (xs.Count >= 2 && runColor is ScottColor c)
+                DrawLineFill(plot, xs.ToArray(), ds.Select(d => d / 2.0).ToArray(), ds.Select(d => -d / 2.0).ToArray(), c, solid: true);
+        }
+
+        foreach (var seg in compSegs.OrderBy(s => s.StartCm))
+        {
+            int ns = seg.CompSliceXsCm.Length;
+            for (int i = 0; i < ns; i++)
+            {
+                // Slice edges: the segment's own ends, else the midpoint between slice centres
+                double x0 = i == 0      ? seg.StartCm : seg.StartCm + (seg.CompSliceXsCm[i - 1] + seg.CompSliceXsCm[i]) / 2.0;
+                double x1 = i == ns - 1 ? seg.EndCm   : seg.StartCm + (seg.CompSliceXsCm[i] + seg.CompSliceXsCm[i + 1]) / 2.0;
+                double d0 = i == 0      ? seg.EffectiveBoundaryStartDiamMm : (seg.CompSliceDiamsMm[i - 1] + seg.CompSliceDiamsMm[i]) / 2.0;
+                double d1 = i == ns - 1 ? seg.EffectiveBoundaryEndDiamMm   : (seg.CompSliceDiamsMm[i] + seg.CompSliceDiamsMm[i + 1]) / 2.0;
+                var col = colorAt(seg.StartCm + seg.CompSliceXsCm[i], seg.CompSliceDensities[i]);
+
+                bool sameRun = runColor is ScottColor rc
+                               && rc.R == col.R && rc.G == col.G && rc.B == col.B && rc.A == col.A
+                               && xs.Count > 0 && Math.Abs(xs[^1] - x0) < 1e-6;
+                if (!sameRun)
+                {
+                    // A new colour starts where the last run ended — sharing that edge, no overlap
+                    double? joinX = xs.Count > 0 ? xs[^1] : null, joinD = ds.Count > 0 ? ds[^1] : null;
+                    Flush();
+                    xs.Clear(); ds.Clear();
+                    runColor = col;
+                    if (joinX is double jx && Math.Abs(jx - x0) < 1e-6) { xs.Add(jx); ds.Add(joinD!.Value); }
+                    else { xs.Add(x0); ds.Add(d0); }
+                }
+                xs.Add(x1); ds.Add(d1);
+            }
+        }
+        Flush();
+    }
+
     public static void DrawLineFill(ScottPlot.Plot plot,
                                      double[] xs, double[] topYs, double[] botYs,
                                      ScottColor bodyColor,

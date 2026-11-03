@@ -2280,28 +2280,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         var zonesNow = CurrentZonesForChart(); var nozzlesNow = CurrentNozzlesForChart();
                         var isTransition = CurrentTransitionTest();
 
-                        foreach (var seg in compSegs)
-                        {
-                            int ns = seg.CompSliceXsCm.Length;
-                            if (ns == 0) continue;
-                            double half = ns > 1 ? (seg.CompSliceXsCm[1] - seg.CompSliceXsCm[0]) / 2.0
-                                                 : seg.LengthCm / 2.0;
-                            double eps = half * 0.18; // overlap neighbours to hide anti-alias seams
-                            for (int i = 0; i < ns; i++)
-                            {
-                                double xAbs = seg.StartCm + seg.CompSliceXsCm[i];
-                                double x0   = xAbs - half - eps, x1 = xAbs + half + eps;
-                                double d0   = i > 0    ? (seg.CompSliceDiamsMm[i-1] + seg.CompSliceDiamsMm[i])   / 2.0 : seg.CompSliceDiamsMm[i];
-                                double d1   = i < ns-1 ? (seg.CompSliceDiamsMm[i]   + seg.CompSliceDiamsMm[i+1]) / 2.0 : seg.CompSliceDiamsMm[i];
-                                var sliceColor = ChartGeometry.GetSliceColor(xAbs, seg.CompSliceDensities[i],
-                                    minDens, densRng, zonesNow, nozzlesNow, isTransition);
-                                DrawLineFill(plot,
-                                    new[] { x0, x1 },
-                                    new[] { d0 / 2.0, d1 / 2.0 },
-                                    new[] { -d0 / 2.0, -d1 / 2.0 },
-                                    sliceColor, solid: true);
-                            }
-                        }
+                        ChartGeometry.DrawCompensatedProfile(plot, compSegs, (x, d) =>
+                            ChartGeometry.GetSliceColor(x, d, minDens, densRng, zonesNow, nozzlesNow, isTransition));
 
                         // No colour legend for the materials: nozzles are told apart by the NOZZLE
                         // strip under the profile (pattern + density), and a C file's nozzles all

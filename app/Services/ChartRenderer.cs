@@ -92,29 +92,9 @@ public static class ChartRenderer
                 double   densRng = Math.Max(maxDens - minDens, 1e-9);
                 double NearestQ(double d) => qDens.Length == 0 ? d : qDens.MinBy(c => Math.Abs(c - d));
 
-                foreach (var seg in compSegs)
-                {
-                    int    ns   = seg.CompSliceXsCm.Length;
-                    if (ns == 0) continue;
-                    double half = ns > 1 ? (seg.CompSliceXsCm[1] - seg.CompSliceXsCm[0]) / 2.0
-                                         : seg.LengthCm / 2.0;
-                    for (int i = 0; i < ns; i++)
-                    {
-                        double xAbs = seg.StartCm + seg.CompSliceXsCm[i];
-                        double x0   = xAbs - half, x1 = xAbs + half;
-                        double d0   = i > 0    ? (seg.CompSliceDiamsMm[i-1] + seg.CompSliceDiamsMm[i])   / 2.0 : seg.CompSliceDiamsMm[i];
-                        double d1   = i < ns-1 ? (seg.CompSliceDiamsMm[i]   + seg.CompSliceDiamsMm[i+1]) / 2.0 : seg.CompSliceDiamsMm[i];
-                        // Zona reale: colore scelto dall'utente. Nessuna zona: gradiente densità
-                        // quantizzato a max 4 livelli per uso produttivo.
-                        double qd = NearestQ(seg.CompSliceDensities[i]);
-                        var sliceColor = GetSliceColor(xAbs, qd, minDens, densRng, zones, nozzles, isTransition);
-                        DrawLineFill(plot,
-                            new[] { x0, x1 },
-                            new[] { d0 / 2.0, d1 / 2.0 },
-                            new[] { -d0 / 2.0, -d1 / 2.0 },
-                            sliceColor, solid: true);
-                    }
-                }
+                // One shaded fill per colour run, never per slice (see DrawCompensatedProfile).
+                DrawCompensatedProfile(plot, compSegs, (x, d) =>
+                    GetSliceColor(x, NearestQ(d), minDens, densRng, zones, nozzles, isTransition));
             }
             else if (zones.Count == 0)
             {
