@@ -368,8 +368,8 @@ transizione:
 
 ### Parametri Acqua
 - **Water type**: Fresh / Salt
-- **Temperature**: 0–40 °C
-- Modificare questi parametri ricalcola automaticamente tutte le velocità
+- **Temperature**: 0–40 °C — scrivere il valore e premere **Enter** (oppure Tab)
+- Modificare questi parametri ricalcola automaticamente tutte le velocità, comprese quelle dei tratti con zone M2–M4 e dei file C
 
 ### Floating / Neutral / Sinking
 

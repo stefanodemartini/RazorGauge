@@ -989,7 +989,8 @@
                              VerticalAlignment="Center"
                              HorizontalContentAlignment="Center"
                              Text="{Binding ElementName=MainWin, Path=WaterTempC, StringFormat='0.#', UpdateSourceTrigger=LostFocus}"
-                             ToolTip="Water temperature in °C (0–40)"
+                             KeyDown="WaterTempBox_KeyDown"
+                             ToolTip="Water temperature in °C (0–40) — press Enter to apply"
                              Margin="0,0,4,0"/>
                     <TextBlock Text="°C"
                                FontSize="11"

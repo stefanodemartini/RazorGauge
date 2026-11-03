@@ -3592,12 +3592,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             _waterIsSalt = value;
             OnPropertyChanged(nameof(WaterIsSalt));
-            UpdateSinkingSpeeds();
-            // The Sink column and the Sink Map now read the very same numbers (see
-            // UpdateSinkingSpeeds) — leaving the map uncoloured with the old water's speeds while
-            // the table already shows the new ones would be a visible, self-contradicting split.
-            if (_showSinkSpeedMap) RefreshPlot();
-            MarkDirty();
+            OnWaterChanged();
         }
     }
 
@@ -3611,10 +3606,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 UiStatus = $"Temperature clamped to {clamped:0.#}°C (valid range 0–40°C)";
             _waterTempC = clamped;
             OnPropertyChanged(nameof(WaterTempC));
-            UpdateSinkingSpeeds();
-            if (_showSinkSpeedMap) RefreshPlot();
-            MarkDirty();
+            OnWaterChanged();
         }
+    }
+
+    // The binding commits on LostFocus, but clicking the chart or the table doesn't move keyboard
+    // focus in WPF — without Enter the typed temperature never reached the calculation.
+    private void WaterTempBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box) return;
+        box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        box.SelectAll();
+        e.Handled = true;
+    }
+
+    private void OnWaterChanged()
+    {
+        // A zone-derived or baked-C segment carries a rigid-body speed solved once, for the water
+        // in force at that moment — UpdateSinkingSpeeds only reads it back. Re-solve it for the new
+        // water first, or those sections keep showing the old speed.
+        if (_zoneDerivedComp && !_isCompensatedDerivative)
+        {
+            ApplyZoneDensities(_lastZoneAdaptChoice); // also updates speeds, plot and dirty flag
+            return;
+        }
+        if (_zoneDerivedComp && _isCompensatedDerivative)
+            BakeLoadedSegmentsAsCompensation();
+
+        UpdateSinkingSpeeds();
+        // The Sink column and the Sink Map now read the very same numbers (see
+        // UpdateSinkingSpeeds) — leaving the map uncoloured with the old water's speeds while
+        // the table already shows the new ones would be a visible, self-contradicting split.
+        if (_showSinkSpeedMap) RefreshPlot();
+        MarkDirty();
     }
 
     private void UpdateSinkingSpeeds()
