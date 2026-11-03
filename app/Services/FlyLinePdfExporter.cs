@@ -670,15 +670,22 @@ public static class FlyLinePdfExporter
                         var compSegs = segments.Where(s => s.HasCompensation).ToList();
                         if (compSegs.Count > 0)
                         {
+                            // A nozzle-to-nozzle ramp is not a material: it gets its own "transition"
+                            // band instead of being split between its two neighbours, and stays out of
+                            // the material clustering (see ChartGeometry.TransitionTest).
+                            var isTransition = ChartGeometry.TransitionTest(
+                                compSegs.SelectMany(s => s.CompSliceDensities),
+                                nozzleDefinitions ?? new List<NozzleDefinition>());
                             // Quantize all slice densities to max 4 materials
-                            double[] qDens = Quantize1D(compSegs.SelectMany(s => s.CompSliceDensities), 4);
+                            double[] qDens = Quantize1D(compSegs.SelectMany(s => s.CompSliceDensities)
+                                .Where(d => !isTransition(d)), 4);
                             double minD = qDens.Length > 0 ? qDens[0] : 0;
                             double maxD = qDens.Length > 0 ? qDens[^1] : 1;
                             double rng  = Math.Max(maxD - minD, 1e-9);
 
                             double NearestQ(double d) => qDens.Length == 0 ? d
                                 : qDens.MinBy(c => Math.Abs(c - d));
-                            int MatIdx(double d) => Array.IndexOf(qDens, NearestQ(d)) + 1;
+                            int MatIdx(double d) => isTransition(d) ? 0 : Array.IndexOf(qDens, NearestQ(d)) + 1;
 
                             // The real nozzle (M1-M4) nearest a given density, and its real colour —
                             // never the synthetic blue-to-red DensityColorRgb heat scale, which paints
@@ -725,7 +732,8 @@ public static class FlyLinePdfExporter
                                     .Select((x, i) => (
                                         PosMm: (seg.StartCm + x) * 10.0,
                                         Mat:   MatIdx(seg.CompSliceDensities[i]),
-                                        Dens:  NearestQ(seg.CompSliceDensities[i])
+                                        Dens:  isTransition(seg.CompSliceDensities[i])
+                                                   ? seg.CompSliceDensities[i] : NearestQ(seg.CompSliceDensities[i])
                                     )))
                                 .OrderBy(s => s.PosMm)
                                 .ToList();
@@ -752,15 +760,35 @@ public static class FlyLinePdfExporter
 
                             col.Item().Background(C("F7F8FA"))
                                 .Border(0.5f).BorderColor(ColBorder)
-                                .PaddingVertical(3).PaddingHorizontal(5).Row(dr =>
+                                .PaddingVertical(3).PaddingHorizontal(5).Inlined(dr =>
                             {
-                                dr.AutoItem().AlignMiddle()
+                                // Inlined, not Row: a compensation with 30 cm nozzle transitions has up
+                                // to 13 bands, more than one row of the sheet holds — they wrap instead.
+                                dr.Spacing(6); dr.VerticalSpacing(3);
+                                dr.Item().AlignMiddle()
                                     .Text("Density zones  ").FontSize(6.5f).Bold().FontColor(ColMuted);
-                                foreach (var (startMm, endMm, mat, dens) in bands)
+                                for (int bi = 0; bi < bands.Count; bi++)
                                 {
-                                    var (matLabel, sr2, sg2, sb2) = RealMaterial(dens);
+                                    var (startMm, endMm, mat, dens) = bands[bi];
+                                    string matLabel, densText;
+                                    byte sr2, sg2, sb2;
+                                    if (mat == 0 && bi > 0 && bi + 1 < bands.Count)
+                                    {
+                                        // Transition: from the material before to the one after,
+                                        // swatch half-way between their two real colours.
+                                        var a = RealMaterial(bands[bi - 1].Dens);
+                                        var b = RealMaterial(bands[bi + 1].Dens);
+                                        matLabel = $"{a.Label}→{b.Label}";
+                                        densText = $"{bands[bi - 1].Dens:0.00#}→{bands[bi + 1].Dens:0.00#}";
+                                        (sr2, sg2, sb2) = ((byte)((a.R + b.R) / 2), (byte)((a.G + b.G) / 2), (byte)((a.B + b.B) / 2));
+                                    }
+                                    else
+                                    {
+                                        (matLabel, sr2, sg2, sb2) = RealMaterial(dens);
+                                        densText = $"{dens:0.00#}";
+                                    }
                                     var sw2 = PdfColor.FromRGB(sr2, sg2, sb2);
-                                    dr.AutoItem().Column(sc =>
+                                    dr.Item().Column(sc =>
                                     {
                                         sc.Item().Border(0.5f).BorderColor(ColBorder)
                                             .Element(e => DrawLambertSwatch(e, sw2, 56, 10));
@@ -768,13 +796,12 @@ public static class FlyLinePdfExporter
                                             .Text(matLabel)
                                             .FontSize(6.5f).Bold().FontColor(C("0F6B50")).AlignCenter();
                                         sc.Item().Width(56)
-                                            .Text($"{dens:0.00#} g/cm³")
+                                            .Text($"{densText} g/cm³")
                                             .FontSize(6.5f).FontColor(ColText).AlignCenter();
                                         sc.Item().Width(56)
                                             .Text($"{startMm:0}–{endMm:0} mm")
                                             .FontSize(6f).FontColor(ColMuted).AlignCenter();
                                     });
-                                    dr.ConstantItem(6);
                                 }
                             });
                         }

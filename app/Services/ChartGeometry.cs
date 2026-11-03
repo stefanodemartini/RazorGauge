@@ -49,7 +49,8 @@ public static class ChartGeometry
     /// rendering can't drift apart into two different ideas of where a zone starts and ends.
     /// </summary>
     public static List<(double StartX, double EndX, double Density)> GetMaterialZoneSpans(
-        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted)
+        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted,
+        Func<double, bool>? isTransition = null)
     {
         var flat = new List<(double X, double Density)>();
         foreach (var seg in segments.OrderBy(s => s.StartCm).Where(s => s.HasCompensation))
@@ -61,24 +62,66 @@ public static class ChartGeometry
         if (flat.Count == 0) return new();
         flat = flat.OrderBy(f => f.X).ToList();
 
+        // A nozzle-to-nozzle transition is a ramp — a different density every slice. Grouped
+        // as-is it would be one "material zone" per cm; it is one span instead, Density = NaN.
+        bool T(double d) => isTransition != null && isTransition(d);
+        bool SameSpan(double a, double b) => T(a) ? T(b) : !T(b) && Math.Abs(a - b) <= 1e-6;
+
         var spans = new List<(double StartX, double EndX, double Density)>();
         double spanStart = sorted[0].X;
         for (int i = 0; i < flat.Count; i++)
         {
             bool last = i == flat.Count - 1;
-            if (!last && Math.Abs(flat[i + 1].Density - flat[i].Density) <= 1e-6) continue;
+            if (!last && SameSpan(flat[i].Density, flat[i + 1].Density)) continue;
             double x = last ? sorted[^1].X : (flat[i].X + flat[i + 1].X) / 2.0;
-            spans.Add((spanStart, x, flat[i].Density));
+            spans.Add((spanStart, x, T(flat[i].Density) ? double.NaN : flat[i].Density));
             spanStart = x;
         }
         return spans;
     }
 
+    /// <summary>
+    /// Whether a density is a nozzle-to-nozzle transition (the ramp a physics compensation lays
+    /// between two materials) rather than a material itself: strictly between two nozzles and equal
+    /// to none. The nozzles hold the exact material densities of a C file, so this is exact.
+    /// Older C files stored them rounded (2 or 3 decimals) — no slice matches a nozzle exactly
+    /// there, and every slice would read as a transition — so when not every nozzle density is
+    /// found among the slices, nothing is a transition (those files have no ramps anyway).
+    /// </summary>
+    public static Func<double, bool> TransitionTest(
+        IEnumerable<double> sliceDensities, IReadOnlyList<NozzleDefinition> nozzles)
+    {
+        var mats = nozzles.Select(n => n.DensityGCm3).Where(d => d > 0).Distinct().OrderBy(d => d).ToArray();
+        if (mats.Length < 2) return _ => false;
+        var present = sliceDensities.Distinct().ToArray();
+        if (!mats.All(m => present.Any(d => Math.Abs(d - m) < 1e-9))) return _ => false;
+        return d => d > mats[0] && d < mats[^1] && !mats.Any(m => Math.Abs(d - m) < 1e-9);
+    }
+
+    /// <summary>
+    /// Colour of a transition slice: the two real nozzle colours on either side of its density,
+    /// mixed in proportion — the gradient a producer actually sees as one material gives way to
+    /// the next.
+    /// </summary>
+    public static ScottColor TransitionColor(double density, IReadOnlyList<NozzleDefinition> nozzles)
+    {
+        var mats = nozzles.Where(n => n.DensityGCm3 > 0).OrderBy(n => n.DensityGCm3).ToList();
+        var lo = mats.LastOrDefault(n => n.DensityGCm3 <= density) ?? mats[0];
+        var hi = mats.FirstOrDefault(n => n.DensityGCm3 >= density) ?? mats[^1];
+        TryParseHexColor(lo.ColorHex, out var cl);
+        TryParseHexColor(hi.ColorHex, out var ch);
+        double t = hi.DensityGCm3 > lo.DensityGCm3
+            ? Math.Clamp((density - lo.DensityGCm3) / (hi.DensityGCm3 - lo.DensityGCm3), 0, 1) : 0;
+        byte Mix(byte a, byte b) => (byte)Math.Round(a + (b - a) * t);
+        return new ScottColor(Mix(cl.R, ch.R), Mix(cl.G, ch.G), Mix(cl.B, ch.B));
+    }
+
     /// <summary>The real material-zone boundaries, from the same slice-flattening as <see cref="GetMaterialZoneSpans"/>.</summary>
     public static List<(double X, double Y)> GetMaterialZoneBoundaries(
-        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted)
+        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted,
+        Func<double, bool>? isTransition = null)
     {
-        var spans = GetMaterialZoneSpans(segments, sorted);
+        var spans = GetMaterialZoneSpans(segments, sorted, isTransition);
         if (spans.Count == 0) return sorted;
         var result = new List<(double X, double Y)> { (spans[0].StartX, InterpolateProfileY(sorted, spans[0].StartX)) };
         foreach (var s in spans)
@@ -119,9 +162,10 @@ public static class ChartGeometry
     /// alone is enough.
     /// </summary>
     public static List<(double X, double Y)> GetManufacturingCheckpoints(
-        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted)
+        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted,
+        Func<double, bool>? isTransition = null)
     {
-        return GetMaterialZoneBoundaries(segments, sorted)
+        return GetMaterialZoneBoundaries(segments, sorted, isTransition)
             .Concat(GetTaperShapeBoundaries(segments, sorted))
             .GroupBy(n => Math.Round(n.X, 3))
             .Select(g => g.First())
@@ -136,8 +180,11 @@ public static class ChartGeometry
     /// live preview and a loaded baked snapshot alike.
     /// </summary>
     public static ScottColor GetSliceColor(double xAbsCm, double density, double minDens, double densRng,
-        IReadOnlyList<NozzleZone> zones, IReadOnlyList<NozzleDefinition> nozzles)
+        IReadOnlyList<NozzleZone> zones, IReadOnlyList<NozzleDefinition> nozzles,
+        Func<double, bool>? isTransition = null)
     {
+        if (isTransition != null && isTransition(density))
+            return TransitionColor(density, nozzles);
         if (zones.Count > 0)
         {
             var zone = zones.FirstOrDefault(z => xAbsCm >= z.StartCm && xAbsCm < z.EndCm);

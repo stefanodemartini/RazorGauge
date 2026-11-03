@@ -44,6 +44,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // materials are already stated in its own Nozzles/Zones (so SyncNozzleDensitiesFromComp must
     // not overwrite them). Either way the coloured per-slice profile is what gets drawn.
     private bool _zoneDerivedComp     = false;
+    private double[]? _compMaterialDensities; // the real materials of the compensation being written — ramps excluded
     private bool _lastZoneAdaptChoice = true; // "adjust diameters to preserve mass" — sticky across edits
 
     // Segment drawing — node.Y stores FULL DIAMETER in mm (not radius)
@@ -2189,23 +2190,26 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private List<NozzleDefinition> CurrentNozzlesForChart() =>
         Nozzles.Select(n => new NozzleDefinition { ColorHex = n.ColorHex, DensityGCm3 = n.DensityGCm3, Label = n.Label }).ToList();
 
-    private ScottColor GetSliceColor(double xAbsCm, double density, double minDens, double densRng) =>
-        ChartGeometry.GetSliceColor(xAbsCm, density, minDens, densRng, CurrentZonesForChart(), CurrentNozzlesForChart());
+    /// <summary>Which densities are a nozzle-to-nozzle ramp in what is shown now (see ChartGeometry.TransitionTest).</summary>
+    private Func<double, bool> CurrentTransitionTest() =>
+        ChartGeometry.TransitionTest(
+            ProjectSegments.Where(s => s.HasCompensation).SelectMany(s => s.CompSliceDensities),
+            CurrentNozzlesForChart());
 
     private (string Label, ScottColor Color) GetMaterialTag(double xAbsCm, double density) =>
         ChartGeometry.GetMaterialTag(xAbsCm, density, CurrentZonesForChart(), CurrentNozzlesForChart());
 
     private List<(double X, double Y)> GetMaterialZoneBoundaries(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetMaterialZoneBoundaries(ProjectSegments, sorted);
+        ChartGeometry.GetMaterialZoneBoundaries(ProjectSegments, sorted, CurrentTransitionTest());
 
     private List<(double StartX, double EndX, double Density)> GetMaterialZoneSpans(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetMaterialZoneSpans(ProjectSegments, sorted);
+        ChartGeometry.GetMaterialZoneSpans(ProjectSegments, sorted, CurrentTransitionTest());
 
     private List<(double X, double Y)> GetTaperShapeBoundaries(List<(double X, double Y)> sorted) =>
         ChartGeometry.GetTaperShapeBoundaries(ProjectSegments, sorted);
 
     private List<(double X, double Y)> GetManufacturingCheckpoints(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetManufacturingCheckpoints(ProjectSegments, sorted);
+        ChartGeometry.GetManufacturingCheckpoints(ProjectSegments, sorted, CurrentTransitionTest());
 
     private List<(double X, double Y)> GetCompNodes() => ChartGeometry.GetCompNodes(ProjectSegments);
 
@@ -2284,6 +2288,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                         double minDens = compSegs.SelectMany(s => s.CompSliceDensities).DefaultIfEmpty(0).Min();
                         double maxDens = compSegs.SelectMany(s => s.CompSliceDensities).DefaultIfEmpty(1).Max();
                         double densRng = Math.Max(maxDens - minDens, 1e-9);
+                        // Once per render, not per slice — a C file has thousands of slices.
+                        var zonesNow = CurrentZonesForChart(); var nozzlesNow = CurrentNozzlesForChart();
+                        var isTransition = CurrentTransitionTest();
 
                         foreach (var seg in compSegs)
                         {
@@ -2298,7 +2305,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                                 double x0   = xAbs - half - eps, x1 = xAbs + half + eps;
                                 double d0   = i > 0    ? (seg.CompSliceDiamsMm[i-1] + seg.CompSliceDiamsMm[i])   / 2.0 : seg.CompSliceDiamsMm[i];
                                 double d1   = i < ns-1 ? (seg.CompSliceDiamsMm[i]   + seg.CompSliceDiamsMm[i+1]) / 2.0 : seg.CompSliceDiamsMm[i];
-                                var sliceColor = GetSliceColor(xAbs, seg.CompSliceDensities[i], minDens, densRng);
+                                var sliceColor = ChartGeometry.GetSliceColor(xAbs, seg.CompSliceDensities[i],
+                                    minDens, densRng, zonesNow, nozzlesNow, isTransition);
                                 DrawLineFill(plot,
                                     new[] { x0, x1 },
                                     new[] { d0 / 2.0, d1 / 2.0 },
@@ -2531,6 +2539,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 foreach (var span in GetMaterialZoneSpans(compNodes))
                 {
+                    if (double.IsNaN(span.Density)) continue; // a transition: no single material to tag
                     double midX     = (span.StartX + span.EndX) / 2.0;
                     double topAtMid = InterpolateProfileY(compNodes, midX) / 2.0;
                     var (matLabel, matColor) = GetMaterialTag(midX, span.Density);
@@ -2716,15 +2725,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         var sorted = ProjectSegments.OrderBy(s => s.StartCm).ToList();
+        // A nozzle-to-nozzle ramp has a different density every cm — one row for the whole
+        // transition, not thirty (see ChartGeometry.TransitionTest).
+        // From the segments' own densities, not their compensation slices: on load this can run
+        // before BakeLoadedSegmentsAsCompensation has wrapped them.
+        var isTransition = ChartGeometry.TransitionTest(sorted.Select(s => s.SpecWeightGCm3), CurrentNozzlesForChart());
+        bool SameRow(double a, double b) =>
+            isTransition(a) ? isTransition(b) : !isTransition(b) && Math.Abs(a - b) < 1e-6;
         int i = 0, zoneIdx = 0;
         while (i < sorted.Count)
         {
             int j = i;
-            while (j + 1 < sorted.Count &&
-                   Math.Abs(sorted[j + 1].SpecWeightGCm3 - sorted[i].SpecWeightGCm3) < 1e-6)
+            while (j + 1 < sorted.Count && SameRow(sorted[i].SpecWeightGCm3, sorted[j + 1].SpecWeightGCm3))
                 j++;
 
             var first = sorted[i]; var last = sorted[j];
+            var pieces = sorted.GetRange(i, j - i + 1);
+            // Mass-weighted (ρ·d²·L) average — the one density that gives this row its real mass.
+            double vol  = pieces.Sum(s => (s.StartDiameterMm * s.StartDiameterMm + s.EndDiameterMm * s.EndDiameterMm) / 2.0 * s.LengthCm);
+            double rho  = vol > 0
+                ? pieces.Sum(s => s.SpecWeightGCm3 * (s.StartDiameterMm * s.StartDiameterMm + s.EndDiameterMm * s.EndDiameterMm) / 2.0 * s.LengthCm) / vol
+                : first.SpecWeightGCm3;
             var zone = new ProjectSegment
             {
                 Index           = ++zoneIdx,
@@ -2733,17 +2754,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 StartDiameterMm = first.StartDiameterMm,
                 EndDiameterMm   = last.EndDiameterMm,
                 Name            = first.Name,
-                SpecWeightGCm3  = first.SpecWeightGCm3,
+                SpecWeightGCm3  = rho,
                 IsHead          = first.IsHead,
             };
             double speed = SinkingSpeedCalc.RigidBodySinkSpeed(_waterIsSalt, _waterTempC,
-                new[] { first.StartDiameterMm, last.EndDiameterMm },
-                new[] { (last.EndCm - first.StartCm) / 2.0, (last.EndCm - first.StartCm) / 2.0 },
-                new[] { first.SpecWeightGCm3, first.SpecWeightGCm3 });
+                pieces.Select(s => (s.StartDiameterMm + s.EndDiameterMm) / 2.0).ToArray(),
+                pieces.Select(s => s.LengthCm).ToArray(),
+                pieces.Select(s => s.SpecWeightGCm3).ToArray());
             zone.SetCompensation(first.StartCm,
                 new[] { 0.0, last.EndCm - first.StartCm },
                 new[] { first.StartDiameterMm, last.EndDiameterMm },
-                new[] { first.SpecWeightGCm3, first.SpecWeightGCm3 },
+                new[] { rho, rho },
                 new[] { false, false }, speed);
 
             DisplaySegments.Add(zone);
@@ -3836,7 +3857,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// </summary>
     private (bool anyAtFloor, double worstSpeedErrIns) QuantizeCompensationToRealMaterials(double targetSpeedMs)
     {
-        var compSegs = ProjectSegments.Where(s => s.HasCompensation).ToList();
+        var compSegs = ProjectSegments.Where(s => s.HasCompensation).OrderBy(s => s.StartCm).ToList();
+        _compMaterialDensities = null;
         if (compSegs.Count == 0) return (false, 0.0);
 
         // Always spend all 4 real nozzles here, not the fewest-necessary QuantizeAdaptive picks
@@ -3845,33 +3867,35 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         double[] qDens = Quantize1D(compSegs.SelectMany(s => s.CompSliceDensities), 4);
         if (qDens.Length == 0) return (false, 0.0);
 
+        // Diameter is left exactly as the ideal continuous solve gave it — no mass-conserving
+        // correction for the assigned material. That correction is what caused a real, measured
+        // diameter jump wherever the assigned material changes (idealDens is continuous, but the
+        // nearest-cluster assignment isn't, so ρ_new·d_new²=ρ_ideal·d_ideal² applied slice-by-slice
+        // snaps to a different value on each side of the boundary). Leaving diameter untouched
+        // keeps it perfectly smooth everywhere — the tradeoff, confirmed acceptable, is that a
+        // slice's achieved speed only approximates the target when its assigned material isn't
+        // exactly the one the physics wanted there.
+        var diams = compSegs.Select(s => s.CompSliceDiamsMm.ToArray()).ToList();
+        var dens  = compSegs.Select(s => s.CompSliceDensities
+                                .Select(d => qDens.MinBy(c => Math.Abs(c - d))).ToArray()).ToList();
+        _compMaterialDensities = dens.SelectMany(d => d).Distinct().OrderBy(d => d).ToArray();
+
+        ApplyNozzleTransitions(compSegs, dens);
+
         bool   anyAtFloor      = false;
         double worstSpeedErrMs = 0.0;
-        foreach (var seg in compSegs)
+        for (int k = 0; k < compSegs.Count; k++)
         {
-            var diams   = seg.CompSliceDiamsMm.ToArray();
-            var dens    = seg.CompSliceDensities.ToArray();
-            var clamped = seg.CompSliceClamped.ToArray();
+            var seg     = compSegs[k];
+            var clamped = new bool[dens[k].Length];
             double achievedSum = 0.0; int achievedCount = 0;
 
-            for (int i = 0; i < dens.Length; i++)
+            for (int i = 0; i < dens[k].Length; i++)
             {
-                double idealDens = dens[i], idealDiam = diams[i];
-                double assigned  = qDens.MinBy(c => Math.Abs(c - idealDens));
-
-                // Diameter is left exactly as the ideal continuous solve gave it — no mass-
-                // conserving correction for the assigned material. That correction is what caused a
-                // real, measured diameter jump wherever the assigned material changes (idealDens is
-                // continuous, but the nearest-cluster assignment isn't, so ρ_new·d_new²=ρ_ideal·d_ideal²
-                // applied slice-by-slice snaps to a different value on each side of the boundary).
-                // Leaving diameter untouched keeps it perfectly smooth everywhere — the tradeoff,
-                // confirmed acceptable, is that a slice's achieved speed only approximates the
-                // target when its assigned material isn't exactly the one the physics wanted there.
-                dens[i]  = assigned;
-                clamped[i] = assigned <= SinkingSpeedCalc.RhoFloor + 1e-6;
+                clamped[i] = dens[k][i] <= SinkingSpeedCalc.RhoFloor + 1e-6;
                 if (clamped[i]) anyAtFloor = true;
 
-                double achieved = SinkingSpeedCalc.CylinderSinkSpeed(_waterIsSalt, _waterTempC, idealDiam, assigned);
+                double achieved = SinkingSpeedCalc.CylinderSinkSpeed(_waterIsSalt, _waterTempC, diams[k][i], dens[k][i]);
                 if (!double.IsNaN(achieved))
                 {
                     worstSpeedErrMs = Math.Max(worstSpeedErrMs, Math.Abs(achieved - targetSpeedMs));
@@ -3881,9 +3905,61 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // Store this segment's own average ACHIEVED speed (not the nominal target) — the Sink
             // column and PDF read this per segment, and it's now an approximation, not exact.
             double segAchieved = achievedCount > 0 ? achievedSum / achievedCount : targetSpeedMs;
-            seg.SetCompensation(seg.CompStartCm, seg.CompSliceXsCm, diams, dens, clamped, segAchieved);
+            seg.SetCompensation(seg.CompStartCm, seg.CompSliceXsCm, diams[k], dens[k], clamped, segAchieved);
         }
         return (anyAtFloor, worstSpeedErrMs * 39.3701);
+    }
+
+    /// <summary>
+    /// Length of the passage from one nozzle to the next, in cm. An extruder can't switch material
+    /// at a point — one nozzle closes while the other opens — so the C file says so: across this
+    /// band the density goes linearly from one material to the other.
+    /// </summary>
+    private const double NozzleTransitionCm = 30.0;
+
+    /// <summary>
+    /// Replaces each hard material change with a linear density ramp <see cref="NozzleTransitionCm"/>
+    /// long, centred on the change. A ramp takes at most half of either neighbouring material run,
+    /// so even a run shorter than the band keeps some pure material in its middle and two ramps
+    /// never overlap. Only density changes — diameter stays the continuous solve, so no step
+    /// appears; the ramp's sink speed lies between its two materials'.
+    /// </summary>
+    private static void ApplyNozzleTransitions(List<ProjectSegment> compSegs, List<double[]> dens)
+    {
+        var flat = new List<(int K, int I, double X)>();
+        for (int k = 0; k < compSegs.Count; k++)
+            for (int i = 0; i < dens[k].Length; i++)
+                flat.Add((k, i, compSegs[k].StartCm + compSegs[k].CompSliceXsCm[i]));
+        flat = flat.OrderBy(f => f.X).ToList();
+        if (flat.Count < 2) return;
+
+        double Rho(int f) => dens[flat[f].K][flat[f].I];
+
+        // Material changes: boundary X (midpoint between the two slice centres) and the two materials
+        var changes = new List<(double X, double Left, double Right)>();
+        for (int f = 0; f + 1 < flat.Count; f++)
+            if (Math.Abs(Rho(f + 1) - Rho(f)) > 1e-9)
+                changes.Add(((flat[f].X + flat[f + 1].X) / 2.0, Rho(f), Rho(f + 1)));
+        if (changes.Count == 0) return;
+
+        double lineStart = compSegs.Min(s => s.StartCm), lineEnd = compSegs.Max(s => s.EndCm);
+        var ramps = new List<(double A, double B, double Left, double Right)>();
+        for (int c = 0; c < changes.Count; c++)
+        {
+            double runLeft  = changes[c].X - (c > 0 ? changes[c - 1].X : lineStart);
+            double runRight = (c + 1 < changes.Count ? changes[c + 1].X : lineEnd) - changes[c].X;
+            double hl = Math.Min(NozzleTransitionCm / 2.0, runLeft  / 2.0);
+            double hr = Math.Min(NozzleTransitionCm / 2.0, runRight / 2.0);
+            ramps.Add((changes[c].X - hl, changes[c].X + hr, changes[c].Left, changes[c].Right));
+        }
+
+        foreach (var (k, i, x) in flat)
+            foreach (var r in ramps)
+                if (x > r.A && x < r.B)
+                {
+                    dens[k][i] = r.Left + (r.Right - r.Left) * (x - r.A) / (r.B - r.A);
+                    break;
+                }
     }
 
     /// <summary>
@@ -3915,8 +3991,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var compSegs = ProjectSegments.Where(s => s.HasCompensation).ToList();
         if (compSegs.Count == 0) return;
 
-        double[] qDens = compSegs.SelectMany(s => s.CompSliceDensities)
-            .Where(d => d > 0).Distinct().OrderBy(d => d).ToArray();
+        // The real materials — never the ramp densities between them (a 30 cm transition holds a
+        // different density every cm). Set by QuantizeCompensationToRealMaterials while a C file
+        // is being written; any other caller has no ramps, so its distinct densities are the materials.
+        double[] qDens = (_compMaterialDensities ?? compSegs.SelectMany(s => s.CompSliceDensities).Distinct().ToArray())
+            .Where(d => d > 0).OrderBy(d => d).ToArray();
         if (qDens.Length == 0) return;
 
         // Save current NC state before overwriting with comp-derived values.
@@ -3940,10 +4019,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             double t   = rng > 0 ? (qDens[i] - minD) / rng : 0.5;
             var    col = DensityColor(t);
             Nozzles[i].ColorHex    = $"{col.R:X2}{col.G:X2}{col.B:X2}";
-            // 3 decimals, not 2: a compensation's materials can sit only 0.005 g/cm³ apart, and at
-            // 2 decimals two of them collapsed to the same value (1.015 and 1.021 both "1.02") —
-            // every nearest-density lookup (M{n} tags, PDF bands) then picked the wrong nozzle.
-            Nozzles[i].DensityGCm3 = Math.Round(qDens[i], 3);
+            // Full precision, never rounded: the slices carry these exact values, and an exact
+            // match is how a material is told from a transition ramp (ChartGeometry.TransitionTest).
+            // At 2 decimals two materials 0.005 g/cm³ apart even collapsed to one value.
+            Nozzles[i].DensityGCm3 = qDens[i];
             if (string.IsNullOrWhiteSpace(Nozzles[i].Label) || Nozzles[i].Label.StartsWith("ρ ")
                 || Nozzles[i].Label == "N/A")
                 Nozzles[i].Label = $"ρ {qDens[i]:0.00#}";
@@ -5936,6 +6015,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // its own NC-restore branch, and the values snapshotted here are the authoritative ones.
             foreach (var seg in ProjectSegments) seg.ClearCompensation();
             _zoneDerivedComp    = savedZoneComp;
+            _compMaterialDensities = null;
             _compTargetSpeedMs  = savedTargetMs;
             _compTargetSpeedIns = savedTargetIns;
             if (savedZoneComp) MaybeApplyZoneDensityChange(forcePrompt: false);
@@ -5961,7 +6041,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         UiStatus = $"Compensated file saved: {Path.GetFileName(compPath)}  ({targetIns:0.000} in/s, worst deviation {worstSpeedErrIns:0.000} in/s)";
         MessageBox.Show(
             $"Saved {Path.GetFileName(compPath)}\n\n" +
-            $"{compCount} section(s) compensated toward {targetIns:0.000} in/s, using at most 4 real materials.\n" +
+            $"{compCount} section(s) compensated toward {targetIns:0.000} in/s, using at most 4 real materials, " +
+            $"with a {NozzleTransitionCm:0} cm transition wherever one nozzle hands over to the next.\n" +
             $"Diameters stay close to the original taper (mass-conserving, same rule as a zone) — actual " +
             $"sink speed is an approximation, worst deviation {worstSpeedErrIns:0.000} in/s.\n" +
             "This design is unchanged — open the C file to see or print the compensated profile." +

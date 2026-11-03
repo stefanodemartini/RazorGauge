@@ -49,6 +49,17 @@ Seconda verifica (file C 0.55 ips, PDF esportato da CLI):
 - aperto: `flyline pdf` su un file C stampa la tabella a righe da 1 cm (106 pagine) — la CLI non
   usa il raggruppamento per zona dell'app
 
+**Decisione di Stefano (3/11): transizione di 30 cm fra un ugello e l'altro** (non "tratto minimo
+di 30 cm"). Implementata nella compensazione fisica (`ApplyNozzleTransitions`,
+`NozzleTransitionCm = 30`): rampa lineare di densità centrata sul cambio, al massimo metà di
+ciascun tratto vicino; diametro invariato. Una densità "fra due ugelli e uguale a nessuno" è una
+transizione (`ChartGeometry.TransitionTest`): per questo gli ugelli del C ora sono salvati a
+precisione piena; i C vecchi (densità arrotondate) non hanno transizioni e restano come prima.
+Prova con banco WPF sul V.2 a 0.55 ips: 6 transizioni da 30 cm, 13 righe in tabella, scarto
+peggiore 0.065 in/s. Corretti strada facendo: la CLI per un file C sovrascriveva la densità con
+quella della zona (appiattiva le rampe); la riga "Density zones" del PDF con 13 fasce mandava in
+errore QuestPDF (ora va a capo).
+
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 
 Laser + TSL1401 montati sulla RazorBoard SMD; sul modulo master c'era ancora il master del calibro.

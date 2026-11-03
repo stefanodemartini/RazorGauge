@@ -572,6 +572,17 @@ materiale: la densità ideale è continua, ma il materiale più vicino cambia di
 con lui — producendo un gradino visibile proprio dove due materiali si incontrano. Lasciando il
 diametro intatto il taper resta continuo ovunque, confine tra materiali compreso.
 
+3. **Transizione fra ugelli di 30 cm**: dove un ugello passa al successivo la densità non cambia
+   di colpo ma va **linearmente** da un materiale all'altro su 30 cm, centrati sul punto di
+   cambio (in estrusione un ugello si chiude mentre l'altro si apre). Una transizione prende al
+   massimo metà di ciascun tratto vicino, quindi anche un tratto più corto di 30 cm conserva un
+   pezzo di materiale puro. Il diametro non cambia; la velocità nella transizione sta fra quelle
+   dei due materiali. Nel file C:
+   - grafico: la transizione è sfumata fra i colori dei due ugelli, senza badge M{n}
+   - quote e etichette Ø all'inizio e alla fine di ogni transizione
+   - tabella Segments: una riga per transizione, con la densità media (pesata sulla massa)
+   - PDF, "Density zones": una fascia `M3→M2` con le due densità e la posizione
+
 Risultato: **forma del taper perfettamente liscia**, e la velocità di affondamento diventa
 un'**approssimazione** del target invece che un valore esatto ovunque — assorbe interamente
 l'errore di discretizzazione. Lo scostamento peggiore viene mostrato nel messaggio di conferma
@@ -581,9 +592,10 @@ maggiore pur di non avere mai un salto di diametro.
 ### Ugelli nel file C
 - M1–M4 del file C vengono popolati con le densità reali usate — sempre fino a 4, non un
   sottoinsieme "sufficiente"
-- Colore corrispondente al gradiente densità; densità salvata a **3 decimali** e label `ρ X.XXX`
-  (i materiali di una compensazione possono distare solo 0.005 g/cm³: a 2 decimali due ugelli
-  risultavano uguali)
+- Colore corrispondente al gradiente densità; densità salvata **a precisione piena** (mostrata
+  con 3 decimali, label `ρ X.XXX`): è il confronto esatto con le densità delle slice che
+  distingue un materiale da una transizione. A 2 decimali due materiali distanti 0.005 g/cm³
+  risultavano uguali
 - Le **zone del file C** vengono ricostruite da dove sta davvero ciascun materiale (M2–M4; M1 è la
   base dove non c'è zona). Le zone del progetto NC **non** vengono copiate: il grafico colora per
   zona, e una zona NC rimasta lì dipingeva un materiale sbagliato

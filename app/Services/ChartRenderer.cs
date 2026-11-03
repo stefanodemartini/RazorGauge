@@ -60,6 +60,9 @@ public static class ChartRenderer
 
         // In modalità compensato il PDF mostra il profilo compensato con gradiente densità.
         bool pdfUseComp = input.UseCompensatedView && segments.Any(s => s.HasCompensation);
+        // Nozzle-to-nozzle ramps: one span, one blended colour — see ChartGeometry.TransitionTest.
+        var isTransition = TransitionTest(
+            segments.Where(s => s.HasCompensation).SelectMany(s => s.CompSliceDensities), nozzles);
         var baseNodes   = pdfUseComp ? GetCompNodes(segments) : input.DesignNodes.OrderBy(n => n.X).ToList();
 
         double pdfLabelYMin = 0, pdfLabelYMax = 0;
@@ -103,7 +106,7 @@ public static class ChartRenderer
                         // Zona reale: colore scelto dall'utente. Nessuna zona: gradiente densità
                         // quantizzato a max 4 livelli per uso produttivo.
                         double qd = NearestQ(seg.CompSliceDensities[i]);
-                        var sliceColor = GetSliceColor(xAbs, qd, minDens, densRng, zones, nozzles);
+                        var sliceColor = GetSliceColor(xAbs, qd, minDens, densRng, zones, nozzles, isTransition);
                         DrawLineFill(plot,
                             new[] { x0, x1 },
                             new[] { d0 / 2.0, d1 / 2.0 },
@@ -158,7 +161,7 @@ public static class ChartRenderer
             // every fine ~1cm node — a loaded C snapshot has hundreds of those, which would turn
             // this into hundreds of Ø/position callouts.
             var labelNodes = (pdfUseComp && sorted.Count > 1)
-                ? GetManufacturingCheckpoints(segments, sorted)
+                ? GetManufacturingCheckpoints(segments, sorted, isTransition)
                 : sorted;
 
             var placedBoxes = new List<(double X1, double Y1, double X2, double Y2)>();
@@ -272,8 +275,9 @@ public static class ChartRenderer
 
                 // Etichette "M{n}" per ogni zona di materiale — mai "S", stesso standard del
                 // grafico a schermo: un badge col colore reale dell'ugello, sul bordo del profilo.
-                foreach (var span in GetMaterialZoneSpans(segments, sorted))
+                foreach (var span in GetMaterialZoneSpans(segments, sorted, isTransition))
                 {
+                    if (double.IsNaN(span.Density)) continue; // a transition: no single material to tag
                     double midX     = (span.StartX + span.EndX) / 2.0;
                     double topAtMid = InterpolateProfileY(sorted, midX) / 2.0;
                     var (matLabel, matColor) = GetMaterialTag(midX, span.Density, zones, nozzles);

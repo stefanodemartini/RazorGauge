@@ -421,7 +421,13 @@ public static class LineDesignBuilder
     public static List<ProjectSegment> ToProjectSegments(FlyLineProject p)
     {
         var nodes = p.DesignNodes.OrderBy(n => n.X).ToList();
-        var zones = p.NozzleZones.Where(z => z.EndCm > z.StartCm).OrderBy(z => z.StartCm).ToList();
+        // A C snapshot's own per-segment density IS the result — its zones only say which nozzle
+        // colours a stretch. Letting a zone override the density here flattened every 30 cm
+        // nozzle-to-nozzle ramp back to the zone's plain material (BakeLoadedSegmentsAsCompensation
+        // likewise reads the saved density, never the zone's).
+        var zones = p.IsCompensatedDerivative
+            ? new List<NozzleZone>()
+            : p.NozzleZones.Where(z => z.EndCm > z.StartCm).OrderBy(z => z.StartCm).ToList();
         bool isSalt = p.WaterType == "salt";
         var segs = new List<ProjectSegment>();
 
