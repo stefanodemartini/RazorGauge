@@ -581,8 +581,15 @@ maggiore pur di non avere mai un salto di diametro.
 ### Ugelli nel file C
 - M1–M4 del file C vengono popolati con le densità reali usate — sempre fino a 4, non un
   sottoinsieme "sufficiente"
-- Colore corrispondente al gradiente densità; label `ρ X.XX`
+- Colore corrispondente al gradiente densità; densità salvata a **3 decimali** e label `ρ X.XXX`
+  (i materiali di una compensazione possono distare solo 0.005 g/cm³: a 2 decimali due ugelli
+  risultavano uguali)
+- Le **zone del file C** vengono ricostruite da dove sta davvero ciascun materiale (M2–M4; M1 è la
+  base dove non c'è zona). Le zone del progetto NC **non** vengono copiate: il grafico colora per
+  zona, e una zona NC rimasta lì dipingeva un materiale sbagliato
 - Gli ugelli del progetto NC aperto non vengono toccati: colori, label e densità tornano esattamente com'erano
+- I file C generati prima del 3/11/2026 possono avere ancora zone NC copiate e densità a 2
+  decimali: rigenerarli con ⚖ Compensate… dal file NC
 
 ### C e NC sono due file distinti
 - Il file C ha la **propria geometria indipendente**, salvata alla **piena risoluzione di calcolo**

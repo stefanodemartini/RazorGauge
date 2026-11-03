@@ -82,7 +82,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// pinned caption above the zones grid so it isn't read as "missing".</summary>
     public string M1ZoneColorHex => Nozzles.Count > 0 ? Nozzles[0].ColorHex : "888888";
     public string M1ZoneSummaryText => Nozzles.Count > 0
-        ? $"M1 · ρ {Nozzles[0].DensityGCm3:0.00} g/cm³ · default — fills the line wherever no zone below applies"
+        ? $"M1 · ρ {Nozzles[0].DensityGCm3:0.00#} g/cm³ · default — fills the line wherever no zone below applies"
         : string.Empty;
 
     private void NotifyM1ZoneSummaryChanged()
@@ -1225,7 +1225,44 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         project.SegmentMetadata   = meta;
         project.UseSharedDensity  = false;
         project.SharedDensityGCm3 = 0;
+        project.NozzleZones       = ZonesFromBakedMaterials(meta, project.NozzleDefinitions);
         return project;
+    }
+
+    /// <summary>
+    /// The C file's zones, rebuilt from where each real material actually is. Copying the NC
+    /// design's own zones instead (BuildProjectObject's default) put them on a profile whose
+    /// materials the physics solve chose from scratch: the chart and the M{n} tags colour by zone,
+    /// so a stale NC zone painted M2 where the slice is really M4, and every other material showed
+    /// as M1 — two colours on screen against four nozzles in the table. A run of the M1 material
+    /// needs no zone (M1 is the implicit base everywhere no zone covers).
+    /// </summary>
+    private static List<NozzleZone> ZonesFromBakedMaterials(
+        List<ProjectSegmentMeta> meta, List<NozzleDefinition> nozzles)
+    {
+        int NozzleFor(double rho)
+        {
+            int best = 0; double bestDiff = double.MaxValue;
+            for (int i = 0; i < nozzles.Count; i++)
+            {
+                if (nozzles[i].DensityGCm3 <= 0) continue;
+                double diff = Math.Abs(nozzles[i].DensityGCm3 - rho);
+                if (diff < bestDiff) { bestDiff = diff; best = i; }
+            }
+            return best;
+        }
+
+        var zones = new List<NozzleZone>();
+        foreach (var m in meta)
+        {
+            int idx = NozzleFor(m.SpecWeight);
+            if (zones.Count > 0 && zones[^1].NozzleIndex == idx && Math.Abs(zones[^1].EndCm - m.StartCm) < 1e-6)
+                zones[^1].EndCm = m.EndCm;
+            else
+                zones.Add(new NozzleZone { StartCm = m.StartCm, EndCm = m.EndCm, NozzleIndex = idx });
+        }
+        zones.RemoveAll(z => z.NozzleIndex == 0);
+        return zones;
     }
 
     private static string SanitizeFileName(string name)
@@ -2292,7 +2329,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                                 var entry = plot.Add.Scatter(Array.Empty<double>(), Array.Empty<double>());
                                 entry.Color = col; entry.LineWidth = 8;
                                 entry.LegendText = noz.DensityGCm3 > 0
-                                    ? $"M{idx + 1}  ρ {noz.DensityGCm3:0.00} g/cm³"
+                                    ? $"M{idx + 1}  ρ {noz.DensityGCm3:0.00#} g/cm³"
                                     : $"M{idx + 1}";
                             }
                         }
@@ -2307,7 +2344,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                                 double t  = densRng > 1e-9 ? Math.Clamp((dens - minDens) / densRng, 0, 1) : 0.5;
                                 var entry = plot.Add.Scatter(Array.Empty<double>(), Array.Empty<double>());
                                 entry.Color = DensityColor(t); entry.LineWidth = 8;
-                                entry.LegendText = $"ρ {dens:0.00} g/cm³";
+                                entry.LegendText = $"ρ {dens:0.00#} g/cm³";
                             }
                         }
                     }
@@ -3899,9 +3936,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             double t   = rng > 0 ? (qDens[i] - minD) / rng : 0.5;
             var    col = DensityColor(t);
             Nozzles[i].ColorHex    = $"{col.R:X2}{col.G:X2}{col.B:X2}";
-            Nozzles[i].DensityGCm3 = Math.Round(qDens[i], 2);
-            if (string.IsNullOrWhiteSpace(Nozzles[i].Label) || Nozzles[i].Label.StartsWith("ρ "))
-                Nozzles[i].Label = $"ρ {qDens[i]:0.00}";
+            // 3 decimals, not 2: a compensation's materials can sit only 0.005 g/cm³ apart, and at
+            // 2 decimals two of them collapsed to the same value (1.015 and 1.021 both "1.02") —
+            // every nearest-density lookup (M{n} tags, PDF bands) then picked the wrong nozzle.
+            Nozzles[i].DensityGCm3 = Math.Round(qDens[i], 3);
+            if (string.IsNullOrWhiteSpace(Nozzles[i].Label) || Nozzles[i].Label.StartsWith("ρ ")
+                || Nozzles[i].Label == "N/A")
+                Nozzles[i].Label = $"ρ {qDens[i]:0.00#}";
         }
         // Clear unused nozzle slot densities (keep colours and custom labels)
         for (int i = qDens.Length; i < 4; i++)

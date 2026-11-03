@@ -174,7 +174,7 @@ public static class ChartGeometry
             }
         }
         if (idx < 0 || idx >= nozzles.Count)
-            return ($"ρ {density:0.00}", DensityColor(0.5));
+            return ($"ρ {density:0.00#}", DensityColor(0.5));
 
         var n = nozzles[idx];
         TryParseHexColor(n.ColorHex, out var col);

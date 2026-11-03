@@ -1230,7 +1230,7 @@
                                 </DataGridTemplateColumn>
                                 <!-- Density -->
                                 <DataGridTextColumn Header="ρ g/cm³"
-                                                   Binding="{Binding DensityGCm3, StringFormat='0.00'}"
+                                                   Binding="{Binding DensityGCm3, StringFormat='0.00#'}"
                                                    Width="70"/>
                                 <!-- Label -->
                                 <DataGridTextColumn Header="Label"
@@ -1277,7 +1277,7 @@
                                        Foreground="{StaticResource TextMuted}"
                                        VerticalAlignment="Center" Margin="4,0,0,0"/>
                             <TextBlock Grid.Column="3"
-                                       Text="{Binding ElementName=MainWin, Path=Nozzles[0].DensityGCm3, StringFormat='0.00'}"
+                                       Text="{Binding ElementName=MainWin, Path=Nozzles[0].DensityGCm3, StringFormat='0.00#'}"
                                        FontSize="11" HorizontalAlignment="Center"
                                        Foreground="{StaticResource TextPrimary}"/>
                         </Grid>
@@ -1314,7 +1314,7 @@
                                                    Binding="{Binding EndCm, StringFormat='0.0'}"
                                                    Width="75"/>
                                 <DataGridTextColumn Header="ρ g/cm³" Width="60" IsReadOnly="True"
-                                                   Binding="{Binding DensityGCm3, StringFormat='0.00'}"/>
+                                                   Binding="{Binding DensityGCm3, StringFormat='0.00#'}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

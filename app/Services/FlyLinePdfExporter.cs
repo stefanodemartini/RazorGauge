@@ -539,7 +539,7 @@ public static class FlyLinePdfExporter
                                             sCol.Item().Width(44).Text($"#{hex.ToUpper()}")
                                                 .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
                                             if (nd.DensityGCm3 > 0)
-                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00} g/cm³")
+                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00#} g/cm³")
                                                     .FontSize(6f).Bold().FontColor(ColText).AlignCenter();
                                             if (!string.IsNullOrWhiteSpace(nd.Label) && !nd.Label.StartsWith("ρ ") && nd.Label != "N/A")
                                                 sCol.Item().Width(44).Text(nd.Label)
@@ -618,7 +618,7 @@ public static class FlyLinePdfExporter
                                             sCol.Item().Width(44).Text($"#{hex.ToUpper()}")
                                                 .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
                                             if (nd.DensityGCm3 > 0)
-                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00} g/cm³")
+                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00#} g/cm³")
                                                     .FontSize(6f).Bold().FontColor(ColText).AlignCenter();
                                             if (!string.IsNullOrWhiteSpace(nd.Label) && !nd.Label.StartsWith("ρ ") && nd.Label != "N/A")
                                                 sCol.Item().Width(44).Text(nd.Label)
@@ -767,7 +767,7 @@ public static class FlyLinePdfExporter
                                             .Text(matLabel)
                                             .FontSize(6.5f).Bold().FontColor(C("0F6B50")).AlignCenter();
                                         sc.Item().Width(56)
-                                            .Text($"{dens:0.00} g/cm³")
+                                            .Text($"{dens:0.00#} g/cm³")
                                             .FontSize(6.5f).FontColor(ColText).AlignCenter();
                                         sc.Item().Width(56)
                                             .Text($"{startMm:0}–{endMm:0} mm")

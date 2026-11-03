@@ -22,6 +22,21 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 3 novembre 2026 — compensazione: grafico, ugelli e colori incoerenti nel file C
+
+Verificato su `Phantom ExtraHover V.2 C 0.50ips.flp`. I **dati erano giusti** (4 densità reali:
+1.0095 / 1.0150 / 1.0215 / 1.0291 in 7 tratti); sbagliata la presentazione, per due motivi:
+- il file C ereditava le **zone del progetto NC** (qui 1900–2050 cm su M2). Grafico e tag M{n}
+  colorano per zona → linea a 2 colori (M1 ovunque + M2 a 1900–2050, dove il materiale vero è M4)
+  e legenda con 2 voci, contro 4 ugelli in tabella. Ora le zone del C vengono ricostruite dai
+  materiali reali (`ZonesFromBakedMaterials`)
+- densità ugelli arrotondate a **2 decimali**: 1.0150 e 1.0215 diventavano entrambe 1.02, e la
+  ricerca "ugello più vicino" (tag, fasce PDF) sbagliava. Ora 3 decimali, mostrate con `0.00#`
+
+Correzione anche della temperatura dell'acqua: la casella confermava solo perdendo il focus (ora
+anche Enter), e zone / file C non ricalcolavano la velocità al cambio d'acqua.
+I file C già generati vanno rigenerati da NC.
+
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 
 Laser + TSL1401 montati sulla RazorBoard SMD; sul modulo master c'era ancora il master del calibro.
