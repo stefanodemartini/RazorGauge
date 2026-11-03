@@ -76,8 +76,11 @@ Bug trovati strada facendo e corretti:
   bordo come se i punti fossero centri di fetta: nel PDF NC della CLI Ø 1.58 a 325 cm invece di
   1.40, massa gonfiata. Ora diametri di bordo esatti
 - legenda a schermo "Comp. 1.00 in/s" su un C caricato (velocità non salvata): ora "Compensated profile"
-Aperto: nell'NC del Phantom due tratti di pendenza diversa (1530–1760 e 1760–1900 cm) si chiamano
-entrambi S10 → nel C il cambio di pendenza a 1760 si perde (TAPER mostra un solo S10).
+Nomi dei taper (Stefano: "i tratti non dovrebbero chiamarsi entrambi con lo stesso nome"): il nome
+era legato all'X di partenza, quindi inserire un nodo lasciava buchi (S6, S9) e doppioni (due S10
+nel Phantom: il cambio di pendenza a 1760 cm spariva dal C). Ora i nomi automatici `S{n}` sono
+sempre rinumerati per posizione (`SegmentNaming`), i nomi scritti a mano restano; i file C non
+vengono rinumerati. Phantom V.2: S1…S10, S8 1530–1760, S9 1760–1900.
 
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 

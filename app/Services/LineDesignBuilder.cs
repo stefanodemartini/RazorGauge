@@ -437,7 +437,8 @@ public static class LineDesignBuilder
             double segLen   = segEnd - segStart;
             if (segLen <= 0) continue;
             var m = p.SegmentMetadata.FirstOrDefault(mm => Math.Abs(mm.StartCm - segStart) < Eps);
-            string name   = m?.Name   ?? $"S{i + 1}";
+            // Same rule as the app (SegmentNaming): automatic names by position, typed ones kept.
+            string name   = p.IsCompensatedDerivative ? m?.Name ?? $"S{i + 1}" : SegmentNaming.For(m?.Name, i);
             bool   isHead = m?.IsHead ?? !p.IsFullLine;
 
             var cuts = new SortedSet<double> { segStart, segEnd };

@@ -607,6 +607,12 @@ maggiore pur di non avere mai un salto di diametro.
 - I file C generati prima del 3/11/2026 possono avere ancora zone NC copiate e densità a 2
   decimali: rigenerarli con ⚖ Compensate… dal file NC
 
+### Nomi dei taper
+I nomi automatici `S1`, `S2`, … seguono sempre l'ordine lungo la linea: inserendo o togliendo un
+nodo vengono rinumerati, senza buchi né doppioni. Un nome scritto a mano nella colonna Name (per
+esempio "Belly") viene mantenuto. Due tratti consecutivi con lo stesso nome scritto a mano vengono
+trattati come un solo taper nel file C: evitarlo.
+
 ### Foglio di progetto: forma, ugello e colore separati
 Il documento per il produttore (PDF, in inglese) e il grafico del profilo compensato tengono
 distinte tre informazioni, che non si sovrappongono mai:

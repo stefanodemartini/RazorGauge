@@ -2591,7 +2591,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             if (_segmentMetadata.TryGetValue(startCm, out var meta))
             {
-                seg.Name           = meta.Name;
+                // Automatic names follow position (no gaps, no duplicates); a typed name is kept.
+                // A C file's slices carry their NC taper's name on purpose — never renumbered.
+                seg.Name           = _isCompensatedDerivative ? meta.Name : SegmentNaming.For(meta.Name, i);
                 seg.SpecWeightGCm3 = _useSharedDensity ? _sharedDensity : meta.SpecWeight;
                 seg.IsHead         = meta.IsHead;
             }
