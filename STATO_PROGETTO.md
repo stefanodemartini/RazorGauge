@@ -37,6 +37,18 @@ Correzione anche della temperatura dell'acqua: la casella confermava solo perden
 anche Enter), e zone / file C non ricalcolavano la velocità al cambio d'acqua.
 I file C già generati vanno rigenerati da NC.
 
+Seconda verifica (file C 0.55 ips, PDF esportato da CLI):
+- **quote sopra il profilo**: nel C seguivano solo i confini dei taper NC, quindi un tratto di
+  materiale non aveva la sua lunghezza. Ora la catena usa gli stessi punti delle etichette Ø
+  (cambi di taper + cambi di materiale), a schermo e nel PDF
+- **M3 sparito dalle "Density zones" del PDF**: il k-means partiva con i centri sui quantili; con
+  M4 su più di metà linea due centri cadevano sullo stesso valore e 1.018 + 1.025 diventavano un
+  "1.02" inesistente. Ora i centri iniziali sono distribuiti sull'intervallo dei valori. Lo stesso
+  difetto c'era nel calcolo vero (`QuantizeCompensationToRealMaterials`): una linea con lungo
+  running line poteva uscire con meno di 4 materiali
+- aperto: `flyline pdf` su un file C stampa la tabella a righe da 1 cm (106 pagine) — la CLI non
+  usa il raggruppamento per zona dell'app
+
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 
 Laser + TSL1401 montati sulla RazorBoard SMD; sul modulo master c'era ancora il master del calibro.

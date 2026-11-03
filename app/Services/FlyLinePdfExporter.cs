@@ -58,8 +58,9 @@ public static class FlyLinePdfExporter
 
         if (k == 1) return new[] { arr.Average() };
         double[] c = new double[k];
+        // Evenly over the value range, not over the sorted array — see MainWindow.Quantize1D.
         for (int i = 0; i < k; i++)
-            c[i] = arr[(int)((double)i / (k - 1) * (arr.Length - 1))];
+            c[i] = arr[0] + (arr[^1] - arr[0]) * i / (k - 1);
         for (int iter = 0; iter < 50; iter++)
         {
             double[] sums = new double[k]; int[] counts = new int[k];

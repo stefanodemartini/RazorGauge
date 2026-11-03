@@ -2514,9 +2514,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 sl.OffsetX = 0; sl.OffsetY = 0;
             }
 
-            // Quote di lunghezza — una catena continua sotto il profilo, un segmento per taper
-            // fisico reale (stessi confini delle etichette S sopra), stile disegno tecnico.
-            ChartGeometry.DrawLengthDimensionChain(plot, labelSorted, compNodes, segLabelColor, 15f);
+            // Quote di lunghezza — una catena continua sopra il profilo, a ogni punto di produzione
+            // (cambi di taper E cambi di materiale, gli stessi delle etichette Ø): con i soli
+            // confini dei taper un tratto di materiale non aveva la sua lunghezza.
+            ChartGeometry.DrawLengthDimensionChain(plot, labelNodes, compNodes, segLabelColor, 15f);
 
             // Etichette "M{n}" per ogni zona di materiale — MAI "S" (vedi sopra): un badge col
             // colore reale dell'ugello, centrato sulla zona, sul bordo del profilo. Standard
@@ -2559,10 +2560,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (arr.Length == 0) return Array.Empty<double>();
         k = Math.Min(k, arr.Length);
         if (k == 1) return new[] { arr.Average() };
-        // Initial centroids: evenly spaced across sorted array
+        // Initial centroids evenly spaced across the VALUE range, not across the sorted array: a
+        // compensated line is mostly one long running line at a single density, so quantile picks
+        // landed two centroids on that same value — one stayed empty and two real materials were
+        // merged into one that exists nowhere.
         double[] c = new double[k];
         for (int i = 0; i < k; i++)
-            c[i] = arr[(int)((double)i / (k - 1) * (arr.Length - 1))];
+            c[i] = arr[0] + (arr[^1] - arr[0]) * i / (k - 1);
         // K-means iterations
         for (int iter = 0; iter < 50; iter++)
         {

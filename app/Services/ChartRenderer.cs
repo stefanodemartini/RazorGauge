@@ -265,9 +265,10 @@ public static class ChartRenderer
                     sl.OffsetY              = 0;
                 }
 
-                // Quote di lunghezza — una catena continua sotto il profilo, stessi confini
-                // (taperBounds) delle etichette S sopra, stile disegno tecnico.
-                DrawLengthDimensionChain(plot, taperBounds, sorted, segLabelColor, pdfLblSize - 2);
+                // Quote di lunghezza — una catena continua sopra il profilo, a ogni punto di
+                // produzione (cambi di taper E cambi di materiale, gli stessi delle etichette Ø):
+                // con i soli confini dei taper un tratto di materiale non aveva la sua lunghezza.
+                DrawLengthDimensionChain(plot, labelNodes, sorted, segLabelColor, pdfLblSize - 2);
 
                 // Etichette "M{n}" per ogni zona di materiale — mai "S", stesso standard del
                 // grafico a schermo: un badge col colore reale dell'ugello, sul bordo del profilo.
