@@ -471,8 +471,11 @@ public static class LineDesignBuilder
                 {
                     double speed = SinkingSpeedCalc.RigidBodySinkSpeed(isSalt, p.WaterTempC,
                         new[] { d0, d1 }, new[] { (x1 - x0) / 2.0, (x1 - x0) / 2.0 }, new[] { rho, rho });
+                    // Exact boundary diameters: without them the two points are read as slice
+                    // CENTRES and the boundary is extrapolated past them — on a long taper that
+                    // drew Ø 1.58 where the node says 1.40, and inflated the mass.
                     seg.SetCompensation(x0, new[] { 0.0, x1 - x0 }, new[] { d0, d1 },
-                        new[] { rho, rho }, new[] { false, false }, speed);
+                        new[] { rho, rho }, new[] { false, false }, speed, d0, d1);
                 }
                 segs.Add(seg);
             }

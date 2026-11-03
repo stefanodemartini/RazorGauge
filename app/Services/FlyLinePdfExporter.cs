@@ -311,7 +311,7 @@ public static class FlyLinePdfExporter
             var compSegsAll = segments.Where(s => s.HasCompensation).ToList();
             var allDens = compSegsAll.SelectMany(s => s.CompSliceDensities).Where(d => d > 0).ToList();
             densityRange = allDens.Count > 0
-                ? $"{allDens.Min():0.00} – {allDens.Max():0.00} g/cm³"
+                ? $"{allDens.Min():0.000} – {allDens.Max():0.000} g/cm³"
                 : "—";
             hasClampedSection = compSegsAll.Any(s => s.HasClampedSlices);
         }
@@ -347,6 +347,64 @@ public static class FlyLinePdfExporter
                 ? $"With diameters indicated and target weight the density of the line is {densityRange}."
                 : $"Line density: {densityRange}.";
             changeNote = "Do not change length and diameters of segments.";
+        }
+
+        // ── Production schedule (C): shape, nozzles and color kept apart ───────
+        // The same model the chart strips are drawn from (ProductionSchedule), so the tables
+        // below and the strips in the chart image above cannot disagree.
+        ProductionSchedule? schedule = null;
+        var nozzleRunMassG   = new List<double>();
+        var nozzleRunSinkIns = new List<double>();
+        if (showCompensation && segments.Any(s => s.HasCompensation))
+        {
+            schedule = ProductionSchedule.Build(segments, ChartGeometry.GetCompNodes(segments),
+                nozzleZones ?? new List<NozzleZone>(), nozzleDefinitions ?? new List<NozzleDefinition>());
+            var runs = schedule.Nozzles;
+            var pieces = runs.Select(_ => new List<(double D, double L, double Rho)>()).ToList();
+            const double eps = 1e-6;
+            foreach (var seg in segments.Where(s => s.HasCompensation))
+            {
+                int n = seg.CompSliceXsCm.Length;
+                if (n == 0) continue;
+                // A segment wrapped as a trivial two-point "compensation" (a baked C slice, a CLI
+                // or grouped row) only carries its end diameters: two end-diameter cylinders
+                // misjudge a long taper's mass, so it is re-cut into ~1 cm pieces along its
+                // straight line. A real per-slice compensation is used slice by slice.
+                var sub = new List<(double X, double D, double L, double Rho)>();
+                if (n > 2)
+                {
+                    double dl = seg.LengthCm / n;
+                    for (int i = 0; i < n; i++)
+                        sub.Add((seg.StartCm + seg.CompSliceXsCm[i], seg.CompSliceDiamsMm[i], dl, seg.CompSliceDensities[i]));
+                }
+                else
+                {
+                    int m = Math.Max(1, (int)Math.Ceiling(seg.LengthCm));
+                    double dl = seg.LengthCm / m;
+                    double d0 = seg.EffectiveBoundaryStartDiamMm, d1 = seg.EffectiveBoundaryEndDiamMm;
+                    for (int j = 0; j < m; j++)
+                    {
+                        double t = (j + 0.5) / m;
+                        sub.Add((seg.StartCm + t * seg.LengthCm, d0 + (d1 - d0) * t, dl, seg.CompSliceDensities[0]));
+                    }
+                }
+                // A whole row inside one run (every grouped table row) goes there in one piece;
+                // only a row straddling runs is split by position.
+                int whole = runs.FindIndex(r => seg.StartCm >= r.StartCm - eps && seg.EndCm <= r.EndCm + eps);
+                foreach (var q in sub)
+                {
+                    int k = whole >= 0 ? whole : runs.FindIndex(r => q.X >= r.StartCm - eps && q.X < r.EndCm + eps);
+                    if (k >= 0) pieces[k].Add((q.D, q.L, q.Rho));
+                }
+            }
+            foreach (var pc in pieces)
+            {
+                nozzleRunMassG.Add(pc.Sum(q => Math.PI / 4.0 * (q.D / 10.0) * (q.D / 10.0) * q.L * q.Rho));
+                double v = pc.Count == 0 ? double.NaN
+                    : SinkingSpeedCalc.RigidBodySinkSpeed(isSalt, tempC,
+                        pc.Select(q => q.D).ToArray(), pc.Select(q => q.L).ToArray(), pc.Select(q => q.Rho).ToArray());
+                nozzleRunSinkIns.Add(v * 39.3701);
+            }
         }
 
         // ── Logo — load from embedded assembly resource (always available) ──
@@ -466,10 +524,61 @@ public static class FlyLinePdfExporter
                         }
                     });
 
+                    // ── What changes where: SHAPE / NOZZLES / COLOR ────────
+                    // The three facts a producer must never confuse, stated before the drawing.
+                    if (schedule != null)
+                    {
+                        var usedNozzles = schedule.Nozzles.Where(r => !r.IsTransition)
+                            .Select(r => r.Nozzle).Distinct().OrderBy(i => i).ToList();
+                        var trans = schedule.Nozzles.Where(r => r.IsTransition).ToList();
+                        string nozzlesText = usedNozzles.Count <= 1
+                            ? "One nozzle (M1) over the whole line — single density."
+                            : $"{usedNozzles.Count} nozzles ({string.Join(", ", usedNozzles.Select(i => $"M{i + 1}"))}), " +
+                              (trans.Count > 0
+                                  ? $"{trans.Count} linear density transitions of {trans.Max(t => t.LengthCm):0} cm. "
+                                  : "no transitions. ") +
+                              "Boundaries drawn dashed.";
+                        string colorText = schedule.Colors.Count == 1
+                            ? $"#{schedule.Colors[0].Hex} over the whole line" +
+                              (usedNozzles.Count > 1 ? " — the nozzles differ in density only." : ".")
+                            : string.Join("  ·  ", schedule.Colors.Select(c => $"#{c.Hex} {c.StartCm:0}–{c.EndCm:0} cm"));
+                        col.Item().Background(C("F7F8FA")).Border(0.5f).BorderColor(ColBorder)
+                            .PaddingVertical(3).PaddingHorizontal(6).Row(sr =>
+                        {
+                            void Fact(string head, string text) => sr.RelativeItem().PaddingRight(8).Column(fc =>
+                            {
+                                fc.Item().Text(head).FontSize(7f).Bold().FontColor(ColText);
+                                fc.Item().Text(text).FontSize(7f).FontColor(ColText);
+                            });
+                            Fact("SHAPE", $"{schedule.Tapers.Count} taper sections (S). Slope changes drawn as solid lines.");
+                            Fact("NOZZLES · DENSITY", nozzlesText);
+                            Fact("COLOR", colorText);
+                        });
+                    }
+
                     col.Item().LineHorizontal(0.5f).LineColor(ColBorder);
 
                     // ── Profile chart ──────────────────────────────────────
                     col.Item().Image(chartBytes).FitWidth();
+
+                    // ── How to read the drawing ────────────────────────────
+                    if (schedule != null)
+                    {
+                        byte[] transSwatch = NozzlePattern.SwatchPng(NozzlePattern.Transition, 88, 32, 10);
+                        string lineHex = schedule.Colors[0].Hex;
+                        col.Item().PaddingHorizontal(6).Row(lr =>
+                        {
+                            lr.AutoItem().AlignMiddle().Text("━━  slope change (taper S)").FontSize(7f).FontColor(ColText);
+                            lr.ConstantItem(24);
+                            lr.AutoItem().AlignMiddle().Text("┄┄  nozzle change (density M)").FontSize(7f).FontColor(ColText);
+                            lr.ConstantItem(24);
+                            lr.ConstantItem(22).AlignMiddle().Height(8).Image(transSwatch).FitArea();
+                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text("linear density transition").FontSize(7f).FontColor(ColText);
+                            lr.ConstantItem(24);
+                            lr.ConstantItem(22).AlignMiddle().Height(8).Border(0.5f).BorderColor(ColText).Background(C(lineHex));
+                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text("the profile is drawn in the real line color only").FontSize(7f).FontColor(ColText);
+                        });
+                    }
 
                     // ── Materials legend (NC: nozzles with zones; C: comp materials) ──
                     bool hasNozzles = nozzleDefinitions != null && nozzleDefinitions.Count > 0;
@@ -584,7 +693,8 @@ public static class FlyLinePdfExporter
                             .PaddingVertical(3).PaddingHorizontal(5).Column(legCol =>
                         {
                             legCol.Item().AlignCenter()
-                                .Text("Materials").FontSize(6.5f).Bold().FontColor(ColMuted);
+                                .Text(schedule != null ? "Nozzles — each nozzle is one compound: density + color" : "Materials")
+                                .FontSize(6.5f).Bold().FontColor(ColMuted);
                             legCol.Item().PaddingTop(3).Row(legRow =>
                             {
                                 // Only cards for nozzles actually in use — an empty M3/M4 slot
@@ -614,6 +724,21 @@ public static class FlyLinePdfExporter
                                         {
                                             sCol.Item().Text($"M{origIdx + 1}")
                                                 .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
+                                            if (schedule != null)
+                                            {
+                                                // Nozzle identity = pattern (as in the NOZZLE strip);
+                                                // its pigment is a separate, smaller swatch below.
+                                                sCol.Item().Width(56).Height(14)
+                                                    .Image(NozzlePattern.SwatchPng(origIdx, 224, 56, 10)).FitArea();
+                                                if (nd.DensityGCm3 > 0)
+                                                    sCol.Item().Width(56).Text($"ρ {nd.DensityGCm3:0.000} g/cm³")
+                                                        .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
+                                                sCol.Item().PaddingTop(2).AlignCenter().Width(26).Height(6)
+                                                    .Border(0.5f).BorderColor(ColText).Background(swatchColor);
+                                                sCol.Item().Width(56).Text($"color #{hex.ToUpper()}")
+                                                    .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
+                                                return;
+                                            }
                                             sCol.Item().Border(0.5f).BorderColor(ColBorder)
                                                 .Element(e => DrawLambertSwatch(e, swatchColor, 44, 10));
                                             sCol.Item().Width(44).Text($"#{hex.ToUpper()}")
@@ -665,7 +790,7 @@ public static class FlyLinePdfExporter
                             });
                     }
 
-                    if (showCompensation)
+                    if (showCompensation && schedule == null)
                     {
                         var compSegs = segments.Where(s => s.HasCompensation).ToList();
                         if (compSegs.Count > 0)
@@ -842,6 +967,111 @@ public static class FlyLinePdfExporter
 
                     col.Item().LineHorizontal(0.5f).LineColor(ColBorder);
 
+                    // ── C: two tables — TAPER (shape only) and NOZZLES (material only) ──
+                    if (schedule != null)
+                    {
+                        static IContainer THdr(IContainer c) =>
+                            c.Background(PdfColor.FromHex("EEEFF2"))
+                             .BorderBottom(0.8f).BorderColor(PdfColor.FromHex("C8CBD4"))
+                             .PaddingVertical(2).PaddingHorizontal(2);
+
+                        col.Item().PaddingTop(2).Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(46);
+                                for (int k = 0; k < 6; k++) c.RelativeColumn();
+                                c.ConstantColumn(40);
+                            });
+                            table.Header(h =>
+                            {
+                                // The title lives in the header so it never ends up alone at the
+                                // bottom of a page, and repeats if the table continues overleaf.
+                                h.Cell().ColumnSpan(8).PaddingBottom(2).Text("1 · TAPER — shape only (no density here)")
+                                    .FontSize(8).Bold().FontColor(ColText);
+                                foreach (var t in new[] { "Taper", "Start\nmm", "End\nmm", "Length\nmm",
+                                                          "Ø start\nmm", "Ø end\nmm", "Slope\nmm/m", "Section" })
+                                    h.Cell().Element(THdr).Text(t).FontSize(6.5f).Bold().FontColor(ColAccent);
+                            });
+                            for (int i = 0; i < schedule.Tapers.Count; i++)
+                            {
+                                var t  = schedule.Tapers[i];
+                                var bg = i % 2 == 0 ? BgPage : BgTblAlt;
+                                double mid = (t.StartCm + t.EndCm) / 2;
+                                bool head  = !isFullLine || (segments.FirstOrDefault(sg => mid >= sg.StartCm && mid <= sg.EndCm)?.IsHead ?? true);
+                                double slope = t.LengthCm > 0 ? (t.EndDiamMm - t.StartDiamMm) / (t.LengthCm / 100.0) : 0;
+                                void TC(string text, PdfColor? fc = null, bool bold = false)
+                                {
+                                    var tx = table.Cell().Background(bg).BorderBottom(0.3f).BorderColor(ColBorder)
+                                        .PaddingHorizontal(2).Text(text).FontSize(7);
+                                    if (bold) tx.Bold();
+                                    if (fc.HasValue) tx.FontColor(fc.Value);
+                                }
+                                TC(t.Name, head ? ColAccent : ColBlue, true);
+                                TC($"{t.StartCm * 10:0}"); TC($"{t.EndCm * 10:0}"); TC($"{t.LengthCm * 10:0}");
+                                TC($"{t.StartDiamMm:0.00}"); TC($"{t.EndDiamMm:0.00}");
+                                TC(Math.Abs(slope) < 0.005 ? "—" : $"{slope:+0.00;-0.00}");
+                                TC(head ? "HEAD" : "RUN", head ? ColAccent : ColMuted);
+                            }
+                        });
+
+                        col.Item().PaddingTop(6).Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(22);
+                                c.ConstantColumn(50);
+                                for (int k = 0; k < 3; k++) c.RelativeColumn();
+                                c.RelativeColumn(1.5f);
+                                c.RelativeColumn(1.4f);
+                                c.RelativeColumn();
+                                for (int k = 0; k < 3; k++) c.RelativeColumn();
+                            });
+                            table.Header(h =>
+                            {
+                                h.Cell().ColumnSpan(11).PaddingBottom(2).Text("2 · NOZZLES — material along the line (the shape is in table 1)")
+                                    .FontSize(8).Bold().FontColor(ColText);
+                                foreach (var t in new[] { "", "Nozzle", "From\nmm", "To\nmm", "Length\nmm", "ρ\ng/cm³",
+                                                          "Kind", "Color", "Mass\ng", "Mass\ngr", "Sink\nin/s" })
+                                    h.Cell().Element(THdr).Text(t).FontSize(6.5f).Bold().FontColor(ColAccent);
+                            });
+                            for (int i = 0; i < schedule.Nozzles.Count; i++)
+                            {
+                                var r  = schedule.Nozzles[i];
+                                var bg = i % 2 == 0 ? BgPage : BgTblAlt;
+                                void NC(string text, bool bold = false, PdfColor? fc = null)
+                                {
+                                    var tx = table.Cell().Background(bg).BorderBottom(0.3f).BorderColor(ColBorder)
+                                        .PaddingHorizontal(2).Text(text).FontSize(7);
+                                    if (bold) tx.Bold();
+                                    if (fc.HasValue) tx.FontColor(fc.Value);
+                                }
+                                table.Cell().Background(bg).BorderBottom(0.3f).BorderColor(ColBorder)
+                                    .Padding(1.5f).Height(9).Image(NozzlePattern.SwatchPng(r.Nozzle, 72, 36, 10)).FitArea();
+                                NC(ProductionSchedule.Label(r), true, r.IsTransition ? (PdfColor?)ColMuted : null);
+                                NC($"{r.StartCm * 10:0}"); NC($"{r.EndCm * 10:0}"); NC($"{r.LengthCm * 10:0}");
+                                NC(ProductionSchedule.DensityText(r));
+                                NC(r.IsTransition ? "linear transition" : "full material", false, r.IsTransition ? (PdfColor?)ColMuted : null);
+                                var cols = schedule.Colors.Where(c => c.StartCm < r.EndCm && c.EndCm > r.StartCm).Select(c => "#" + c.Hex);
+                                NC(string.Join(" · ", cols));
+                                double m = nozzleRunMassG[i];
+                                NC(m > 0 ? $"{m:0.000}" : "—");
+                                NC(m > 0 ? $"{m * GramsToGrains:0.0}" : "—");
+                                NC(double.IsNaN(nozzleRunSinkIns[i]) ? "—" : $"{nozzleRunSinkIns[i]:0.000}");
+                            }
+                            void Tot(string text, bool hi = false) =>
+                                table.Cell().Background(BgTblTotal).BorderTop(0.8f).BorderColor(ColAccent)
+                                    .PaddingVertical(2).PaddingHorizontal(3).Text(text).FontSize(7).Bold()
+                                    .FontColor(hi ? ColAccent2 : ColText);
+                            Tot("∑"); Tot("TOTAL"); Tot(""); Tot("");
+                            Tot($"{schedule.Nozzles.Sum(r => r.LengthCm) * 10:0}");
+                            Tot(""); Tot(""); Tot("");
+                            Tot($"{nozzleRunMassG.Sum():0.000}", true);
+                            Tot($"{nozzleRunMassG.Sum() * GramsToGrains:0.0}", true);
+                            Tot("");
+                        });
+                    }
+                    else
                     // ── Segment data table ─────────────────────────────────
                     col.Item().Table(table =>
                     {

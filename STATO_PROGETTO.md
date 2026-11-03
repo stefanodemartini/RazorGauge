@@ -60,6 +60,25 @@ peggiore 0.065 in/s. Corretti strada facendo: la CLI per un file C sovrascriveva
 quella della zona (appiattiva le rampe); la riga "Density zones" del PDF con 13 fasce mandava in
 errore QuestPDF (ora va a capo).
 
+**Decisione di Stefano (3/11): foglio di progetto con forma, ugello e colore separati, tutto in
+inglese.** Mockup approvato, poi implementato (`ProductionSchedule`, `NozzlePattern`,
+`ChartGeometry.DrawProductionStrips`): profilo nel solo colore vero; fasce TAPER / NOZZLE ·
+DENSITY / COLOR sotto il grafico (schermo e PDF); confini taper continui, ugelli tratteggiati;
+ugelli distinti da grigio + tratteggio fitto, mai dal colore; PDF con riepilogo, legenda, schede
+ugello e due tabelle (TAPER, NOZZLES). **4 ugelli = 4 densità ⇒ colore unico**: gli ugelli del C
+prendono tutti il colore di M1 dell'NC; Compensate avvisa se l'NC ha zone di solo colore.
+Bug trovati strada facendo e corretti:
+- il PDF C dell'app calcolava massa e testa dalle righe raggruppate (una riga attraversava più
+  taper, tronco di cono fra i soli diametri estremi): Head/Total 825/825 gr invece di 682.5/925.3,
+  testa 3965 cm invece di 1900. Ora dalle fette; righe a schermo spezzate anche a cambio taper e
+  testa/running
+- compensazioni "a due punti" (CLI, C caricati, righe raggruppate) estrapolavano il diametro di
+  bordo come se i punti fossero centri di fetta: nel PDF NC della CLI Ø 1.58 a 325 cm invece di
+  1.40, massa gonfiata. Ora diametri di bordo esatti
+- legenda a schermo "Comp. 1.00 in/s" su un C caricato (velocità non salvata): ora "Compensated profile"
+Aperto: nell'NC del Phantom due tratti di pendenza diversa (1530–1760 e 1760–1900 cm) si chiamano
+entrambi S10 → nel C il cambio di pendenza a 1760 si perde (TAPER mostra un solo S10).
+
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 
 Laser + TSL1401 montati sulla RazorBoard SMD; sul modulo master c'era ancora il master del calibro.

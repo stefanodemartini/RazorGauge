@@ -592,7 +592,11 @@ maggiore pur di non avere mai un salto di diametro.
 ### Ugelli nel file C
 - M1–M4 del file C vengono popolati con le densità reali usate — sempre fino a 4, non un
   sottoinsieme "sufficiente"
-- Colore corrispondente al gradiente densità; densità salvata **a precisione piena** (mostrata
+- **Un solo colore per tutti gli ugelli**: quello di M1 nel progetto NC. Ogni ugello è un compound
+  (densità + colore): se i 4 ugelli servono per 4 densità, il colore è per forza unico. Se il
+  progetto NC ha zone di solo colore (stessa densità, altro pigmento), Compensate avvisa che nel
+  file C spariranno
+- Densità salvata **a precisione piena** (mostrata
   con 3 decimali, label `ρ X.XXX`): è il confronto esatto con le densità delle slice che
   distingue un materiale da una transizione. A 2 decimali due materiali distanti 0.005 g/cm³
   risultavano uguali
@@ -602,6 +606,27 @@ maggiore pur di non avere mai un salto di diametro.
 - Gli ugelli del progetto NC aperto non vengono toccati: colori, label e densità tornano esattamente com'erano
 - I file C generati prima del 3/11/2026 possono avere ancora zone NC copiate e densità a 2
   decimali: rigenerarli con ⚖ Compensate… dal file NC
+
+### Foglio di progetto: forma, ugello e colore separati
+Il documento per il produttore (PDF, in inglese) e il grafico del profilo compensato tengono
+distinte tre informazioni, che non si sovrappongono mai:
+- **SHAPE (taper S)** — dove cambia la pendenza. Linee verticali **continue**, catena di quote
+  sopra il profilo, etichette Ø solo a questi punti, fascia **TAPER**
+- **NOZZLE · DENSITY (ugelli M)** — quale compound si estrude dove. Fascia **NOZZLE** sotto il
+  profilo: ogni ugello ha un grigio e un tratteggio propri (M1 pieno, M2 `///`, M3 incrociato,
+  M4 a punti), la densità scritta sotto e la sua catena di quote; confini **tratteggiati**; le
+  transizioni da 30 cm hanno il tratteggio diagonale
+- **COLOR** — il pigmento vero. Il profilo è disegnato **solo** nel colore reale della linea;
+  fascia **COLOR** con il codice esadecimale
+
+Nel PDF: riquadro riassuntivo SHAPE / NOZZLES · DENSITY / COLOR sopra il grafico, legenda degli
+stili di linea sotto, schede ugello (motivo + densità + colore) e **due tabelle**:
+1. **TAPER** — solo geometria: inizio, fine, lunghezza, Ø, pendenza, testa/running
+2. **NOZZLES** — solo materiale: ugello o transizione `M3→M2`, da/a, lunghezza, densità, colore,
+   massa, velocità; totale di massa uguale a quello del piè di pagina
+
+Massa e testa del PDF vengono calcolate dalle fette a piena precisione: le righe raggruppate della
+tabella Segments (una per tratto di materiale **e** di taper) servono solo a schermo.
 
 ### C e NC sono due file distinti
 - Il file C ha la **propria geometria indipendente**, salvata alla **piena risoluzione di calcolo**

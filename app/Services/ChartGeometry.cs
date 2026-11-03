@@ -116,26 +116,13 @@ public static class ChartGeometry
         return new ScottColor(Mix(cl.R, ch.R), Mix(cl.G, ch.G), Mix(cl.B, ch.B));
     }
 
-    /// <summary>The real material-zone boundaries, from the same slice-flattening as <see cref="GetMaterialZoneSpans"/>.</summary>
-    public static List<(double X, double Y)> GetMaterialZoneBoundaries(
-        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted,
-        Func<double, bool>? isTransition = null)
-    {
-        var spans = GetMaterialZoneSpans(segments, sorted, isTransition);
-        if (spans.Count == 0) return sorted;
-        var result = new List<(double X, double Y)> { (spans[0].StartX, InterpolateProfileY(sorted, spans[0].StartX)) };
-        foreach (var s in spans)
-            result.Add((s.EndX, InterpolateProfileY(sorted, s.EndX)));
-        return result;
-    }
-
     /// <summary>
     /// Where the ORIGINAL taper's own shape changes — every fine slice inherits the Name of the
     /// real NC segment it was cut from (see BuildCompensatedSnapshotProject), so a Name change here
     /// marks a true taper transition (e.g. a straight taper ending into a level run), independent of
-    /// whether the material also changes there. A manufacturer needs the diameter and position at
-    /// these points just as much as at a material change — the two are different things and don't
-    /// always land on the same X (see <see cref="GetManufacturingCheckpoints"/>, which unions both).
+    /// whether the material also changes there. Slope changes and nozzle changes are different
+    /// events that don't always land on the same X — the design sheet keeps them apart (solid vs
+    /// dashed lines, TAPER vs NOZZLE strip; see <see cref="ProductionSchedule"/>).
     /// Walks <paramref name="segments"/> by its own StartCm/EndCm and interpolates Y from whichever
     /// <paramref name="sorted"/> node list the caller passed — never by indexing into it directly.
     /// </summary>
@@ -153,24 +140,6 @@ public static class ChartGeometry
                 result.Add((segs[i].EndCm, InterpolateProfileY(sorted, segs[i].EndCm)));
         }
         return result;
-    }
-
-    /// <summary>
-    /// Every position a producer actually needs the diameter called out for: where the material
-    /// changes (<see cref="GetMaterialZoneBoundaries"/>) UNION where the taper shape changes
-    /// (<see cref="GetTaperShapeBoundaries"/>) — the two don't necessarily coincide, so neither list
-    /// alone is enough.
-    /// </summary>
-    public static List<(double X, double Y)> GetManufacturingCheckpoints(
-        IReadOnlyList<ProjectSegment> segments, List<(double X, double Y)> sorted,
-        Func<double, bool>? isTransition = null)
-    {
-        return GetMaterialZoneBoundaries(segments, sorted, isTransition)
-            .Concat(GetTaperShapeBoundaries(segments, sorted))
-            .GroupBy(n => Math.Round(n.X, 3))
-            .Select(g => g.First())
-            .OrderBy(n => n.X)
-            .ToList();
     }
 
     /// <summary>
@@ -199,33 +168,122 @@ public static class ChartGeometry
     }
 
     /// <summary>
-    /// Which real nozzle (M1-M4) a material zone is, for the "M{n}" tag at its boundary — never
-    /// "S{n}", which is reserved for taper shape (see the mandatory principle above
-    /// <see cref="GetTaperShapeBoundaries"/>). A live zone design's zones are the authored ground
-    /// truth for "what material is physically here"; a loaded/baked C snapshot has no zones any more
-    /// (baking only carries density), so it falls back to matching this span's density against the
-    /// file's own nozzle definitions (populated to the real baked values on save).
+    /// Which nozzle (0-based) a material span is: the zone covering it, else the nozzle whose
+    /// density matches. -1 when there are neither zones nor nozzle densities.
     /// </summary>
-    public static (string Label, ScottColor Color) GetMaterialTag(double xAbsCm, double density,
+    public static int MaterialIndex(double xAbsCm, double density,
         IReadOnlyList<NozzleZone> zones, IReadOnlyList<NozzleDefinition> nozzles)
     {
         int idx = zones.FirstOrDefault(z => xAbsCm >= z.StartCm && xAbsCm < z.EndCm)?.NozzleIndex ?? -1;
-        if (idx < 0)
+        if (idx >= 0) return idx;
+        double bestDiff = double.MaxValue;
+        for (int i = 0; i < nozzles.Count; i++)
         {
-            double bestDiff = double.MaxValue;
-            for (int i = 0; i < nozzles.Count; i++)
+            if (nozzles[i].DensityGCm3 <= 0) continue;
+            double diff = Math.Abs(nozzles[i].DensityGCm3 - density);
+            if (diff < bestDiff) { bestDiff = diff; idx = i; }
+        }
+        return idx;
+    }
+
+    /// <summary>
+    /// The production strips under the profile — TAPER, NOZZLE · DENSITY and COLOR, one above
+    /// the other on the chart's own X axis, so every boundary sits exactly under the point of the
+    /// line it belongs to. Taper boundaries are solid, nozzle boundaries dashed; a nozzle is told
+    /// by its shade and hatch (<see cref="NozzlePattern"/>), never by colour, and a transition by
+    /// its diagonal hatch. Returns the Y of the strips' bottom edge, for the axis limits.
+    /// </summary>
+    /// <param name="yTop">Top of the TAPER strip (data units, below the Ø labels).</param>
+    /// <param name="band">Height of one strip (data units).</param>
+    public static double DrawProductionStrips(ScottPlot.Plot plot, ProductionSchedule s,
+        double yTop, double band, float fontSize, float hatchTile)
+    {
+        if (s.Tapers.Count == 0) return yTop;
+        double x0 = s.StartCm, len = Math.Max(1, s.EndCm - s.StartCm);
+        double titleX = x0 - len * 0.012;
+        var ink   = new ScottColor(31, 35, 41);
+
+        void Title(string t, double y)
+        {
+            var l = plot.Add.Text(t, titleX, y);
+            l.LabelFontSize = fontSize; l.LabelBold = true; l.LabelFontColor = ink;
+            l.LabelAlignment = ScottPlot.Alignment.MiddleRight;
+            l.LabelBackgroundColor = ScottPlot.Colors.Transparent; l.LabelBorderWidth = 0;
+        }
+        void Label(string t, double x, double y, bool bold, float size, bool boxed = false)
+        {
+            var l = plot.Add.Text(t, x, y);
+            l.LabelFontSize = size; l.LabelBold = bold; l.LabelFontColor = ink;
+            l.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
+            l.LabelBackgroundColor = boxed ? ScottPlot.Colors.White : ScottPlot.Colors.Transparent;
+            l.LabelBorderWidth = 0; l.LabelPadding = boxed ? 2 : 0;
+        }
+        ScottPlot.Plottables.Rectangle Box(double a, double b, double y0, double y1, ScottColor fill, float lineW = 1.2f)
+        {
+            var r = plot.Add.Rectangle(a, b, y0, y1);
+            r.FillColor = fill; r.LineColor = ink; r.LineWidth = lineW;
+            return r;
+        }
+        void VLine(double x, double y0, double y1, bool dashed)
+        {
+            var l = plot.Add.Scatter(new[] { x, x }, new[] { y0, y1 });
+            l.Color = ink; l.LineWidth = 1.2f; l.MarkerSize = 0;
+            if (dashed) l.LinePattern = ScottPlot.LinePattern.Dashed;
+        }
+
+        // TAPER
+        double tTop = yTop, tBot = yTop - band;
+        Title("TAPER", (tTop + tBot) / 2);
+        for (int i = 0; i < s.Tapers.Count; i++)
+        {
+            var t = s.Tapers[i];
+            Box(t.StartCm, t.EndCm, tBot, tTop, i % 2 == 0 ? ScottPlot.Colors.White : new ScottColor(243, 244, 246));
+            if (t.LengthCm > len * 0.02) Label(t.Name, (t.StartCm + t.EndCm) / 2, (tTop + tBot) / 2, false, fontSize);
+        }
+        foreach (var t in s.Tapers) VLine(t.StartCm, tBot, tTop, dashed: false);
+        VLine(s.Tapers[^1].EndCm, tBot, tTop, dashed: false);
+
+        // NOZZLE · DENSITY — the strip, then a text row (density) and a length row under it
+        double nTop = tBot - band * 0.35, nBot = nTop - band;
+        double rhoY = nBot - band * 0.45, lenY = nBot - band * 1.05, nTextBot = nBot - band * 1.45;
+        Title("NOZZLE", nTop - band * 0.30);
+        Title("DENSITY", nTop - band * 0.85);
+        foreach (var r in s.Nozzles)
+        {
+            var box = Box(r.StartCm, r.EndCm, nBot, nTop, ScottPlot.Colors.White, 0.8f);
+            box.FillHatch = new NozzlePattern.Hatch(r.Nozzle, hatchTile);
+            if (r.IsTransition) continue;
+            double mid = (r.StartCm + r.EndCm) / 2;
+            if (r.LengthCm > len * 0.006)
+                Label($"M{r.Nozzle + 1}", mid, (nTop + nBot) / 2, true, fontSize, boxed: true);
+            if (r.LengthCm > len * 0.025)
             {
-                if (nozzles[i].DensityGCm3 <= 0) continue;
-                double diff = Math.Abs(nozzles[i].DensityGCm3 - density);
-                if (diff < bestDiff) { bestDiff = diff; idx = i; }
+                Label($"ρ {r.StartRho:0.000}", mid, rhoY, false, fontSize * 0.9f);
+                Label($"{r.LengthCm:0}", mid, lenY, false, fontSize * 0.85f);
             }
         }
-        if (idx < 0 || idx >= nozzles.Count)
-            return ($"ρ {density:0.00#}", DensityColor(0.5));
+        var chain = plot.Add.Scatter(new[] { x0, s.EndCm }, new[] { lenY - band * 0.25, lenY - band * 0.25 });
+        chain.Color = ink; chain.LineWidth = 0.8f; chain.MarkerSize = 0;
+        VLine(s.Nozzles[0].StartCm, nTextBot, nTop, dashed: true);
+        foreach (var r in s.Nozzles) VLine(r.EndCm, nTextBot, nTop, dashed: true);
 
-        var n = nozzles[idx];
-        TryParseHexColor(n.ColorHex, out var col);
-        return ($"M{idx + 1}", col);
+        // COLOR — the line's real pigment, labelled with its hex code
+        double cTop = nTextBot - band * 0.25, cBot = cTop - band * 0.75;
+        Title("COLOR", (cTop + cBot) / 2);
+        foreach (var c in s.Colors)
+        {
+            TryParseHexColor(c.Hex, out var col);
+            Box(c.StartCm, c.EndCm, cBot, cTop, col, 0.8f);
+            if (c.EndCm - c.StartCm > len * 0.04)
+            {
+                double lum = (0.299 * col.R + 0.587 * col.G + 0.114 * col.B) / 255.0;
+                var lbl = plot.Add.Text($"#{c.Hex}", (c.StartCm + c.EndCm) / 2, (cTop + cBot) / 2);
+                lbl.LabelFontSize = fontSize * 0.85f; lbl.LabelFontColor = lum > 0.55 ? ink : ScottPlot.Colors.White;
+                lbl.LabelAlignment = ScottPlot.Alignment.MiddleCenter;
+                lbl.LabelBackgroundColor = ScottPlot.Colors.Transparent; lbl.LabelBorderWidth = 0;
+            }
+        }
+        return cBot;
     }
 
     /// <summary>

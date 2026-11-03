@@ -2196,20 +2196,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             ProjectSegments.Where(s => s.HasCompensation).SelectMany(s => s.CompSliceDensities),
             CurrentNozzlesForChart());
 
-    private (string Label, ScottColor Color) GetMaterialTag(double xAbsCm, double density) =>
-        ChartGeometry.GetMaterialTag(xAbsCm, density, CurrentZonesForChart(), CurrentNozzlesForChart());
-
-    private List<(double X, double Y)> GetMaterialZoneBoundaries(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetMaterialZoneBoundaries(ProjectSegments, sorted, CurrentTransitionTest());
-
-    private List<(double StartX, double EndX, double Density)> GetMaterialZoneSpans(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetMaterialZoneSpans(ProjectSegments, sorted, CurrentTransitionTest());
-
     private List<(double X, double Y)> GetTaperShapeBoundaries(List<(double X, double Y)> sorted) =>
         ChartGeometry.GetTaperShapeBoundaries(ProjectSegments, sorted);
-
-    private List<(double X, double Y)> GetManufacturingCheckpoints(List<(double X, double Y)> sorted) =>
-        ChartGeometry.GetManufacturingCheckpoints(ProjectSegments, sorted, CurrentTransitionTest());
 
     private List<(double X, double Y)> GetCompNodes() => ChartGeometry.GetCompNodes(ProjectSegments);
 
@@ -2315,59 +2303,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                             }
                         }
 
-                        // Legenda densità — solo i materiali realmente presenti, mai 4 tappe
-                        // interpolate fittizie (che con solo 2 densità reali mostravano anche due
-                        // valori intermedi inesistenti). Con zone reali, un'etichetta per ugello
-                        // davvero usato nel suo colore vero (quello con cui GetSliceColor dipinge
-                        // il profilo), non il gradiente arcobaleno; senza zone (compensazione
-                        // fisica pura), i soli valori di densità realmente presenti nelle slice.
-                        if (NozzleZones.Count > 0)
-                        {
-                            // M1 is the implicit base material everywhere no zone covers — it never
-                            // appears as a NozzleIndex in NozzleZones itself, so it must be added
-                            // unconditionally or the line's own "default" material goes unlisted.
-                            var usedIdx = NozzleZones.Select(z => z.NozzleIndex)
-                                .Append(0)
-                                .Distinct().OrderBy(i => i).ToList();
-                            foreach (int idx in usedIdx)
-                            {
-                                if (idx < 0 || idx >= Nozzles.Count) continue;
-                                var noz = Nozzles[idx];
-                                if (!TryParseHexColor(noz.ColorHex, out var col)) continue;
-                                var entry = plot.Add.Scatter(Array.Empty<double>(), Array.Empty<double>());
-                                entry.Color = col; entry.LineWidth = 8;
-                                entry.LegendText = noz.DensityGCm3 > 0
-                                    ? $"M{idx + 1}  ρ {noz.DensityGCm3:0.00#} g/cm³"
-                                    : $"M{idx + 1}";
-                            }
-                        }
-                        else
-                        {
-                            var distinctDens = new List<double>();
-                            foreach (var d in compSegs.SelectMany(s => s.CompSliceDensities)
-                                         .Where(d => d > 0).OrderBy(d => d))
-                                if (distinctDens.Count == 0 || d - distinctDens[^1] > 0.005) distinctDens.Add(d);
-                            foreach (var dens in distinctDens)
-                            {
-                                double t  = densRng > 1e-9 ? Math.Clamp((dens - minDens) / densRng, 0, 1) : 0.5;
-                                var entry = plot.Add.Scatter(Array.Empty<double>(), Array.Empty<double>());
-                                entry.Color = DensityColor(t); entry.LineWidth = 8;
-                                entry.LegendText = $"ρ {dens:0.00#} g/cm³";
-                            }
-                        }
+                        // No colour legend for the materials: nozzles are told apart by the NOZZLE
+                        // strip under the profile (pattern + density), and a C file's nozzles all
+                        // share the line's one colour — a legend of four identical swatches said nothing.
                     }
 
                     // Outline del profilo compensato sopra il gradiente
                     var ctl = plot.Add.Scatter(cxs, cyts);
                     // A zone-material design has no single target speed — each zone reaches its own
-                    ctl.LegendText = _inCompMode
-                        ? $"Comp. {_compTargetSpeedIns:0.00} in/s"
+                    // A loaded C file carries no target speed (it was baked away) — naming one here
+                    // showed whatever value happened to be left in memory.
+                    ctl.LegendText = _isCompensatedDerivative ? "Compensated profile"
+                        : _inCompMode ? $"Comp. {_compTargetSpeedIns:0.00} in/s"
                         : "Zone materials";
                     ctl.Color = designColor; ctl.LineWidth = 2.5f; ctl.MarkerSize = 0;
                     var cbl = plot.Add.Scatter(cxs, cybs);
                     cbl.Color = designColor; cbl.LineWidth = 2.5f; cbl.MarkerSize = 0;
 
-                    foreach (var n in GetManufacturingCheckpoints(cn))
+                    foreach (var n in GetTaperShapeBoundaries(cn))
                     {
                         var tick = plot.Add.Scatter(
                             new[] { n.X, n.X }, new[] { n.Y / 2.0, -n.Y / 2.0 });
@@ -2449,14 +2402,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // segment's shape.
             var compNodes = GetCompNodes();
 
-            // Nodi compensati + divider + etichette Ø/posizione — a EVERY manufacturing checkpoint
-            // (material changes AND taper-shape changes, see GetManufacturingCheckpoints; the two
-            // don't always coincide, so a producer needs the diameter/position at both, not just
-            // where the material changes). Not an arbitrary evenly-spaced sample of the fine ~1cm
-            // geometry — a design with a non-monotonic taper can revisit the same material more
-            // than once (e.g. a belly that thickens then thins again), so this is exactly the real
-            // structure of the taper, never a fixed "top N points" cutoff.
-            var labelNodes = GetManufacturingCheckpoints(compNodes);
+            // Ø/position labels, markers and dividers only where the SLOPE changes (taper
+            // boundaries, solid lines). Nozzle changes are a different event — they have their own
+            // dashed boundaries and length chain in the NOZZLE strip below (DrawProductionStrips),
+            // so a producer can never mistake one for the other.
+            var labelNodes = GetTaperShapeBoundaries(compNodes);
 
             double[] cnxs = labelNodes.Select(n => n.X).ToArray();
             double[] cnts = labelNodes.Select(n =>  n.Y / 2.0).ToArray();
@@ -2468,6 +2418,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             markersInner.Color = designColor.WithAlpha(0.85f); markersInner.LineWidth = 0;
             markersInner.MarkerSize = 5; markersInner.MarkerShape = MarkerShape.FilledCircle;
 
+            double lowestLabel = 0;
             for (int ni = 0; ni < labelNodes.Count; ni++)
             {
                 var node = labelNodes[ni];
@@ -2475,6 +2426,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 double gap = node.Y * 0.40;
                 double lx = node.X;
                 double ly = chartYBottom - gap * (ni % 2 == 0 ? 1.0 : 2.2);
+                lowestLabel = Math.Min(lowestLabel, ly);
 
                 var leaderColor = new ScottColor(100, 100, 100);
                 var leader = plot.Add.Scatter(
@@ -2492,7 +2444,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 lbl.LabelPadding = 3; lbl.OffsetX = 0; lbl.OffsetY = 0;
             }
 
-            // Linee divisorie — una per confine di zona reale (stesso elenco già calcolato sopra).
             var dividerColor  = new ScottColor(80, 80, 80);
             foreach (var node in labelNodes)
             {
@@ -2502,18 +2453,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 div.Color = dividerColor; div.LineWidth = 1.2f; div.MarkerSize = 0;
             }
 
-            // Etichette S1, S2… — SEMPRE e SOLO i tapers fisici reali (GetTaperShapeBoundaries),
-            // mai i cambi di colore/densità: è un principio mandatorio, non un'approssimazione.
-            // "S" identifica una forma di taper, non un materiale — i due non devono mai mescolarsi
-            // nella stessa etichetta, anche quando corrispondono numericamente sulla stessa linea.
-            var labelSorted   = GetTaperShapeBoundaries(compNodes);
+            // Etichette S — SEMPRE e SOLO i tapers fisici reali, col nome del segmento (lo stesso
+            // che usano la fascia TAPER e il PDF), mai i cambi di colore/densità.
             var segLabelColor = new ScottColor(40, 40, 40);
-            for (int si = 0; si < labelSorted.Count - 1; si++)
+            for (int si = 0; si < labelNodes.Count - 1; si++)
             {
-                double cx      = (labelSorted[si].X + labelSorted[si + 1].X) / 2.0;
+                double cx      = (labelNodes[si].X + labelNodes[si + 1].X) / 2.0;
                 double topAtCx = InterpolateProfileY(compNodes, cx) / 2.0;
                 double gap     = InterpolateProfileY(compNodes, cx) * 0.08;
-                var sl = plot.Add.Text($"S{si + 1}", cx, topAtCx + gap);
+                string name    = ProjectSegments.FirstOrDefault(sg => cx >= sg.StartCm && cx <= sg.EndCm)?.Name;
+                var sl = plot.Add.Text(string.IsNullOrWhiteSpace(name) ? $"S{si + 1}" : name, cx, topAtCx + gap);
                 sl.LabelFontSize = 15; sl.LabelBold = false;
                 sl.LabelFontColor       = segLabelColor;
                 sl.LabelAlignment       = Alignment.LowerCenter;
@@ -2522,39 +2471,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 sl.OffsetX = 0; sl.OffsetY = 0;
             }
 
-            // Quote di lunghezza — una catena continua sopra il profilo, a ogni punto di produzione
-            // (cambi di taper E cambi di materiale, gli stessi delle etichette Ø): con i soli
-            // confini dei taper un tratto di materiale non aveva la sua lunghezza.
+            // Quote di lunghezza sopra il profilo: solo i taper. Quelle degli ugelli sono nella
+            // fascia NOZZLE.
             ChartGeometry.DrawLengthDimensionChain(plot, labelNodes, compNodes, segLabelColor, 15f);
 
-            // Etichette "M{n}" per ogni zona di materiale — MAI "S" (vedi sopra): un badge col
-            // colore reale dell'ugello, centrato sulla zona, sul bordo del profilo. Standard
-            // separato dalle etichette S apposta, così i due concetti — forma del taper e
-            // materiale — non si mescolano mai visivamente. Densità/materiali e Sink Map sono
-            // mutuamente esclusivi anche nella legenda (vedi sopra) — questi badge sono la stessa
-            // informazione "materiale" in un'altra forma, quindi seguono la stessa regola: mai
-            // insieme al profilo colorato per velocità, altrimenti il badge mostra il colore reale
-            // dell'ugello sopra un profilo dipinto con un colore arcobaleno scollegato da esso.
+            // Production strips — TAPER / NOZZLE · DENSITY / COLOR under the Ø labels. They replace
+            // the M{n} badges that sat on the profile in the nozzle's colour: with four nozzles
+            // sharing one pigment that colour said nothing. Nozzle information is material, so it
+            // follows the same rule as the material colouring: never together with the Sink Map.
             if (!_showSinkSpeedMap)
             {
-                foreach (var span in GetMaterialZoneSpans(compNodes))
-                {
-                    if (double.IsNaN(span.Density)) continue; // a transition: no single material to tag
-                    double midX     = (span.StartX + span.EndX) / 2.0;
-                    double topAtMid = InterpolateProfileY(compNodes, midX) / 2.0;
-                    var (matLabel, matColor) = GetMaterialTag(midX, span.Density);
-                    double luminance = (0.299 * matColor.R + 0.587 * matColor.G + 0.114 * matColor.B) / 255.0;
-                    var textColor = luminance > 0.6 ? new ScottColor(20, 20, 20) : ScottPlot.Colors.White;
-
-                    var ml = plot.Add.Text(matLabel, midX, topAtMid);
-                    ml.LabelFontSize = 10; ml.LabelBold = true;
-                    ml.LabelFontColor       = textColor;
-                    ml.LabelBackgroundColor = matColor;
-                    ml.LabelBorderColor     = new ScottColor(30, 30, 30);
-                    ml.LabelBorderWidth     = 0.8f;
-                    ml.LabelAlignment       = Alignment.LowerCenter;
-                    ml.LabelPadding = 3; ml.OffsetX = 0; ml.OffsetY = 4;
-                }
+                double maxD = compNodes.Max(n => n.Y);
+                var schedule = ProductionSchedule.Build(ProjectSegments, compNodes,
+                    CurrentZonesForChart(), CurrentNozzlesForChart());
+                ChartGeometry.DrawProductionStrips(plot, schedule, lowestLabel - maxD * 0.45, maxD * 0.5, 11f, 8f);
             }
         }
     }
@@ -2732,11 +2662,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var isTransition = ChartGeometry.TransitionTest(sorted.Select(s => s.SpecWeightGCm3), CurrentNozzlesForChart());
         bool SameRow(double a, double b) =>
             isTransition(a) ? isTransition(b) : !isTransition(b) && Math.Abs(a - b) < 1e-6;
+        // A row never crosses a taper change or the head/running-line boundary either: its mass
+        // is a frustum between its two end diameters, which only holds within one taper.
+        bool SameGroup(ProjectSegment a, ProjectSegment b) =>
+            SameRow(a.SpecWeightGCm3, b.SpecWeightGCm3) && a.Name == b.Name && a.IsHead == b.IsHead;
         int i = 0, zoneIdx = 0;
         while (i < sorted.Count)
         {
             int j = i;
-            while (j + 1 < sorted.Count && SameRow(sorted[i].SpecWeightGCm3, sorted[j + 1].SpecWeightGCm3))
+            while (j + 1 < sorted.Count && SameGroup(sorted[i], sorted[j + 1]))
                 j++;
 
             var first = sorted[i]; var last = sorted[j];
@@ -2765,7 +2699,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 new[] { 0.0, last.EndCm - first.StartCm },
                 new[] { first.StartDiameterMm, last.EndDiameterMm },
                 new[] { rho, rho },
-                new[] { false, false }, speed);
+                new[] { false, false }, speed, first.StartDiameterMm, last.EndDiameterMm);
 
             DisplaySegments.Add(zone);
             i = j + 1;
@@ -3208,7 +3142,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 new[] { seg.StartDiameterMm, seg.EndDiameterMm },
                 new[] { seg.SpecWeightGCm3, seg.SpecWeightGCm3 },
                 new[] { false, false },
-                speed);
+                speed, seg.StartDiameterMm, seg.EndDiameterMm); // exact ends, never extrapolated
         }
     }
 
@@ -3984,7 +3918,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// legend than the geometry really uses (see QuantizeCompensationToRealMaterials, the only
     /// place that decides how many/which materials exist; called right before this by
     /// WriteCompensatedFile, so CompSliceDensities is already the final, real, ≤4-value set here).
-    /// Colors and labels are auto-generated from the same density-to-hue map used in the chart.
+    /// Every nozzle gets the line's own colour (see below); labels are auto-generated from the density.
     /// </summary>
     private void SyncNozzleDensitiesFromComp()
     {
@@ -4011,14 +3945,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         _ncNozzleSnapshotTaken = true;
 
-        double minD = qDens[0];
-        double rng  = qDens[qDens.Length - 1] - minD;
+        // One pigment for every nozzle: the line's own colour (the NC design's M1, snapshotted
+        // just above). Four nozzles spent on four densities leave none for a colour change — "4
+        // ugelli = 4 densità ⇒ colore unico". The old blue→red density gradient painted a
+        // single-colour line as four colours that exist nowhere; the design sheet now tells
+        // nozzles apart by pattern (NozzlePattern), never by colour.
+        string lineColor = _ncNozzleColors[0];
 
         for (int i = 0; i < qDens.Length && i < 4; i++)
         {
-            double t   = rng > 0 ? (qDens[i] - minD) / rng : 0.5;
-            var    col = DensityColor(t);
-            Nozzles[i].ColorHex    = $"{col.R:X2}{col.G:X2}{col.B:X2}";
+            Nozzles[i].ColorHex    = lineColor;
             // Full precision, never rounded: the slices carry these exact values, and an exact
             // match is how a material is told from a transition ramp (ChartGeometry.TransitionTest).
             // At 2 decimals two materials 0.005 g/cm³ apart even collapsed to one value.
@@ -4924,7 +4860,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // DisplaySegments — grouped into material zones for a loaded compensated snapshot, so
             // the PDF table shows the handful of real materials a producer needs, not one row per
             // ~1cm slice. Identical to ProjectSegments for a normal design (see RefreshDisplaySegments).
-            FlyLinePdfExporter.Export(dlg.FileName, _projectName, chartBytes, DisplaySegments.ToList(),
+            // A compensated export computes everything (taper table, nozzle table, masses, head)
+            // from the full-precision slices: a grouped DisplaySegments row spans several tapers,
+            // and its two end diameters alone lost the belly in between — the head and total
+            // weight of every C sheet came out wrong that way.
+            FlyLinePdfExporter.Export(dlg.FileName, _projectName, chartBytes,
+                exportComp ? ProjectSegments.ToList() : DisplaySegments.ToList(),
                 _lineType, _isFullLine, _waterIsSalt, _waterTempC, AfftaBadge, _colorNote,
                 pdfNozzleDefs, pdfNozzleZones, designHex,
                 _showCore ? _coreType : string.Empty,
@@ -5920,6 +5861,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 "A target-speed compensation re-solves the whole line from the base material (M1) " +
                 "and the drawn diameters, so the zone materials will NOT appear in the C file.\n\n" +
                 "Continue anyway?",
+                title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (proceed != MessageBoxResult.Yes) return;
+        }
+
+        // Every nozzle is one compound (density + colour). The compensation spends all four on
+        // density, so the C line has one colour only — M1's. A colour-only zone (same density,
+        // other pigment) cannot survive; say so instead of silently dropping it.
+        var colorZones = NozzleZones
+            .Where(z => z.EndCm > z.StartCm && z.NozzleIndex > 0 && z.NozzleIndex < Nozzles.Count
+                        && !string.Equals(Nozzles[z.NozzleIndex].ColorHex, Nozzles[0].ColorHex, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (colorZones.Count > 0)
+        {
+            string list = string.Join("\n", colorZones.Select(z =>
+                $"  • M{z.NozzleIndex + 1} #{Nozzles[z.NozzleIndex].ColorHex.ToUpperInvariant()}  {z.StartCm:0}–{z.EndCm:0} cm"));
+            var proceed = MessageBox.Show(
+                "This design has color zones:\n" + list + "\n\n" +
+                "A compensated line uses all 4 nozzles for density, so it can only have one color: " +
+                $"the whole C line will be #{Nozzles[0].ColorHex.ToUpperInvariant()} (M1).\n\nContinue anyway?",
                 title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
             if (proceed != MessageBoxResult.Yes) return;
         }

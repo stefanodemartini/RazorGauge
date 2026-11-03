@@ -66,6 +66,7 @@ public static class ChartRenderer
         var baseNodes   = pdfUseComp ? GetCompNodes(segments) : input.DesignNodes.OrderBy(n => n.X).ToList();
 
         double pdfLabelYMin = 0, pdfLabelYMax = 0;
+        double? stripsBottom = null;
 
         if (baseNodes.Count >= 2)
         {
@@ -157,11 +158,11 @@ public static class ChartRenderer
             double dataPerPxX = (xSpan * 1.15) / 3000.0;
             double yEstSpan   = maxDiam + 2 * rowGap * (1.6 + 3 * 1.2);
             double dataPerPxY = yEstSpan / 480.0;
-            // Comp mode: every manufacturing checkpoint (material AND taper-shape changes), not
-            // every fine ~1cm node — a loaded C snapshot has hundreds of those, which would turn
-            // this into hundreds of Ø/position callouts.
+            // Comp mode: the taper (slope) changes only, not every fine ~1cm node — a loaded C
+            // snapshot has hundreds of those. Nozzle changes have their own dashed boundaries and
+            // length chain in the NOZZLE strip under the chart: the two must never be confused.
             var labelNodes = (pdfUseComp && sorted.Count > 1)
-                ? GetManufacturingCheckpoints(segments, sorted, isTransition)
+                ? GetTaperShapeBoundaries(segments, sorted)
                 : sorted;
 
             var placedBoxes = new List<(double X1, double Y1, double X2, double Y2)>();
@@ -268,33 +269,17 @@ public static class ChartRenderer
                     sl.OffsetY              = 0;
                 }
 
-                // Quote di lunghezza — una catena continua sopra il profilo, a ogni punto di
-                // produzione (cambi di taper E cambi di materiale, gli stessi delle etichette Ø):
-                // con i soli confini dei taper un tratto di materiale non aveva la sua lunghezza.
-                DrawLengthDimensionChain(plot, labelNodes, sorted, segLabelColor, pdfLblSize - 2);
+                // Quote di lunghezza — la catena sopra il profilo è solo dei taper (linee continue);
+                // i cambi di ugello hanno la loro catena nella fascia NOZZLE sotto il grafico.
+                DrawLengthDimensionChain(plot, taperBounds, sorted, segLabelColor, pdfLblSize - 2);
 
-                // Etichette "M{n}" per ogni zona di materiale — mai "S", stesso standard del
-                // grafico a schermo: un badge col colore reale dell'ugello, sul bordo del profilo.
-                foreach (var span in GetMaterialZoneSpans(segments, sorted, isTransition))
-                {
-                    if (double.IsNaN(span.Density)) continue; // a transition: no single material to tag
-                    double midX     = (span.StartX + span.EndX) / 2.0;
-                    double topAtMid = InterpolateProfileY(sorted, midX) / 2.0;
-                    var (matLabel, matColor) = GetMaterialTag(midX, span.Density, zones, nozzles);
-                    double luminance = (0.299 * matColor.R + 0.587 * matColor.G + 0.114 * matColor.B) / 255.0;
-                    var textColor = luminance > 0.6 ? new ScottColor(20, 20, 20) : ScottPlot.Colors.White;
-
-                    var ml = plot.Add.Text(matLabel, midX, topAtMid);
-                    ml.LabelFontSize        = pdfLblSize - 3;
-                    ml.LabelBold            = true;
-                    ml.LabelFontColor       = textColor;
-                    ml.LabelBackgroundColor = matColor;
-                    ml.LabelBorderColor     = new ScottColor(30, 30, 30);
-                    ml.LabelBorderWidth     = 0.8f;
-                    ml.LabelAlignment       = ScottPlot.Alignment.LowerCenter;
-                    ml.LabelPadding         = 3;
-                    ml.OffsetX = 0; ml.OffsetY = 4;
-                }
+                // Production strips — TAPER / NOZZLE · DENSITY / COLOR, under the Ø labels. They
+                // replace the M{n} badges that used to sit on the profile: a nozzle is a material,
+                // not a colour, and its badge in the nozzle's colour said nothing when all four
+                // nozzles share one pigment.
+                var schedule = ProductionSchedule.Build(segments, sorted, zones, nozzles);
+                double stripTop = pdfLabelYMin - maxDiam * 0.30;
+                stripsBottom = DrawProductionStrips(plot, schedule, stripTop, maxDiam * 0.7, pdfLblSize + 6, 11f);
             }
             else
             {
@@ -334,8 +319,14 @@ public static class ChartRenderer
         // (label anchors tracked while placing them; extra margin for text height)
         double yBot = Math.Min(lim.Bottom, pdfLabelYMin - yRange * 0.10);
         double yTop = Math.Max(lim.Top,    pdfLabelYMax + yRange * 0.10);
+        // The label placement above assumes ~600 px for the profile and its labels; the strips
+        // add height below, so the image grows by the same proportion instead of squashing them.
+        double labelsRange = (yTop - yBot) * 1.10;
+        if (stripsBottom is double sb) yBot = Math.Min(yBot, sb - yRange * 0.02);
+        double finalRange = (yTop - yBot) * 1.10;
         plot.Axes.SetLimitsY(yBot - yRange * 0.05, yTop + yRange * 0.05);
 
-        return plot.GetImage(3200, 600).GetImageBytes(ScottPlot.ImageFormat.Png);
+        int height = (int)Math.Clamp(600 * finalRange / labelsRange, 600, 1150);
+        return plot.GetImage(3200, height).GetImageBytes(ScottPlot.ImageFormat.Png);
     }
 }
