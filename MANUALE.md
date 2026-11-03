@@ -631,6 +631,14 @@ stili di linea sotto, schede ugello (motivo + densità + colore) e **due tabelle
 2. **NOZZLES** — solo materiale: ugello o transizione `M3→M2`, da/a, lunghezza, densità, colore,
    massa, velocità; totale di massa uguale a quello del piè di pagina
 
+**Lingua del PDF**: in "📄 Export PDF", nel menu *Tipo file* della finestra Salva si sceglie
+*PDF — English*, *PDF — 中文* (cinese semplificato) o *PDF — English + 中文* (bilingue: il cinese
+sotto l'inglese; nelle celle delle tabelle sulla stessa riga). L'ultima scelta viene ricordata.
+Cambia solo il PDF, l'app resta in inglese. Numeri, unità, codici colore, M1–M4, S1–S10 non
+cambiano; note e laser mark escono come scritti. Per i caratteri cinesi si usa Microsoft YaHei
+(presente in Windows). Da CLI: `flyline pdf <file> --lang zh` (oppure `en`, `en+zh`).
+La traduzione dei termini tecnici è una prima stesura: va fatta rivedere dal produttore.
+
 Massa e testa del PDF vengono calcolate dalle fette a piena precisione: le righe raggruppate della
 tabella Segments (una per tratto di materiale **e** di taper) servono solo a schermo.
 

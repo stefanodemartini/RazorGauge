@@ -240,9 +240,16 @@ public static class FlyLinePdfExporter
         double? coreDiameterMm = null,
         string laserMark = "",
         bool showCompensation = false,
-        string compensationNote = "")
+        string compensationNote = "",
+        SheetLanguage language = SheetLanguage.English)
     {
         QuestPDF.Settings.License = LicenseType.Community;
+
+        // Every fixed word on the sheet goes through these (SheetText): T for blocks (bilingual =
+        // Chinese on its own line), Ti for short table values (bilingual = one line).
+        string T(string en, params object[] a)  => SheetText.T(language, en, a);
+        string Ti(string en, params object[] a) => SheetText.Ti(language, en, a);
+        string Hdr2(string en, string unit) => $"{T(en)}\n{unit}";
 
         // ── Chart image passed in pre-rendered ──────────────────────────────
         byte[] chartBytes = chartImageBytes;
@@ -288,9 +295,9 @@ public static class FlyLinePdfExporter
         double headLenMm    = headSegs.Count > 0
             ? (headSegs[^1].EndCm - headSegs[0].StartCm) * 10.0 : 0;
 
-        string lineType   = lineClass.ToLabel();
-        string lineFormat = isFullLine ? "Full Line"  : "Shooting Head";
-        string water      = isSalt     ? "Salt water" : "Fresh water";
+        string lineType   = Ti(lineClass.ToLabel());
+        string lineFormat = Ti(isFullLine ? "Full Line"  : "Shooting Head");
+        string water      = Ti(isSalt     ? "Salt water" : "Fresh water");
 
         // Real per-segment compensated sink speeds — a uniform physics compensation gives every
         // segment the same value; a zone-derived profile gives each its own (see task 10).
@@ -301,7 +308,7 @@ public static class FlyLinePdfExporter
         bool   uniformCompSpeed = compSpeedsIns.Count > 0 && (compSpeedsIns.Max() - compSpeedsIns.Min()) < 0.001;
         string targetSinkText   = compSpeedsIns.Count == 0 ? "—"
             : uniformCompSpeed  ? $"{compSpeedsIns[0]:0.000} in/s"
-                                 : $"{compSpeedsIns.Min():0.000}–{compSpeedsIns.Max():0.000} in/s (per zone)";
+                                 : $"{compSpeedsIns.Min():0.000}–{compSpeedsIns.Max():0.000} in/s " + Ti("(per zone)");
 
         // Density range — use compensated slice densities when exporting a compensated profile
         string densityRange;
@@ -330,23 +337,23 @@ public static class FlyLinePdfExporter
         string changeNote;
         if (showCompensation)
         {
-            dimNote    = "All dimensions are in millimeters. Diameters shown are compensated values.";
+            dimNote    = T("All dimensions are in millimeters. Diameters shown are compensated values.");
             weightNote = uniformCompSpeed
-                ? $"Compensated profile — uniform sink speed {compSpeedsIns[0]:0.00} in/s. " +
-                  $"Density varies along the line ({densityRange}) — each zone must be produced at the exact specified density."
+                ? T("Compensated profile — uniform sink speed {0} in/s. Density varies along the line ({1}) — each zone must be produced at the exact specified density.",
+                    $"{compSpeedsIns[0]:0.00}", densityRange)
                 : compSpeedsIns.Count > 0
-                    ? $"Multi-material profile — each zone sinks at its own speed (see table). " +
-                      $"Density varies along the line ({densityRange}) — each zone must be produced at the exact specified density."
-                    : $"Compensated profile. Density varies along the line ({densityRange}).";
-            changeNote = "Do not alter diameters. Each section must be manufactured at the exact density shown — the density is calculated and fixed.";
+                    ? T("Multi-material profile — each zone sinks at its own speed (see table). Density varies along the line ({0}) — each zone must be produced at the exact specified density.",
+                        densityRange)
+                    : T("Compensated profile. Density varies along the line ({0}).", densityRange);
+            changeNote = T("Do not alter diameters. Each section must be manufactured at the exact density shown — the density is calculated and fixed.");
         }
         else
         {
-            dimNote    = "All dimensions are in millimeters, unless otherwise indicated.";
+            dimNote    = T("All dimensions are in millimeters, unless otherwise indicated.");
             weightNote = headMassGr > 0
-                ? $"With diameters indicated and target weight the density of the line is {densityRange}."
-                : $"Line density: {densityRange}.";
-            changeNote = "Do not change length and diameters of segments.";
+                ? T("With diameters indicated and target weight the density of the line is {0}.", densityRange)
+                : T("Line density: {0}.", densityRange);
+            changeNote = T("Do not change length and diameters of segments.");
         }
 
         // ── Production schedule (C): shape, nozzles and color kept apart ───────
@@ -430,16 +437,18 @@ public static class FlyLinePdfExporter
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(14);
                 page.PageColor(BgPage);
-                page.DefaultTextStyle(x => x.FontFamily("Arial").FontColor(ColText).FontSize(7.5f));
+                // Arial has no Chinese glyphs: Microsoft YaHei (shipped with Windows) fills them in.
+                page.DefaultTextStyle(x => (language == SheetLanguage.English
+                        ? x.FontFamily("Arial") : x.FontFamily("Arial", "Microsoft YaHei"))
+                    .FontColor(ColText).FontSize(7.5f));
 
                 page.Content().Column(col =>
                 {
                     col.Spacing(4);
 
                     // ── Confidentiality header ─────────────────────────────
-                    col.Item().Text(
-                        "This document and its contents are the property of the designer. " +
-                        "All dimensions are confidential and must not be disclosed without written consent.")
+                    col.Item().Text(T(
+                        "This document and its contents are the property of the designer. All dimensions are confidential and must not be disclosed without written consent."))
                         .FontSize(6.5f).FontColor(ColMuted).Italic();
 
                     col.Item().LineHorizontal(0.5f).LineColor(ColBorder);
@@ -462,7 +471,7 @@ public static class FlyLinePdfExporter
                         {
                             tc.Item().Text(projectName)
                                 .FontSize(16).Bold().FontColor(ColText).AlignCenter();
-                            tc.Item().Text(showCompensation ? "C  —  Compensated profile" : "NC  —  Original profile")
+                            tc.Item().Text((showCompensation ? "C  —  " : "NC  —  ") + Ti(showCompensation ? "Compensated profile" : "Original profile"))
                                 .FontSize(7.5f).FontColor(ColMuted).Italic().AlignCenter();
                         });
 
@@ -497,18 +506,18 @@ public static class FlyLinePdfExporter
                                 c.Item().PaddingRight(3).Text(value).FontSize(7.5f).Bold().FontColor(valColor);
                             });
                         }
-                        SpecBlock("Type",          lineType,      ColText);
-                        SpecBlock("Format",        lineFormat,    ColText);
-                        SpecBlock("Density",       densityRange,  ColAccent);
-                        SpecBlock("Total length",  $"{totalLenMm / 10.0:0} cm ({totalLenMm / 304.8:0.0} ft)", ColText);
-                        SpecBlock("Head length",   headLenMm > 0 ? $"{headLenMm / 10.0:0} cm ({headLenMm / 304.8:0.0} ft)" : "—", ColText);
+                        SpecBlock(T("Type"),          lineType,      ColText);
+                        SpecBlock(T("Format"),        lineFormat,    ColText);
+                        SpecBlock(T("Density"),       densityRange,  ColAccent);
+                        SpecBlock(T("Total length"),  $"{totalLenMm / 10.0:0} cm ({totalLenMm / 304.8:0.0} ft)", ColText);
+                        SpecBlock(T("Head length"),   headLenMm > 0 ? $"{headLenMm / 10.0:0} cm ({headLenMm / 304.8:0.0} ft)" : "—", ColText);
                         if (!showCompensation)
                         {
-                            SpecBlock("Head weight",  headMassGr > 0 ? $"{headMassGr:0.0} gr" : "—", ColAccent2);
-                            SpecBlock("Total weight", totalMassGr > 0 ? $"{totalMassGr:0.0} gr" : "—", ColText);
+                            SpecBlock(T("Head weight"),  headMassGr > 0 ? $"{headMassGr:0.0} gr" : "—", ColAccent2);
+                            SpecBlock(T("Total weight"), totalMassGr > 0 ? $"{totalMassGr:0.0} gr" : "—", ColText);
                             var (comPct, rgPct, _) = ComputeMassCentroid(headSegs);
-                            SpecBlock("CoM (head)", comPct >= 0 ? $"{comPct:0.0}% · Rg {rgPct:0.0}%" : "—", ColAccent);
-                            SpecBlock("Character",  ClassifyCom(comPct), ColText);
+                            SpecBlock(T("CoM (head)"), comPct >= 0 ? $"{comPct:0.0}% · Rg {rgPct:0.0}%" : "—", ColAccent);
+                            SpecBlock(T("Character"),  Ti(ClassifyCom(comPct)), ColText);
                             string afftaValue = afftaBadge.StartsWith("AFFTA", StringComparison.OrdinalIgnoreCase)
                                 ? afftaBadge.Substring(5).TrimStart()
                                 : afftaBadge;
@@ -516,11 +525,11 @@ public static class FlyLinePdfExporter
                         }
                         else
                         {
-                            SpecBlock("Target sink",  targetSinkText, ColAccent2);
-                            SpecBlock("Water",        water,  ColText);
-                            SpecBlock("Type",         uniformCompSpeed ? "Compensated — uniform sink" : "Multi-material — per-zone sink",  ColAccent);
+                            SpecBlock(T("Target sink"),  targetSinkText, ColAccent2);
+                            SpecBlock(T("Water"),        water,  ColText);
+                            SpecBlock(T("Type"),         Ti(uniformCompSpeed ? "Compensated — uniform sink" : "Multi-material — per-zone sink"),  ColAccent);
                             if (hasClampedSection)
-                                SpecBlock("Warning", "⚠ sections at ρ min (0.94)", ColRed);
+                                SpecBlock(T("Warning"), Ti("⚠ sections at ρ min (0.94)"), ColRed);
                         }
                     });
 
@@ -531,16 +540,17 @@ public static class FlyLinePdfExporter
                         var usedNozzles = schedule.Nozzles.Where(r => !r.IsTransition)
                             .Select(r => r.Nozzle).Distinct().OrderBy(i => i).ToList();
                         var trans = schedule.Nozzles.Where(r => r.IsTransition).ToList();
+                        string nozzleList = string.Join(", ", usedNozzles.Select(i => $"M{i + 1}"));
                         string nozzlesText = usedNozzles.Count <= 1
-                            ? "One nozzle (M1) over the whole line — single density."
-                            : $"{usedNozzles.Count} nozzles ({string.Join(", ", usedNozzles.Select(i => $"M{i + 1}"))}), " +
-                              (trans.Count > 0
-                                  ? $"{trans.Count} linear density transitions of {trans.Max(t => t.LengthCm):0} cm. "
-                                  : "no transitions. ") +
-                              "Boundaries drawn dashed.";
+                            ? T("One nozzle (M1) over the whole line — single density.")
+                            : trans.Count > 0
+                                ? T("{0} nozzles ({1}), {2} linear density transitions of {3} cm. Boundaries drawn dashed.",
+                                    usedNozzles.Count, nozzleList, trans.Count, $"{trans.Max(t => t.LengthCm):0}")
+                                : T("{0} nozzles ({1}), no transitions. Boundaries drawn dashed.", usedNozzles.Count, nozzleList);
                         string colorText = schedule.Colors.Count == 1
-                            ? $"#{schedule.Colors[0].Hex} over the whole line" +
-                              (usedNozzles.Count > 1 ? " — the nozzles differ in density only." : ".")
+                            ? (usedNozzles.Count > 1
+                                ? T("{0} over the whole line — the nozzles differ in density only.", $"#{schedule.Colors[0].Hex}")
+                                : T("{0} over the whole line.", $"#{schedule.Colors[0].Hex}"))
                             : string.Join("  ·  ", schedule.Colors.Select(c => $"#{c.Hex} {c.StartCm:0}–{c.EndCm:0} cm"));
                         col.Item().Background(C("F7F8FA")).Border(0.5f).BorderColor(ColBorder)
                             .PaddingVertical(3).PaddingHorizontal(6).Row(sr =>
@@ -550,9 +560,9 @@ public static class FlyLinePdfExporter
                                 fc.Item().Text(head).FontSize(7f).Bold().FontColor(ColText);
                                 fc.Item().Text(text).FontSize(7f).FontColor(ColText);
                             });
-                            Fact("SHAPE", $"{schedule.Tapers.Count} taper sections (S). Slope changes drawn as solid lines.");
-                            Fact("NOZZLES · DENSITY", nozzlesText);
-                            Fact("COLOR", colorText);
+                            Fact(Ti("SHAPE"), T("{0} taper sections (S). Slope changes drawn as solid lines.", schedule.Tapers.Count));
+                            Fact(Ti("NOZZLES · DENSITY"), nozzlesText);
+                            Fact(Ti("COLOR"), colorText);
                         });
                     }
 
@@ -568,15 +578,15 @@ public static class FlyLinePdfExporter
                         string lineHex = schedule.Colors[0].Hex;
                         col.Item().PaddingHorizontal(6).Row(lr =>
                         {
-                            lr.AutoItem().AlignMiddle().Text("━━  slope change (taper S)").FontSize(7f).FontColor(ColText);
+                            lr.AutoItem().AlignMiddle().Text("━━  " + Ti("slope change (taper S)")).FontSize(7f).FontColor(ColText);
                             lr.ConstantItem(24);
-                            lr.AutoItem().AlignMiddle().Text("┄┄  nozzle change (density M)").FontSize(7f).FontColor(ColText);
+                            lr.AutoItem().AlignMiddle().Text("┄┄  " + Ti("nozzle change (density M)")).FontSize(7f).FontColor(ColText);
                             lr.ConstantItem(24);
                             lr.ConstantItem(22).AlignMiddle().Height(8).Image(transSwatch).FitArea();
-                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text("linear density transition").FontSize(7f).FontColor(ColText);
+                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text(Ti("linear density transition")).FontSize(7f).FontColor(ColText);
                             lr.ConstantItem(24);
                             lr.ConstantItem(22).AlignMiddle().Height(8).Border(0.5f).BorderColor(ColText).Background(C(lineHex));
-                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text("the profile is drawn in the real line color only").FontSize(7f).FontColor(ColText);
+                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text(Ti("the profile is drawn in the real line color only")).FontSize(7f).FontColor(ColText);
                         });
                     }
 
@@ -618,7 +628,7 @@ public static class FlyLinePdfExporter
                             var singleDef = hasNozzles
                                 ? nozzleDefinitions![0]
                                 : new NozzleDefinition { ColorHex = designColorHex.TrimStart('#'), DensityGCm3 = 0, Label = "" };
-                            entries.Add((0, singleDef, "full line"));
+                            entries.Add((0, singleDef, Ti("full line")));
                         }
 
                         col.Item().Background(C("F7F8FA"))
@@ -626,7 +636,7 @@ public static class FlyLinePdfExporter
                             .PaddingVertical(3).PaddingHorizontal(5).Column(legCol =>
                         {
                             legCol.Item().AlignCenter()
-                                .Text("Materials").FontSize(6.5f).Bold().FontColor(ColMuted);
+                                .Text(Ti("Materials")).FontSize(6.5f).Bold().FontColor(ColMuted);
                             legCol.Item().PaddingTop(3).Row(legRow =>
                             {
                                 foreach (var (origIdx, nd, zoneRange) in entries)
@@ -671,7 +681,7 @@ public static class FlyLinePdfExporter
                                         .Background(C("E4E5EA"))
                                         .PaddingVertical(2).PaddingHorizontal(5).Column(sCol =>
                                     {
-                                        sCol.Item().Text("Core")
+                                        sCol.Item().Text(Ti("Core"))
                                             .FontSize(6f).Bold().FontColor(ColMuted).AlignCenter();
                                         sCol.Item().PaddingTop(2).Text(coreType)
                                             .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
@@ -693,7 +703,7 @@ public static class FlyLinePdfExporter
                             .PaddingVertical(3).PaddingHorizontal(5).Column(legCol =>
                         {
                             legCol.Item().AlignCenter()
-                                .Text(schedule != null ? "Nozzles — each nozzle is one compound: density + color" : "Materials")
+                                .Text(Ti(schedule != null ? "Nozzles — each nozzle is one compound: density + color" : "Materials"))
                                 .FontSize(6.5f).Bold().FontColor(ColMuted);
                             legCol.Item().PaddingTop(3).Row(legRow =>
                             {
@@ -735,7 +745,7 @@ public static class FlyLinePdfExporter
                                                         .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
                                                 sCol.Item().PaddingTop(2).AlignCenter().Width(26).Height(6)
                                                     .Border(0.5f).BorderColor(ColText).Background(swatchColor);
-                                                sCol.Item().Width(56).Text($"color #{hex.ToUpper()}")
+                                                sCol.Item().Width(56).Text($"{Ti("color")} #{hex.ToUpper()}")
                                                     .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
                                                 return;
                                             }
@@ -763,7 +773,7 @@ public static class FlyLinePdfExporter
                                         .Background(C("E4E5EA"))
                                         .PaddingVertical(2).PaddingHorizontal(5).Column(sCol =>
                                     {
-                                        sCol.Item().Text("Core")
+                                        sCol.Item().Text(Ti("Core"))
                                             .FontSize(6f).Bold().FontColor(ColMuted).AlignCenter();
                                         sCol.Item().PaddingTop(2).Text(coreType)
                                             .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
@@ -785,8 +795,8 @@ public static class FlyLinePdfExporter
                             .Border(0.5f).BorderColor(C("5BAD8A"))
                             .Padding(4).Text(t =>
                             {
-                                t.Span("Compensated profile:  ").FontSize(7.5f).Bold().FontColor(C("0F6B50"));
-                                t.Span(compensationNote).FontSize(7.5f).FontColor(ColText);
+                                t.Span(Ti("Compensated profile:") + "  ").FontSize(7.5f).Bold().FontColor(C("0F6B50"));
+                                t.Span(compensationNote).FontSize(7.5f).FontColor(ColText); // already in the sheet's language (SheetText.CompNote)
                             });
                     }
 
@@ -891,7 +901,7 @@ public static class FlyLinePdfExporter
                                 // to 13 bands, more than one row of the sheet holds — they wrap instead.
                                 dr.Spacing(6); dr.VerticalSpacing(3);
                                 dr.Item().AlignMiddle()
-                                    .Text("Density zones  ").FontSize(6.5f).Bold().FontColor(ColMuted);
+                                    .Text(Ti("Density zones") + "  ").FontSize(6.5f).Bold().FontColor(ColMuted);
                                 for (int bi = 0; bi < bands.Count; bi++)
                                 {
                                     var (startMm, endMm, mat, dens) = bands[bi];
@@ -939,7 +949,7 @@ public static class FlyLinePdfExporter
                             .Border(0.5f).BorderColor(C("9DBEDC"))
                             .Padding(5).Text(t =>
                             {
-                                t.Span("Laser mark:  ").FontSize(7.5f).FontColor(ColMuted).Bold();
+                                t.Span(Ti("Laser mark:") + "  ").FontSize(7.5f).FontColor(ColMuted).Bold();
                                 t.Span(laserMark).FontSize(8.5f).Bold().FontColor(C("2A5E8C"));
                             });
                     }
@@ -959,7 +969,7 @@ public static class FlyLinePdfExporter
                             {
                                 // Line, not Span: a Span would leave the first note line running on
                                 // straight after the label, with no break between them.
-                                t.Line("Note").FontSize(7.5f).FontColor(ColMuted).Bold();
+                                t.Line(Ti("Note")).FontSize(7.5f).FontColor(ColMuted).Bold();
                                 foreach (string lineText in noteLines)
                                     t.Line(lineText).FontSize(8.5f).Bold().FontColor(C("B87D20"));
                             });
@@ -987,10 +997,10 @@ public static class FlyLinePdfExporter
                             {
                                 // The title lives in the header so it never ends up alone at the
                                 // bottom of a page, and repeats if the table continues overleaf.
-                                h.Cell().ColumnSpan(8).PaddingBottom(2).Text("1 · TAPER — shape only (no density here)")
+                                h.Cell().ColumnSpan(8).PaddingBottom(2).Text(Ti("1 · TAPER — shape only (no density here)"))
                                     .FontSize(8).Bold().FontColor(ColText);
-                                foreach (var t in new[] { "Taper", "Start\nmm", "End\nmm", "Length\nmm",
-                                                          "Ø start\nmm", "Ø end\nmm", "Slope\nmm/m", "Section" })
+                                foreach (var t in new[] { T("Taper"), Hdr2("Start", "mm"), Hdr2("End", "mm"), Hdr2("Length", "mm"),
+                                                          Hdr2("Ø start", "mm"), Hdr2("Ø end", "mm"), Hdr2("Slope", "mm/m"), T("Section") })
                                     h.Cell().Element(THdr).Text(t).FontSize(6.5f).Bold().FontColor(ColAccent);
                             });
                             for (int i = 0; i < schedule.Tapers.Count; i++)
@@ -1011,7 +1021,7 @@ public static class FlyLinePdfExporter
                                 TC($"{t.StartCm * 10:0}"); TC($"{t.EndCm * 10:0}"); TC($"{t.LengthCm * 10:0}");
                                 TC($"{t.StartDiamMm:0.00}"); TC($"{t.EndDiamMm:0.00}");
                                 TC(Math.Abs(slope) < 0.005 ? "—" : $"{slope:+0.00;-0.00}");
-                                TC(head ? "HEAD" : "RUN", head ? ColAccent : ColMuted);
+                                TC(Ti(head ? "HEAD" : "RUN"), head ? ColAccent : ColMuted);
                             }
                         });
 
@@ -1029,10 +1039,10 @@ public static class FlyLinePdfExporter
                             });
                             table.Header(h =>
                             {
-                                h.Cell().ColumnSpan(11).PaddingBottom(2).Text("2 · NOZZLES — material along the line (the shape is in table 1)")
+                                h.Cell().ColumnSpan(11).PaddingBottom(2).Text(Ti("2 · NOZZLES — material along the line (the shape is in table 1)"))
                                     .FontSize(8).Bold().FontColor(ColText);
-                                foreach (var t in new[] { "", "Nozzle", "From\nmm", "To\nmm", "Length\nmm", "ρ\ng/cm³",
-                                                          "Kind", "Color", "Mass\ng", "Mass\ngr", "Sink\nin/s" })
+                                foreach (var t in new[] { "", T("Nozzle"), Hdr2("From", "mm"), Hdr2("To", "mm"), Hdr2("Length", "mm"), "ρ\ng/cm³",
+                                                          T("Kind"), T("Color"), Hdr2("Mass", "g"), Hdr2("Mass", "gr"), Hdr2("Sink", "in/s") })
                                     h.Cell().Element(THdr).Text(t).FontSize(6.5f).Bold().FontColor(ColAccent);
                             });
                             for (int i = 0; i < schedule.Nozzles.Count; i++)
@@ -1051,7 +1061,7 @@ public static class FlyLinePdfExporter
                                 NC(ProductionSchedule.Label(r), true, r.IsTransition ? (PdfColor?)ColMuted : null);
                                 NC($"{r.StartCm * 10:0}"); NC($"{r.EndCm * 10:0}"); NC($"{r.LengthCm * 10:0}");
                                 NC(ProductionSchedule.DensityText(r));
-                                NC(r.IsTransition ? "linear transition" : "full material", false, r.IsTransition ? (PdfColor?)ColMuted : null);
+                                NC(Ti(r.IsTransition ? "linear transition" : "full material"), false, r.IsTransition ? (PdfColor?)ColMuted : null);
                                 var cols = schedule.Colors.Where(c => c.StartCm < r.EndCm && c.EndCm > r.StartCm).Select(c => "#" + c.Hex);
                                 NC(string.Join(" · ", cols));
                                 double m = nozzleRunMassG[i];
@@ -1063,7 +1073,7 @@ public static class FlyLinePdfExporter
                                 table.Cell().Background(BgTblTotal).BorderTop(0.8f).BorderColor(ColAccent)
                                     .PaddingVertical(2).PaddingHorizontal(3).Text(text).FontSize(7).Bold()
                                     .FontColor(hi ? ColAccent2 : ColText);
-                            Tot("∑"); Tot("TOTAL"); Tot(""); Tot("");
+                            Tot("∑"); Tot(Ti("TOTAL")); Tot(""); Tot("");
                             Tot($"{schedule.Nozzles.Sum(r => r.LengthCm) * 10:0}");
                             Tot(""); Tot(""); Tot("");
                             Tot($"{nozzleRunMassG.Sum():0.000}", true);
@@ -1102,17 +1112,17 @@ public static class FlyLinePdfExporter
                         var hdrs = showCompensation
                             ? new[]
                             {
-                                "#", "Name", "Start\nmm", "End\nmm", "Len\nmm",
-                                "Ø start\nmm", "Ø end\nmm", "Taper\nmm/m",
-                                "ρ avg\ng/cm³", "Mass\ng", "Mass\ngr",
-                                "gr/ft", "Sink\nin/s", "Note"
+                                "#", T("Name"), Hdr2("Start", "mm"), Hdr2("End", "mm"), Hdr2("Len", "mm"),
+                                Hdr2("Ø start", "mm"), Hdr2("Ø end", "mm"), Hdr2("Taper", "mm/m"),
+                                Hdr2("ρ avg", "g/cm³"), Hdr2("Mass", "g"), Hdr2("Mass", "gr"),
+                                "gr/ft", Hdr2("Sink", "in/s"), T("Note")
                             }
                             : new[]
                             {
-                                "#", "Name", "Start\nmm", "End\nmm", "Len\nmm",
-                                "Ø1\nmm", "Ø2\nmm", "Taper\nmm/m",
-                                "Density\ng/cm³", "Mass\ng", "Mass\ngr",
-                                "gr/ft", "Sink\nin/s", "Type"
+                                "#", T("Name"), Hdr2("Start", "mm"), Hdr2("End", "mm"), Hdr2("Len", "mm"),
+                                "Ø1\nmm", "Ø2\nmm", Hdr2("Taper", "mm/m"),
+                                Hdr2("Density", "g/cm³"), Hdr2("Mass", "g"), Hdr2("Mass", "gr"),
+                                "gr/ft", Hdr2("Sink", "in/s"), T("Type")
                             };
 
                         table.Header(hdr =>
@@ -1163,7 +1173,7 @@ public static class FlyLinePdfExporter
                                 Cell(compMassG > 0 ? $"{compMassG * GramsToGrains:0.0}" : "—");
                                 Cell(grPerFt > 0 ? $"{grPerFt:0.0}" : "—");
                                 Cell(seg.CompSpeedText);
-                                Cell(clamped ? "⚠ ρ min" : "OK", clamped ? ColRed : ColAccent);
+                                Cell(Ti(clamped ? "⚠ ρ min" : "OK"), clamped ? ColRed : ColAccent);
                             }
                             else
                             {
@@ -1184,7 +1194,7 @@ public static class FlyLinePdfExporter
                                 Cell(seg.MassG > 0 ? $"{seg.MassG * GramsToGrains:0.0}" : "—");
                                 Cell(grPerFt > 0 ? $"{grPerFt:0.0}" : "—");
                                 Cell(seg.SinkSpeedText);
-                                Cell(isHd ? "HEAD" : "RUN", isHd ? ColAccent : ColMuted);
+                                Cell(Ti(isHd ? "HEAD" : "RUN"), isHd ? ColAccent : ColMuted);
                             }
                         }
 
@@ -1201,7 +1211,7 @@ public static class FlyLinePdfExporter
 
                         double sumMassG  = totalMassG; // already the compensated sum when showCompensation is true
                         double sumMassGr = sumMassG * GramsToGrains;
-                        TotCell("∑"); TotCell("TOTAL");
+                        TotCell("∑"); TotCell(Ti("TOTAL"));
                         TotCell(""); TotCell(""); TotCell("");
                         TotCell(""); TotCell(""); TotCell("");
                         TotCell(densityRange);
@@ -1220,16 +1230,16 @@ public static class FlyLinePdfExporter
                     {
                         row.RelativeItem().Text(t =>
                         {
-                            t.Span("Head: ").FontColor(ColMuted);
+                            t.Span(Ti("Head:") + " ").FontColor(ColMuted);
                             t.Span($"{headMassGr:0.0} gr").Bold().FontColor(ColAccent2);
-                            t.Span("   Total: ").FontColor(ColMuted);
+                            t.Span("   " + Ti("Total:") + " ").FontColor(ColMuted);
                             t.Span($"{totalMassGr:0.0} gr").Bold().FontColor(ColText);
                             t.Span($"   {afftaBadge}").FontColor(ColAccent);
                         });
-                        row.ConstantItem(260).AlignRight().Text(t =>
+                        row.ConstantItem(language == SheetLanguage.Bilingual ? 360 : 260).AlignRight().Text(t =>
                         {
-                            t.Span("Confidential  ·  ").FontColor(ColRed).Bold().FontSize(7);
-                            t.Span("Generated by RazorGauge  ·  RazorBlade Fly Lines").FontColor(ColMuted).FontSize(6.5f);
+                            t.Span(Ti("Confidential") + "  ·  ").FontColor(ColRed).Bold().FontSize(7);
+                            t.Span(Ti("Generated by RazorGauge") + "  ·  RazorBlade Fly Lines").FontColor(ColMuted).FontSize(6.5f);
                         });
                     });
                 });

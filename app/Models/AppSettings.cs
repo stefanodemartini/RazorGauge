@@ -21,6 +21,9 @@ public class DesignSettings
 
     /// <summary>"mm" (fixed offset, default) or "%" (proportional).</summary>
     public string ScanCorrectionUnit { get; set; } = "mm";
+
+    /// <summary>Language of the exported design sheet: "en", "zh" or "en+zh" (SheetText.Parse).</summary>
+    public string PdfLanguage { get; set; } = "en";
 }
 public class PrototypeSettings
 {

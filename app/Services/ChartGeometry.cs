@@ -197,8 +197,9 @@ public static class ChartGeometry
     /// <param name="yTop">Top of the TAPER strip (data units, below the Ø labels).</param>
     /// <param name="band">Height of one strip (data units).</param>
     public static double DrawProductionStrips(ScottPlot.Plot plot, ProductionSchedule s,
-        double yTop, double band, float fontSize, float hatchTile)
+        double yTop, double band, float fontSize, float hatchTile, Func<string, string>? translate = null)
     {
+        translate ??= t => t;
         if (s.Tapers.Count == 0) return yTop;
         double x0 = s.StartCm, len = Math.Max(1, s.EndCm - s.StartCm);
         double titleX = x0 - len * 0.012;
@@ -234,7 +235,7 @@ public static class ChartGeometry
 
         // TAPER
         double tTop = yTop, tBot = yTop - band;
-        Title("TAPER", (tTop + tBot) / 2);
+        Title(translate("TAPER"), (tTop + tBot) / 2);
         for (int i = 0; i < s.Tapers.Count; i++)
         {
             var t = s.Tapers[i];
@@ -247,8 +248,8 @@ public static class ChartGeometry
         // NOZZLE · DENSITY — the strip, then a text row (density) and a length row under it
         double nTop = tBot - band * 0.35, nBot = nTop - band;
         double rhoY = nBot - band * 0.45, lenY = nBot - band * 1.05, nTextBot = nBot - band * 1.45;
-        Title("NOZZLE", nTop - band * 0.30);
-        Title("DENSITY", nTop - band * 0.85);
+        Title(translate("NOZZLE"), nTop - band * 0.30);
+        Title(translate("DENSITY"), nTop - band * 0.85);
         foreach (var r in s.Nozzles)
         {
             var box = Box(r.StartCm, r.EndCm, nBot, nTop, ScottPlot.Colors.White, 0.8f);
@@ -270,7 +271,7 @@ public static class ChartGeometry
 
         // COLOR — the line's real pigment, labelled with its hex code
         double cTop = nTextBot - band * 0.25, cBot = cTop - band * 0.75;
-        Title("COLOR", (cTop + cBot) / 2);
+        Title(translate("COLOR"), (cTop + cBot) / 2);
         foreach (var c in s.Colors)
         {
             TryParseHexColor(c.Hex, out var col);

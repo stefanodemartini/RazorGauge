@@ -83,6 +83,10 @@ sempre rinumerati per posizione (`SegmentNaming`), i nomi scritti a mano restano
 vengono rinumerati. Phantom V.2: S1…S10, S8 1530–1760, S9 1760–1900.
 Temperatura/acqua su un file C aperto: la tabella non cambiava (righe raggruppate costruite a
 parte, mai ricostruite). Ora sì: test C 0.55 ips, prima riga 0.580 → 0.498 in/s a 5 °C.
+PDF in cinese (richiesta di Stefano, solo il PDF): lingua scelta nel menu Tipo file del Salva
+(English / 中文 / English + 中文), ricordata nelle impostazioni; CLI `--lang`. Testi in `SheetText`
+(chiave = testo inglese, chiave mancante → inglese), font Microsoft YaHei di riserva. Traduzione
+dei termini tecnici = prima stesura, da far rivedere al produttore.
 
 ### 28 ottobre 2026 — laser pulsato sulla RazorBoard SMD (master 1.0.1-alpha)
 

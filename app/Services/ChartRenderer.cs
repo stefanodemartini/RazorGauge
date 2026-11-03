@@ -24,6 +24,8 @@ public sealed class ChartRenderInput
     /// <summary>Manually dragged PDF label positions, keyed by node X — empty for a headless
     /// render, which has no interactive dragging to remember in the first place.</summary>
     public Dictionary<double, (double LX, double LY)> NodeLabelOffsets { get; set; } = new();
+    /// <summary>Language of the sheet this chart goes into (axis titles, strip titles, font).</summary>
+    public SheetLanguage Language { get; set; } = SheetLanguage.English;
 }
 
 /// <summary>
@@ -259,7 +261,8 @@ public static class ChartRenderer
                 // nozzles share one pigment.
                 var schedule = ProductionSchedule.Build(segments, sorted, zones, nozzles);
                 double stripTop = pdfLabelYMin - maxDiam * 0.30;
-                stripsBottom = DrawProductionStrips(plot, schedule, stripTop, maxDiam * 0.7, pdfLblSize + 6, 11f);
+                stripsBottom = DrawProductionStrips(plot, schedule, stripTop, maxDiam * 0.7, pdfLblSize + 6, 11f,
+                    t => SheetText.Ti(input.Language, t));
             }
             else
             {
@@ -286,8 +289,16 @@ public static class ChartRenderer
             }
         }
 
-        plot.XLabel("Length (cm)");
-        plot.YLabel("Diameter (mm)");
+        plot.XLabel(SheetText.Ti(input.Language, "Length (cm)"));
+        plot.YLabel(SheetText.Ti(input.Language, "Diameter (mm)"));
+        // The default font has no Chinese glyphs — Microsoft YaHei (shipped with Windows) has both.
+        if (input.Language != SheetLanguage.English)
+        {
+            plot.Font.Set("Microsoft YaHei");
+            // Font.Set covers the axes only; the strip titles and labels are Text plottables.
+            foreach (var txt in plot.GetPlottables().OfType<ScottPlot.Plottables.Text>())
+                txt.LabelFontName = "Microsoft YaHei";
+        }
         plot.Axes.Bottom.TickLabelStyle.FontSize = 15;
         plot.Axes.Left.TickLabelStyle.FontSize   = 15;
         plot.Axes.Bottom.Label.FontSize           = 16;
@@ -305,6 +316,12 @@ public static class ChartRenderer
         if (stripsBottom is double sb) yBot = Math.Min(yBot, sb - yRange * 0.02);
         double finalRange = (yTop - yBot) * 1.10;
         plot.Axes.SetLimitsY(yBot - yRange * 0.05, yTop + yRange * 0.05);
+        // Bilingual strip titles ("NOZZLE / 喷嘴") are wider than the default left margin holds.
+        if (stripsBottom.HasValue && input.Language == SheetLanguage.Bilingual)
+        {
+            var xl = plot.Axes.GetLimits();
+            plot.Axes.SetLimitsX(xl.Left - (xl.Right - xl.Left) * 0.05, xl.Right);
+        }
 
         int height = (int)Math.Clamp(600 * finalRange / labelsRange, 600, 1150);
         return plot.GetImage(3200, height).GetImageBytes(ScottPlot.ImageFormat.Png);

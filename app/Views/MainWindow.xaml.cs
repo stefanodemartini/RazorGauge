@@ -4772,7 +4772,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// of the same logic, and the same bug had to be found and fixed twice more than once because
     /// of it.
     /// </summary>
-    private byte[] RenderPdfChart()
+    private byte[] RenderPdfChart(SheetLanguage language = SheetLanguage.English)
     {
         bool pdfUseComp = (_inCompMode || _zoneDerivedComp) && ProjectSegments.Any(s => s.HasCompensation);
         var input = new ChartRenderInput
@@ -4784,6 +4784,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Nozzles             = CurrentNozzlesForChart(),
             UseCompensatedView  = pdfUseComp,
             NodeLabelOffsets    = new Dictionary<double, (double LX, double LY)>(_nodeLabelOffsets),
+            Language            = language,
         };
         return ChartRenderer.RenderPdfChart(input);
     }
@@ -4801,13 +4802,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         bool exportComp = (_inCompMode || _zoneDerivedComp)
                           && ProjectSegments.Any(s => s.HasCompensation);
 
+        // The sheet's language is picked in the file-type list of the Save dialog — the app
+        // itself stays in English. The last choice is remembered.
+        var languages = new[] { SheetLanguage.English, SheetLanguage.Chinese, SheetLanguage.Bilingual };
+        var lastLang  = SheetText.Parse(_vm.Settings.Design.PdfLanguage);
         var dlg = new Microsoft.Win32.SaveFileDialog
         {
-            Filter      = "PDF files (*.pdf)|*.pdf",
+            Filter      = "PDF — English (*.pdf)|*.pdf|PDF — 中文 (*.pdf)|*.pdf|PDF — English + 中文 (*.pdf)|*.pdf",
+            FilterIndex = Array.IndexOf(languages, lastLang) + 1,
             DefaultExt  = ".pdf",
             FileName    = $"{_projectName}_{(exportComp ? "C" : "NC")}.pdf"
         };
         if (dlg.ShowDialog() != true) return;
+        var language = languages[Math.Clamp(dlg.FilterIndex - 1, 0, languages.Length - 1)];
+        _vm.Settings.Design.PdfLanguage = SheetText.Code(language);
+        _vm.SaveSettings();
 
         try
         {
@@ -4828,7 +4837,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     ? $"at {string.Join(" and ", markPos)}"
                     : $"{_laserMark}   —   at {string.Join(" and ", markPos)}";
             // The on-screen chart already renders exactly what this file is — no mode switch needed
-            byte[] chartBytes = RenderPdfChart();
+            byte[] chartBytes = RenderPdfChart(language);
             // Read the real per-segment speed straight off the data being exported, not the
             // window's own _compTargetSpeedIns — that field is never restored when a C snapshot is
             // freshly loaded (self-contained files carry no "recipe" to read it back from) and can
@@ -4839,11 +4848,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 .Select(s => s.CompensatedTargetSpeedMs * 39.3701).Where(v => v > 0).ToList();
             bool uniformSegSpeed = segSpeedsIns.Count > 0 && (segSpeedsIns.Max() - segSpeedsIns.Min()) < 0.001;
             string compNote = !exportComp ? ""
-                : uniformSegSpeed
-                    ? $"Compensated profile — target sink {segSpeedsIns[0]:0.00} in/s. " +
-                      "Diameters are mass-preserving compensated values. Manufacture each section at the exact density shown."
-                    : "Multi-material design — each zone uses its own material. " +
-                      "Diameters are mass-preserving values. Manufacture each section at the exact density shown.";
+                : SheetText.CompNote(language, uniformSegSpeed ? segSpeedsIns[0] : null);
             // DisplaySegments — grouped into material zones for a loaded compensated snapshot, so
             // the PDF table shows the handful of real materials a producer needs, not one row per
             // ~1cm slice. Identical to ProjectSegments for a normal design (see RefreshDisplaySegments).
@@ -4857,7 +4862,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 pdfNozzleDefs, pdfNozzleZones, designHex,
                 _showCore ? _coreType : string.Empty,
                 _showCore ? _coreDiameterMm : null,
-                laserMarkText, exportComp, compNote);
+                laserMarkText, exportComp, compNote, language);
             UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}";
         }
         catch (Exception ex)

@@ -55,6 +55,7 @@ int Help()
           flyline inspect <in.flp>    [-o <spec.json>] recover the spec of an existing design
           flyline report  <in.flp>                     mass, AFFTA class and sink speeds
           flyline pdf     <in.flp>    [-o <out.pdf>]   the spec sheet a producer would receive
+                                      [--lang en|zh|en+zh]    sheet language (default en)
           flyline analyze <in.flp>    -a <accel m/s2>  Level-2 physics: ρ·d, per-segment taper rate,
                                                        m, M, Re, drag, Π, C
                                       [--csv <out.csv>]       per-segment rows (appends)
@@ -130,6 +131,7 @@ int Pdf(string[] a)
 
     var nozzleDefs  = project.NozzleDefinitions;
     var nozzleZones = project.NozzleZones;
+    var language    = SheetText.Parse(Opt(a, "--lang"));
 
     var chartInput = new ChartRenderInput
     {
@@ -139,6 +141,7 @@ int Pdf(string[] a)
         NozzleZones         = nozzleZones,
         Nozzles             = nozzleDefs,
         UseCompensatedView  = useComp,
+        Language            = language,
     };
     byte[] chartBytes = ChartRenderer.RenderPdfChart(chartInput);
 
@@ -150,12 +153,7 @@ int Pdf(string[] a)
     var segSpeedsIns = segments.Where(s => s.HasCompensation)
         .Select(s => s.CompensatedTargetSpeedMs * 39.3701).Where(v => v > 0).ToList();
     bool uniformSegSpeed = segSpeedsIns.Count > 0 && (segSpeedsIns.Max() - segSpeedsIns.Min()) < 0.001;
-    string compNote = !useComp ? ""
-        : uniformSegSpeed
-            ? $"Compensated profile — target sink {segSpeedsIns[0]:0.00} in/s. " +
-              "Diameters are mass-preserving compensated values. Manufacture each section at the exact density shown."
-            : "Multi-material design — each zone uses its own material. " +
-              "Diameters are mass-preserving values. Manufacture each section at the exact density shown.";
+    string compNote = !useComp ? "" : SheetText.CompNote(language, uniformSegSpeed ? segSpeedsIns[0] : null);
 
     string outPath = Opt(a, "-o")
         ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)) ?? ".",
@@ -170,7 +168,7 @@ int Pdf(string[] a)
         // Same switch the GUI honours, so a headless export matches what the window would print.
         project.ShowCore ? project.CoreType : string.Empty,
         project.ShowCore ? project.CoreDiameterMm : null,
-        project.LaserMark, useComp, compNote);
+        project.LaserMark, useComp, compNote, language);
 
     Console.WriteLine($"Saved: {outPath}");
     return 0;
