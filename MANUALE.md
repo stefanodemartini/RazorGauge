@@ -734,6 +734,12 @@ AFFTA  LW 5   142.3 gr   ✓
 
 Dato un profilo disegnato (o ricostruito da scan), è possibile generare automaticamente le varianti dello stesso profilo per le altre classi AFTMA (#1–#14), mantenendo la stessa forma di taper e lo stesso materiale.
 
+> **Messaggio finale dei tre generatori** (Generate Family, Generate by Density, Generate by Sink
+> Speed), dal 16/11/2026: elenca i file scritti, riporta **la cartella** e chiede se aprirli. Con
+> **Yes** ogni file si apre in una propria **nuova scheda**, nell'ordine di generazione, e il design
+> di partenza resta aperto. Un file già aperto in una scheda viene mostrato e ricaricato da disco
+> invece di essere aperto una seconda volta. Lo stesso vale per il file C di ⚖ Compensate.
+
 ### Come funziona
 - Il pulsante **Generate Family…** (toolbar Design Tools) apre un dialogo con una checkbox per ciascuna classe #1–#14; la classe corrente del progetto è disabilitata
 - Per ogni classe selezionata, **tutti** i diametri della linea (testa, transizione e running line) vengono scalati con lo stesso fattore, a parità di lunghezza — è quello che preserva la "forma" del profilo, running line inclusa

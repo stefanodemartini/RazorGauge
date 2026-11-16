@@ -5147,6 +5147,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         }
 
         var generated = new List<string>();
+        var generatedPaths = new List<string>();
         var notes     = new List<string>();
 
         foreach (var (label, result, skipReason, warning) in variants)
@@ -5162,17 +5163,30 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             string filePath = Path.Combine(folder, SanitizeFileName($"{baseName} {label}") + ProjectService.FileExtension);
             ProjectService.Save(project, filePath);
             generated.Add(Path.GetFileName(filePath));
+            generatedPaths.Add(filePath);
             if (warning != null) notes.Add($"{label} — {warning}");
         }
 
         string summary = generated.Count > 0
             ? $"Generated {generated.Count} file(s):\n" + string.Join("\n", generated)
+              + $"\n\nFolder:  {folder}"
             : "No files generated.";
         if (notes.Count > 0)
             summary += "\n\nNotes:\n" + string.Join("\n", notes);
         UiStatus = $"{dialogTitle}: {generated.Count} generated";
-        MessageBox.Show(summary, dialogTitle, MessageBoxButton.OK,
-                         notes.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        var icon = notes.Count > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information;
+        if (generated.Count == 0)
+        {
+            MessageBox.Show(summary, dialogTitle, MessageBoxButton.OK, icon);
+            return;
+        }
+        summary += generated.Count == 1
+            ? "\n\nOpen the generated file now? (it opens in a new tab, this design stays open)"
+            : "\n\nOpen the generated files now? (each in a new tab, this design stays open)";
+        if (MessageBox.Show(summary, dialogTitle, MessageBoxButton.YesNo, icon) == MessageBoxResult.Yes)
+            // Each new tab goes right after this one, so open them last-first: the tabs then read
+            // in generation order and the first file is the one left in front.
+            foreach (var p in Enumerable.Reverse(generatedPaths)) OpenInNewTabRequested?.Invoke(this, p);
     }
 
     /// <summary>Builds a standalone NC project for one generated family member.</summary>
