@@ -1066,6 +1066,11 @@ sono solo ai cambi di pendenza: dal 16/11/2026 si trascinano anche lì, e il PDF
 scelta. Prima nel profilo compensato restavano ferme, perché il clic veniva confrontato con i nodi
 da ~1 cm del file C invece che con le etichette disegnate, e il disegno ignorava la posizione salvata.
 
+Un'etichetta si prende cliccando **in qualunque punto del suo riquadro**. Quando due riquadri si
+sovrappongono (es. nodi a 0 e 30 cm in punta) vince quello col centro più vicino al clic, quindi
+ognuna si afferra dalla sua parte visibile. Prima contava solo un raggio intorno al bordo superiore
+e vinceva sempre la prima etichetta trovata.
+
 ### Quote di Lunghezza
 Sopra il profilo, ben distanziata dai tag "S{n}"/"M{n}" che restano attaccati al bordo, corre una catena continua di quote in stile disegno tecnico: un tick a 45° a ogni confine di taper fisico reale, una linea di quota fra due tick consecutivi e il numero (lunghezza in cm, senza unità di misura e senza zeri decimali inutili — es. "30" non "30.0") scritto orizzontale appena sopra la linea. Le quote seguono sempre e solo i tapers fisici reali (`GetTaperShapeBoundaries`), mai i cambi di materiale/colore — stesso principio delle etichette "S". Presente sia a schermo sia nel PDF esportato (stessa funzione condivisa `ChartGeometry.DrawLengthDimensionChain`).
 

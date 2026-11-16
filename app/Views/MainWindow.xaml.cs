@@ -4426,41 +4426,54 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// boundaries, read off the compensated diameters. Hit-test and drag start must use exactly
     /// this list, or a click lands on labels that are not there.
     /// </summary>
-    private List<(double X, double DefaultLX, double DefaultLY)> NodeLabelAnchors()
+    private List<(double X, double DefaultLX, double DefaultLY, double Y)> NodeLabelAnchors()
     {
         bool inComp = (_inCompMode || _zoneDerivedComp) && ProjectSegments.Any(s => s.HasCompensation);
         var nodes = inComp
             ? GetTaperShapeBoundaries(GetCompNodes())
             : _segmentNodes.OrderBy(n => n.X).Select(n => (n.X, n.Y)).ToList();
-        var list = new List<(double, double, double)>(nodes.Count);
+        var list = new List<(double, double, double, double)>(nodes.Count);
         for (int ni = 0; ni < nodes.Count; ni++)
         {
             var (x, y) = nodes[ni];
-            list.Add((x, x, -y / 2.0 - y * 0.40 * (ni % 2 == 0 ? 1.0 : 2.2)));
+            list.Add((x, x, -y / 2.0 - y * 0.40 * (ni % 2 == 0 ? 1.0 : 2.2), y));
         }
         return list;
     }
 
-    /// <summary>Returns the node X whose label screen centre is within LabelHitRadiusPx of pos.</summary>
+    /// <summary>
+    /// Returns the node X of the label under pos. A label is hit anywhere on its box (drawn hanging
+    /// below its anchor, UpperCenter) or within LabelHitRadiusPx of the anchor; when boxes overlap
+    /// (nodes 30 cm apart at the tip), the one whose box centre is nearest wins, so each can be
+    /// grabbed by its own visible part. Before, the first label in range always won and the one
+    /// underneath could never be picked up.
+    /// </summary>
     private double? FindLabelAt(System.Windows.Point pos)
     {
         if (!_designMode || _segmentNodes.Count == 0) return null;
-        foreach (var (nodeX, defaultLX, defaultLY) in NodeLabelAnchors())
+        double? best = null;
+        double bestDist = double.MaxValue;
+        foreach (var (nodeX, defaultLX, defaultLY, nodeY) in NodeLabelAnchors())
         {
-            var node = (X: nodeX, Y: 0.0);
-            var (lx, ly) = _nodeLabelOffsets.TryGetValue(node.X, out var saved)
+            var (lx, ly) = _nodeLabelOffsets.TryGetValue(nodeX, out var saved)
                            ? saved : (defaultLX, defaultLY);
             try
             {
                 var px = PlotControl.Plot.GetPixel(new ScottPlot.Coordinates(lx, ly));
-                double dx = pos.X - px.X;
-                double dy = pos.Y - px.Y;
-                if (Math.Sqrt(dx*dx + dy*dy) <= LabelHitRadiusPx)
-                    return node.X;
+                // Same text RefreshPlot draws ("Ø 1.02  30 cm"), 11 pt bold ≈ 7 px a character.
+                string text = $"Ø {nodeY:0.##}  {nodeX:0.#} cm";
+                double halfW = text.Length * 7.0 / 2 + 4;
+                const double boxH = 22;
+                double cx = px.X, cy = px.Y + boxH / 2;
+                bool inBox = Math.Abs(pos.X - cx) <= halfW && pos.Y >= px.Y - 4 && pos.Y <= px.Y + boxH + 2;
+                double dAnchor = Math.Sqrt((pos.X - px.X) * (pos.X - px.X) + (pos.Y - px.Y) * (pos.Y - px.Y));
+                if (!inBox && dAnchor > LabelHitRadiusPx) continue;
+                double d = Math.Sqrt((pos.X - cx) * (pos.X - cx) + (pos.Y - cy) * (pos.Y - cy));
+                if (d < bestDist) { bestDist = d; best = nodeX; }
             }
             catch { }
         }
-        return null;
+        return best;
     }
 
     // Segment drawing mouse handlers
