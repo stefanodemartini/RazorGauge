@@ -647,7 +647,10 @@ trattati come un solo taper nel file C: evitarlo.
 Il documento per il produttore (PDF, in inglese) e il grafico del profilo compensato tengono
 distinte tre informazioni, che non si sovrappongono mai:
 - **SHAPE (taper S)** — dove cambia la pendenza. Linee verticali **continue**, catena di quote
-  sopra il profilo, etichette Ø solo a questi punti, fascia **TAPER**
+  sopra il profilo, etichette Ø solo a questi punti, fascia **TAPER**. Dal 16/11/2026 nella fascia
+  è scritto anche il nome dei tratti corti di punta (S1 da 30 cm, S2 da 55 cm su 36 m): prima il nome
+  compariva solo sopra il 2 % della lunghezza, ora con lo stesso spazio delle sigle M; nei tratti
+  ancora più stretti il nome è scritto più piccolo
 - **NOZZLE · DENSITY (ugelli M)** — quale compound si estrude dove. Fascia **NOZZLE** sotto il
   profilo: ogni ugello ha un grigio e un tratteggio propri (M1 pieno, M2 `///`, M3 incrociato,
   M4 a punti), la densità scritta sotto e la sua catena di quote; confini **tratteggiati**; le

@@ -1,4 +1,4 @@
-using DiametroLineaDesktop.Models;
+﻿using DiametroLineaDesktop.Models;
 using SkiaSharp;
 using ScottColor = ScottPlot.Color;
 
@@ -255,7 +255,14 @@ public static class ChartGeometry
         {
             var t = s.Tapers[i];
             Box(t.StartCm, t.EndCm, tBot, tTop, i % 2 == 0 ? ScottPlot.Colors.White : new ScottColor(243, 244, 246));
-            if (t.LengthCm > len * 0.02) Label(t.Name, (t.StartCm + t.EndCm) / 2, (tTop + tBot) / 2, false, fontSize);
+            // Same room a nozzle's "M3" gets (0.6 % of the line for two characters), scaled by the
+            // name's length: a fixed 2 % hid short tip tapers (S1 30 cm, S2 55 cm on a 27 m line).
+            // A tighter box (S10 on 30 cm) gets a smaller font rather than no name at all.
+            double room = len * 0.001 * Math.Max(2, t.Name.Length);
+            if (t.LengthCm > 3 * room)
+                Label(t.Name, (t.StartCm + t.EndCm) / 2, (tTop + tBot) / 2, false, fontSize);
+            else if (t.LengthCm > 2 * room)
+                Label(t.Name, (t.StartCm + t.EndCm) / 2, (tTop + tBot) / 2, false, fontSize * 0.75f);
         }
         foreach (var t in s.Tapers) VLine(t.StartCm, tBot, tTop, dashed: false);
         VLine(s.Tapers[^1].EndCm, tBot, tTop, dashed: false);
