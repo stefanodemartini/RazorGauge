@@ -3776,17 +3776,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// an explicit tradeoff: a real, deliverable taper with imperfect sink speed beats a
     /// theoretically ideal speed with a manufacturing-breaking diameter discontinuity.
     /// </summary>
-    private (bool anyAtFloor, double worstSpeedErrIns) QuantizeCompensationToRealMaterials(double targetSpeedMs)
+    private (bool anyAtFloor, double worstSpeedErrIns) QuantizeCompensationToRealMaterials(
+        double targetSpeedMs, int nozzleCount)
     {
         var compSegs = ProjectSegments.Where(s => s.HasCompensation).OrderBy(s => s.StartCm).ToList();
         _compMaterialDensities = null;
         if (compSegs.Count == 0) return (false, 0.0);
-
-        // Always spend all 4 real nozzles here, not the fewest-necessary QuantizeAdaptive picks
-        // for the on-screen legend elsewhere — those materials are available at no extra cost
-        // regardless, and every one actually used tightens the mass-conserving approximation above.
-        double[] qDens = Quantize1D(compSegs.SelectMany(s => s.CompSliceDensities), 4);
-        if (qDens.Length == 0) return (false, 0.0);
 
         // Diameter is left exactly as the ideal continuous solve gave it — no mass-conserving
         // correction for the assigned material. That correction is what caused a real, measured
@@ -3797,11 +3792,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // slice's achieved speed only approximates the target when its assigned material isn't
         // exactly the one the physics wanted there.
         var diams = compSegs.Select(s => s.CompSliceDiamsMm.ToArray()).ToList();
-        var dens  = compSegs.Select(s => s.CompSliceDensities
-                                .Select(d => qDens.MinBy(c => Math.Abs(c - d))).ToArray()).ToList();
-        _compMaterialDensities = dens.SelectMany(d => d).Distinct().OrderBy(d => d).ToArray();
-
-        ApplyNozzleTransitions(compSegs, dens);
+        var dens  = QuantizeSliceDensities(
+            compSegs.Select(s => new CompSliceRun(s.StartCm, s.EndCm, s.CompSliceXsCm, s.CompSliceDensities)).ToList(),
+            nozzleCount, out var materials);
+        if (materials.Length == 0) return (false, 0.0);
+        _compMaterialDensities = materials;
 
         bool   anyAtFloor      = false;
         double worstSpeedErrMs = 0.0;
@@ -3845,12 +3840,72 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// never overlap. Only density changes — diameter stays the continuous solve, so no step
     /// appears; the ramp's sink speed lies between its two materials'.
     /// </summary>
-    private static void ApplyNozzleTransitions(List<ProjectSegment> compSegs, List<double[]> dens)
+    /// <summary>One segment's ideal slices: slice centres are offsets from <c>StartCm</c>.</summary>
+    private sealed record CompSliceRun(double StartCm, double EndCm, double[] XsCm, double[] Densities);
+
+    /// <summary>
+    /// The quantisation step of the Compensate pass, pure: the continuous ideal densities reduced
+    /// to <paramref name="nozzleCount"/> real materials (k-means), each slice given its nearest one,
+    /// then a 30 cm ramp at every change. Shared by the real C-file write and by the Compensate
+    /// dialog's preview, so the preview's errors are those of the file that would be written.
+    /// </summary>
+    private static List<double[]> QuantizeSliceDensities(List<CompSliceRun> runs, int nozzleCount,
+                                                         out double[] materials)
+    {
+        double[] qDens = Quantize1D(runs.SelectMany(r => r.Densities), Math.Clamp(nozzleCount, 1, 4));
+        if (qDens.Length == 0) { materials = Array.Empty<double>(); return new List<double[]>(); }
+
+        var dens = runs.Select(r => r.Densities
+                         .Select(d => qDens.MinBy(c => Math.Abs(c - d))).ToArray()).ToList();
+        materials = dens.SelectMany(d => d).Distinct().OrderBy(d => d).ToArray();
+        ApplyNozzleTransitions(runs, dens);
+        return dens;
+    }
+
+    /// <summary>
+    /// For the Compensate dialog: the speed deviation a C file at <paramref name="targetSpeedMs"/>
+    /// would have with 2, 3 and 4 nozzles (index 0 = 2 nozzles). Solved on local copies — the
+    /// design's segments are not touched.
+    /// </summary>
+    private (double WorstIns, double MeanIns)[] PreviewCompensationErrors(double targetSpeedMs)
+    {
+        var runs  = new List<CompSliceRun>();
+        var diams = new List<double[]>();
+        foreach (var seg in ProjectSegments.OrderBy(s => s.StartCm))
+        {
+            if (seg.SpecWeightGCm3 <= 0 || seg.LengthCm <= 0) continue;
+            var (xs, d, rho, _) = SinkingSpeedCalc.CompensateProfile(
+                _waterIsSalt, _waterTempC, seg.StartDiameterMm, seg.EndDiameterMm,
+                seg.LengthCm, seg.SpecWeightGCm3, targetSpeedMs);
+            if (xs.Length == 0) continue;
+            runs.Add(new CompSliceRun(seg.StartCm, seg.EndCm, xs, rho));
+            diams.Add(d);
+        }
+
+        var result = new (double, double)[3];
+        for (int n = 2; n <= 4; n++)
+        {
+            var dens = QuantizeSliceDensities(runs, n, out _);
+            double worst = 0, sum = 0; int count = 0;
+            for (int k = 0; k < dens.Count; k++)
+                for (int i = 0; i < dens[k].Length; i++)
+                {
+                    double v = SinkingSpeedCalc.CylinderSinkSpeed(_waterIsSalt, _waterTempC, diams[k][i], dens[k][i]);
+                    if (double.IsNaN(v)) continue;
+                    double err = Math.Abs(v - targetSpeedMs);
+                    worst = Math.Max(worst, err); sum += err; count++;
+                }
+            result[n - 2] = (worst * 39.3701, count > 0 ? sum / count * 39.3701 : 0);
+        }
+        return result;
+    }
+
+    private static void ApplyNozzleTransitions(List<CompSliceRun> runs, List<double[]> dens)
     {
         var flat = new List<(int K, int I, double X)>();
-        for (int k = 0; k < compSegs.Count; k++)
+        for (int k = 0; k < runs.Count; k++)
             for (int i = 0; i < dens[k].Length; i++)
-                flat.Add((k, i, compSegs[k].StartCm + compSegs[k].CompSliceXsCm[i]));
+                flat.Add((k, i, runs[k].StartCm + runs[k].XsCm[i]));
         flat = flat.OrderBy(f => f.X).ToList();
         if (flat.Count < 2) return;
 
@@ -3863,7 +3918,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 changes.Add(((flat[f].X + flat[f + 1].X) / 2.0, Rho(f), Rho(f + 1)));
         if (changes.Count == 0) return;
 
-        double lineStart = compSegs.Min(s => s.StartCm), lineEnd = compSegs.Max(s => s.EndCm);
+        double lineStart = runs.Min(s => s.StartCm), lineEnd = runs.Max(s => s.EndCm);
         var ramps = new List<(double A, double B, double Left, double Right)>();
         for (int c = 0; c < changes.Count; c++)
         {
@@ -5870,7 +5925,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 $"  • M{z.NozzleIndex + 1} #{Nozzles[z.NozzleIndex].ColorHex.ToUpperInvariant()}  {z.StartCm:0}–{z.EndCm:0} cm"));
             var proceed = MessageBox.Show(
                 "This design has color zones:\n" + list + "\n\n" +
-                "A compensated line uses all 4 nozzles for density, so it can only have one color: " +
+                "A compensated line uses its nozzles for density, so it can only have one color: " +
                 $"the whole C line will be #{Nozzles[0].ColorHex.ToUpperInvariant()} (M1).\n\nContinue anyway?",
                 title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
             if (proceed != MessageBoxResult.Yes) return;
@@ -5879,21 +5934,30 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         string folder   = Path.GetDirectoryName(_currentProjectPath)!;
         string baseName = Path.GetFileNameWithoutExtension(_currentProjectPath)!;
 
+        // "ips" everywhere — same suffix Generate by Sink Speed uses for the same unit (in/s),
+        // so a folder of generated files doesn't carry two different abbreviations for one thing.
+        // Fewer than 4 nozzles adds " 3noz" / " 2noz", so files at the same speed don't overwrite
+        // each other; the 4-nozzle name stays as it always was.
+        static string Suffix(double ips, int n) => $"C {ips:0.00}ips" + (n < 4 ? $" {n}noz" : "");
+
         var dlg = new CompensateDialog(
             _compMinSpeedMs * 39.3701,
             _compMaxSpeedMs * 39.3701,
             _compMaxSpeedMs * 39.3701,
-            ips => SanitizeFileName($"{baseName} C {ips:0.00}ips") + ProjectService.FileExtension)
+            Math.Clamp(_vm.Settings.Design.CompNozzleCount, 2, 4),
+            (ips, n) => SanitizeFileName($"{baseName} {Suffix(ips, n)}") + ProjectService.FileExtension,
+            ips => PreviewCompensationErrors(ips / 39.3701))
         { Owner = this };
         if (dlg.ShowDialog() != true) return;
 
-        double targetIns = dlg.SelectedSpeedIns;
-        double targetMs  = targetIns / 39.3701;
-        // "ips" everywhere — same suffix Generate by Sink Speed uses for the same unit (in/s),
-        // so a folder of generated files doesn't carry two different abbreviations for one thing.
-        string compName  = $"{_projectName} C {targetIns:0.00}ips";
+        double targetIns   = dlg.SelectedSpeedIns;
+        double targetMs    = targetIns / 39.3701;
+        int    nozzleCount = dlg.SelectedNozzleCount;
+        _vm.Settings.Design.CompNozzleCount = nozzleCount;
+        _vm.SaveSettings();
+        string compName  = $"{_projectName} {Suffix(targetIns, nozzleCount)}";
         string compPath  = Path.Combine(folder,
-            SanitizeFileName($"{baseName} C {targetIns:0.00}ips") + ProjectService.FileExtension);
+            SanitizeFileName($"{baseName} {Suffix(targetIns, nozzleCount)}") + ProjectService.FileExtension);
 
         if (File.Exists(compPath))
         {
@@ -5903,7 +5967,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (answer != MessageBoxResult.Yes) return;
         }
 
-        WriteCompensatedFile(compPath, compName, targetIns, targetMs, title);
+        WriteCompensatedFile(compPath, compName, targetIns, targetMs, nozzleCount, title);
     }
 
     /// <summary>
@@ -5912,7 +5976,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// open project changes; the only output is the file.
     /// </summary>
     private void WriteCompensatedFile(string compPath, string compName,
-                                      double targetIns, double targetMs, string title)
+                                      double targetIns, double targetMs, int nozzleCount, string title)
     {
         // Snapshot everything the solve is about to overwrite in place
         var savedNozzles = Nozzles.Select(n => (n.ColorHex, n.Label, n.DensityGCm3)).ToList();
@@ -5938,13 +6002,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
             // The ideal continuous solve above needs an unbounded number of materials — no real
             // line can be extruded that way. Constrain it to a handful of real, manufacturable
-            // materials (same ≤4 nozzles the Materials legend already promises), leaving every
+            // materials (the 2–4 nozzles chosen in the dialog), leaving every
             // slice's diameter exactly as the continuous solve produced it (never touched by the
             // quantization) so the saved taper has no diameter discontinuity anywhere, including at
             // material boundaries — the achieved speed absorbs the discretization error instead.
             // Quantization re-flags clamped slices against the REAL assigned material, superseding
             // the continuous-solve flag ComputeCompensationSlices returned above.
-            (anyClamped, worstSpeedErrIns) = QuantizeCompensationToRealMaterials(targetMs);
+            (anyClamped, worstSpeedErrIns) = QuantizeCompensationToRealMaterials(targetMs, nozzleCount);
 
             // The C file's material list is the quantized density gradient, not this design's
             // nozzles — sync it in so BuildProjectObject picks it up, then restore below.

@@ -56,6 +56,51 @@
 
             <Rectangle Height="1" Fill="#2E3548" Margin="0,18,0,14"/>
 
+            <!-- Nozzle count: each nozzle is one real material (density) -->
+            <TextBlock Text="Nozzles (materials)" FontSize="12" FontWeight="SemiBold"
+                       Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+            <Grid x:Name="NozzleChoiceGrid">
+                <Grid.Resources>
+                    <Style TargetType="RadioButton">
+                        <Setter Property="Foreground" Value="#E2E8F4"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="Margin" Value="0,3"/>
+                        <EventSetter Event="Checked" Handler="NozzleRadio_Checked"/>
+                    </Style>
+                    <Style x:Key="Cell" TargetType="TextBlock">
+                        <Setter Property="FontSize" Value="11"/>
+                        <Setter Property="Foreground" Value="#7A8499"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="HorizontalAlignment" Value="Right"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Style="{StaticResource Cell}" Grid.Row="0" Grid.Column="1" Text="worst" Margin="0,0,14,2"/>
+                <TextBlock Style="{StaticResource Cell}" Grid.Row="0" Grid.Column="2" Text="mean"  Margin="0,0,0,2"/>
+                <RadioButton x:Name="Noz2" Grid.Row="1" Content="2 nozzles" Tag="2" GroupName="Noz"/>
+                <RadioButton x:Name="Noz3" Grid.Row="2" Content="3 nozzles" Tag="3" GroupName="Noz"/>
+                <RadioButton x:Name="Noz4" Grid.Row="3" Content="4 nozzles" Tag="4" GroupName="Noz"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Worst2" Grid.Row="1" Grid.Column="1" Text="—" Margin="0,0,14,0"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Worst3" Grid.Row="2" Grid.Column="1" Text="—" Margin="0,0,14,0"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Worst4" Grid.Row="3" Grid.Column="1" Text="—" Margin="0,0,14,0"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Mean2"  Grid.Row="1" Grid.Column="2" Text="—"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Mean3"  Grid.Row="2" Grid.Column="2" Text="—"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Mean4"  Grid.Row="3" Grid.Column="2" Text="—"/>
+            </Grid>
+            <TextBlock Text="Sink speed deviation from the target (in/s) of the line that would be written. Fewer nozzles = simpler extrusion, larger deviation."
+                       FontSize="10" Foreground="{StaticResource TextMuted}"
+                       TextWrapping="Wrap" Margin="0,6,0,0"/>
+
+            <Rectangle Height="1" Fill="#2E3548" Margin="0,18,0,14"/>
+
             <TextBlock Text="Will be saved as:" FontSize="10"
                        Foreground="{StaticResource TextMuted}"/>
             <TextBlock x:Name="FileNameLabel" Text="—"

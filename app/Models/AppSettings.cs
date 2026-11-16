@@ -24,6 +24,9 @@ public class DesignSettings
 
     /// <summary>Language of the exported design sheet: "en", "zh" or "en+zh" (SheetText.Parse).</summary>
     public string PdfLanguage { get; set; } = "en";
+
+    /// <summary>Nozzles (= real materials) a Compensate pass may use, 2–4. Last choice remembered.</summary>
+    public int CompNozzleCount { get; set; } = 4;
 }
 public class PrototypeSettings
 {

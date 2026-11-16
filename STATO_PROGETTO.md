@@ -22,6 +22,26 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 16 novembre 2026 — Compensate con 2, 3 o 4 ugelli
+
+Richiesta di Stefano: la compensazione usava sempre 4 ugelli (k = 4 fisso). Ora il dialogo
+Compensate ha la scelta **2 / 3 / 4 nozzles** (ricordata nelle impostazioni, `CompNozzleCount`),
+con accanto lo scarto di velocità, peggiore e medio, di ciascuna scelta alla velocità dello slider.
+È calcolato con la stessa quantizzazione del file vero (`QuantizeSliceDensities`: k-means + rampe
+di 30 cm), su copie, senza toccare il progetto. File: `… C 0.55ips.flp` con 4, `… C 0.55ips 3noz.flp`
+/ `2noz` con meno. Prova con banco WPF su Phantom ExtraHover V.2 (scarto in/s, peggiore / medio):
+
+| Target | 2 ugelli | 3 ugelli | 4 ugelli |
+| --- | --- | --- | --- |
+| 0.45 ips | 0.110 / 0.031 | 0.067 / 0.017 | 0.055 / 0.011 |
+| 0.55 ips | 0.131 / 0.037 | 0.080 / 0.020 | 0.065 / 0.013 |
+| 0.65 ips | 0.152 / 0.043 | 0.093 / 0.023 | 0.076 / 0.016 |
+
+Il valore con 4 ugelli a 0.55 ips (0.065) è quello del 3/11, quindi il caso di sempre resta
+invariato. I file C a 2/3 ugelli contengono 2/3 densità, gli altri ugelli restano a ρ = 0.
+Aperto: con meno di 4 ugelli quelli liberi potrebbero portare colore (zone di solo colore dell'NC),
+ma per ora il C resta di un colore solo.
+
 ### 3 novembre 2026 — compensazione: grafico, ugelli e colori incoerenti nel file C
 
 Verificato su `Phantom ExtraHover V.2 C 0.50ips.flp`. I **dati erano giusti** (4 densità reali:

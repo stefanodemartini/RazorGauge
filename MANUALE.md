@@ -545,24 +545,25 @@ La compensazione risolve il problema fisico: sezioni di diametri diversi affonda
 2. Verificare che la linea sia classificata come "Sinking"
 3. **Salvare il progetto** — il file C prende il nome da quello del progetto
 4. Cliccare **⚖ Compensate…**
-5. Nel dialogo, scegliere la velocità target con lo slider (min/max mostrati come numeri ai lati) e premere **Create C file**
+5. Nel dialogo, scegliere la velocità target con lo slider (min/max mostrati come numeri ai lati) e il **numero di ugelli** (2, 3 o 4), poi premere **Create C file**
 6. Conferma con il nome del file scritto; per vedere o stampare il profilo compensato si apre quel file
 
 ### Dialogo Compensate
 - Il range dello slider è la velocità di affondamento più lenta e più veloce già raggiunta dalle sezioni attuali: qualsiasi target al suo interno è ottenibile cambiando solo la densità
-- Il nome del file che verrà scritto è mostrato dal vivo mentre si muove lo slider: `NomeProgetto C X.XXins.flp`
+- **Nozzles (materials): 2 / 3 / 4**: quanti materiali reali può usare la compensazione (dal 16/11/2026; prima sempre 4). Accanto a ogni scelta lo scarto di velocità dal target della linea che verrebbe scritta: **worst** (slice peggiore, ±in/s) e **mean** (media), ricalcolati quando lo slider si ferma. Meno ugelli = estrusione più semplice, scarto maggiore. L'ultima scelta viene ricordata
+- Il nome del file che verrà scritto è mostrato dal vivo: `NomeProgetto C X.XXips.flp` con 4 ugelli, `NomeProgetto C X.XXips 3noz.flp` / `… 2noz.flp` con meno, così file alla stessa velocità con ugelli diversi non si sovrascrivono
 - Se il file esiste già viene chiesta conferma di sovrascrittura
 - Se il design ha **zone con materiale proprio** (sezione 5), il dialogo avvisa prima: la compensazione fisica risolve tutta la linea a partire dal materiale base M1 e dai diametri disegnati, quindi i materiali di zona **non** finiscono nel file C
 
-### Compensazione vincolata a 4 materiali reali (non un continuo teorico)
+### Compensazione vincolata a 2–4 materiali reali (non un continuo teorico)
 La soluzione fisica pura vorrebbe una densità diversa a ogni centimetro — impossibile da
 realizzare (nessun produttore ha un numero illimitato di ugelli). Il calcolo procede in due passi:
 1. **Soluzione ideale continua**: densità e diametro risolti insieme, slice per slice (~1cm),
    per centrare esattamente la velocità target ovunque — è solo un passaggio interno, non quello
    che finisce nel file
-2. **Vincolo ai materiali reali**: le densità ideali vengono raggruppate in **sempre fino a 4
-   materiali reali** (mai meno per "semplicità" — i 4 ugelli sono comunque disponibili, usarne di
-   meno peggiora solo la precisione). Ogni slice prende il materiale più vicino tra i 4, mentre il
+2. **Vincolo ai materiali reali**: le densità ideali vengono raggruppate (k-means) nel **numero
+   di materiali scelto nel dialogo** (2, 3 o 4: con 4 la precisione è massima, con meno
+   l'estrusione è più semplice). Ogni slice prende il materiale più vicino, mentre il
    **diametro resta esattamente quello della soluzione continua ideale**: non viene mai ritoccato
    in funzione del materiale assegnato
 
@@ -590,10 +591,11 @@ dopo il salvataggio. È il compromesso scelto deliberatamente: si accetta uno sc
 maggiore pur di non avere mai un salto di diametro.
 
 ### Ugelli nel file C
-- M1–M4 del file C vengono popolati con le densità reali usate — sempre fino a 4, non un
-  sottoinsieme "sufficiente"
+- M1–M4 del file C vengono popolati con le densità reali usate, tante quanti gli ugelli scelti;
+  gli ugelli in più restano vuoti (ρ = 0)
 - **Un solo colore per tutti gli ugelli**: quello di M1 nel progetto NC. Ogni ugello è un compound
-  (densità + colore): se i 4 ugelli servono per 4 densità, il colore è per forza unico. Se il
+  (densità + colore): gli ugelli servono per le densità, quindi il colore è unico (per ora anche
+  con 2–3 ugelli). Se il
   progetto NC ha zone di solo colore (stessa densità, altro pigmento), Compensate avvisa che nel
   file C spariranno
 - Densità salvata **a precisione piena** (mostrata
