@@ -73,8 +73,10 @@ scalato. Quindi:
   - bordo a metà taper (500 cm): rimodellati 200 cm, −0.9 % sul segmento.
 - Uguale nel CLI (`EnsureNodeAt` + scala solo dei nodi dentro la zona).
 
-Possibile correzione (da decidere): rampa di densità di lunghezza fissa (30 cm, come fra ugelli nei
-file C) con d = d_disegnato·√(ρ_base/ρ(x)): massa esatta in ogni punto **e** diametro continuo.
+**Decisione già presa, non da riaprire** (Stefano, 16/11/2026: "ne avevamo già discusso"): il
+rimodellamento del segmento adiacente è la scelta del 9/09/2026 che ha sostituito la rampa (vedi
+MANUALE, "Il bordo della zona e il gradino di diametro"). I numeri sopra restano come conseguenza
+nota e misurata di quella scelta, non come difetto aperto.
 
 ## 4. Minori
 - File C aperto: `BuildEffectiveSegmentsForFamilySource` dà alle slice di rampa dentro una zona la
