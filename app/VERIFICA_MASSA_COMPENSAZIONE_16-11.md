@@ -26,6 +26,7 @@ forti sono ai nodi di taper (es. 1670 cm), non ai cambi di materiale.
 
 Nota: il messaggio dopo il salvataggio dice "mass-conserving, same rule as a zone" — non è esatto
 (vedi sopra: conserva entro ~0.1 % sul totale, non per costruzione).
+**Accettato da Stefano (16/11/2026)**: entro lo 0.1 % va bene, nessuna modifica né al calcolo né al messaggio.
 
 ## 2. Zone NC con densità propria (adatta diametri = Sì): la massa MOSTRATA è sbagliata
 
