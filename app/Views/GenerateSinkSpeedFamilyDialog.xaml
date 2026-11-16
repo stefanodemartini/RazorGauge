@@ -59,15 +59,25 @@
                         Minimum="0" Maximum="10" Value="1.5"
                         IsMoveToPointEnabled="True"
                         SmallChange="0.05" LargeChange="0.5"
+                        IsSnapToTickEnabled="True" TickFrequency="0.05"
                         ValueChanged="SpeedSlider_ValueChanged"
                         Margin="8,0"/>
                 <TextBlock Grid.Column="2" Text="10.0 in/s" FontSize="10"
                            Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
             </Grid>
-            <TextBlock x:Name="SpeedValueLabel" Text="1.50 in/s"
-                       FontSize="13" FontWeight="SemiBold"
-                       Foreground="{StaticResource Accent}"
-                       HorizontalAlignment="Center" Margin="0,4,0,10"/>
+            <!-- The slider moves in 0.05 steps; any other value (0.72) is typed here. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,10">
+                <TextBox x:Name="SpeedBox" Text="1.50" Width="64"
+                         FontSize="13" FontWeight="SemiBold" TextAlignment="Center"
+                         Foreground="{StaticResource Accent}" Background="{StaticResource InputBg}"
+                         BorderBrush="{StaticResource BorderCol}" Padding="2,1"
+                         LostKeyboardFocus="SpeedBox_LostKeyboardFocus"
+                         ToolTip="Type an exact speed in in/s (0 = Floating); the slider moves in 0.05 steps"/>
+                <TextBlock x:Name="SpeedValueLabel" Text="in/s"
+                           FontSize="13" FontWeight="SemiBold"
+                           Foreground="{StaticResource Accent}"
+                           VerticalAlignment="Center" Margin="6,0,0,0"/>
+            </StackPanel>
 
             <Button Content="+ Add to list" Click="AddBtn_Click" IsDefault="True"
                     Style="{StaticResource BtnGhostStyle}" HorizontalAlignment="Left"/>

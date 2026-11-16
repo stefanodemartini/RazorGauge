@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
 
@@ -17,19 +18,46 @@ public partial class GenerateSinkSpeedFamilyDialog : Window
         UpdateSpeedLabel();
     }
 
+    // The speed that will be added: the slider's value (0.05 steps) or the exact one typed in the box.
+    private double _value = 1.5;
+    private bool _fromBox;
+
     private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        => UpdateSpeedLabel();
+    {
+        if (_fromBox) return;          // the box set the slider: keep the typed value, not the snapped one
+        _value = Math.Round(SpeedSlider.Value, 2);
+        UpdateSpeedLabel();
+    }
 
     private void UpdateSpeedLabel()
     {
-        if (SpeedValueLabel == null) return; // ValueChanged can fire mid-InitializeComponent, before this field is assigned
-        double v = SpeedSlider.Value;
-        SpeedValueLabel.Text = v < 0.05 ? "Floating" : $"{v:0.00} in/s";
+        if (SpeedValueLabel == null || SpeedBox == null) return; // ValueChanged can fire mid-InitializeComponent, before these fields are assigned
+        bool floating = _value < 0.05;
+        SpeedBox.Text = floating ? "0" : _value.ToString("0.00", CultureInfo.InvariantCulture);
+        SpeedValueLabel.Text = floating ? "in/s  (Floating)" : "in/s";
     }
+
+    /// <summary>Reads the typed speed (dot or comma, 0 = Floating), clamped to the slider's range.</summary>
+    private void CommitSpeedBox()
+    {
+        string t = SpeedBox.Text.Trim().Replace(',', '.');
+        if (double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out double v))
+        {
+            _value = Math.Round(Math.Clamp(v, SpeedSlider.Minimum, SpeedSlider.Maximum), 2);
+            _fromBox = true;
+            SpeedSlider.Value = _value;
+            _fromBox = false;
+        }
+        UpdateSpeedLabel();   // a bad entry falls back to the last good value
+    }
+
+    private void SpeedBox_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        => CommitSpeedBox();
 
     private void AddBtn_Click(object sender, RoutedEventArgs e)
     {
-        double v = SpeedSlider.Value < 0.05 ? 0.0 : Math.Round(SpeedSlider.Value, 2);
+        CommitSpeedBox();   // Enter in the box presses Add (default button) before the box loses focus
+        double v = _value < 0.05 ? 0.0 : _value;
         if (_speeds.Contains(v)) return;
         _speeds.Add(v);
         _speeds.Sort();
