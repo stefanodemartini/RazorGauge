@@ -1,4 +1,4 @@
-﻿<Window
+﻿<UserControl
         x:Class="DiametroLineaDesktop.Views.MainWindow"
         x:Name="MainWin"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -8,16 +8,10 @@
         xmlns:ScottPlot="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
         xmlns:local="clr-namespace:DiametroLineaDesktop.Views"
         mc:Ignorable="d"
-        Title="RazorGauge"
-        Icon="/Assets/icon.ico"
-        Height="900"
-        Width="1400"
-        MinHeight="780"
-        MinWidth="900"
         Background="#12151C"
         FontFamily="Segoe UI">
 
-    <Window.Resources>
+    <UserControl.Resources>
 
         <SolidColorBrush x:Key="WinBg"        Color="#12151C"/>
         <SolidColorBrush x:Key="PanelBg"      Color="#1C2030"/>
@@ -201,7 +195,7 @@
             </Style.Triggers>
         </Style>
 
-    </Window.Resources>
+    </UserControl.Resources>
 
     <Grid x:Name="MainGrid">
         <Grid.RowDefinitions>
@@ -227,7 +221,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel x:Name="AppTitlePanel" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                     <Ellipse Width="10" Height="10" Fill="{StaticResource Accent}" Margin="0,0,10,0"/>
                     <TextBlock Text="RazorGauge"
                                FontSize="18" FontWeight="Bold"
@@ -1509,4 +1503,4 @@
 
     </Grid>
 
-</Window>
+</UserControl>

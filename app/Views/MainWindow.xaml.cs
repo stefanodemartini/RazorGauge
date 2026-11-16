@@ -23,7 +23,7 @@ using static DiametroLineaDesktop.Services.ChartGeometry;
 
 namespace DiametroLineaDesktop.Views;
 
-public partial class MainWindow : Window, INotifyPropertyChanged
+public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPropertyChanged
 {
     private readonly MainViewModel _vm = new();
     private bool _plotInitialized = false;
@@ -357,6 +357,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         Loaded += async (_, _) =>
         {
+            // A tab's view gets Loaded again whenever it moves to another window (Chrome-style
+            // tabs): everything below is one-time setup, so it runs on the first Loaded only.
+            if (_loadedOnce) return;
+            _loadedOnce = true;
             ApplyDesignMode();   // apply immediately so UI never flashes in scan mode
             SetupPlot();
             UpdateLineTypeUI();
@@ -379,13 +383,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     }
                 });
             };
-            await _vm.InitializeAsync();
+            // Only the first tab connects to the gauge: one WebSocket, one place where scans land.
+            if (_isPrimaryTab) await _vm.InitializeAsync();
             RefreshPlot();
             RefreshStatusBar();
             UpdateProjectTitle();
+            // A tab opened with "+": load its file now that the plot exists.
+            if (PendingOpenPath is { } pending)
+            {
+                PendingOpenPath = null;
+                try { LoadProjectFromFile(pending); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Could not open project:\n{ex.Message}", "Error",
+                                    MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
             // Open .flp passed on the command line (double-click via file association)
             var args = Environment.GetCommandLineArgs();
-            if (args.Length > 1 && System.IO.File.Exists(args[1])
+            if (_isPrimaryTab && args.Length > 1 && System.IO.File.Exists(args[1])
                 && args[1].EndsWith(".flp", StringComparison.OrdinalIgnoreCase))
             {
                 try { LoadProjectFromFile(args[1]); }
@@ -397,7 +413,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
         };
 
-        Closing += MainWindow_Closing;
 
         // Ctrl+Z → undo node changes (ignored while typing in a textbox/grid cell)
         PreviewKeyDown += (_, ke) =>
@@ -980,7 +995,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void UpdateProjectTitle()
     {
         var star = _isDirty ? " *" : string.Empty;
-        Title = $"RazorGauge — {_projectName}{star}";
+        TabHeader = $"{_projectName}{star}";
         if (ProjectNameText != null)
             ProjectNameText.Text = $"{_projectName}{star}";
     }
@@ -3554,7 +3569,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         var ordered = ProjectSegments.OrderBy(s => s.StartCm).ToList();
-        var dlg = new WeightToDensityDialog(ordered) { Owner = this };
+        var dlg = new WeightToDensityDialog(ordered) { Owner = Window.GetWindow(this) };
         try
         {
             if (dlg.ShowDialog() != true) return;
@@ -3582,7 +3597,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         var ordered = ProjectSegments.OrderBy(s => s.StartCm).ToList();
-        var dlg = new SinkSpeedToDensityDialog(ordered, _waterIsSalt, _waterTempC) { Owner = this };
+        var dlg = new SinkSpeedToDensityDialog(ordered, _waterIsSalt, _waterTempC) { Owner = Window.GetWindow(this) };
         try
         {
             if (dlg.ShowDialog() != true) return;
@@ -4965,7 +4980,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         int currentLw = ComputeCurrentAfftaLw();
-        var dlg = new GenerateLineFamilyDialog(currentLw) { Owner = this };
+        var dlg = new GenerateLineFamilyDialog(currentLw) { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedWeights.Count == 0) return;
 
         var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
@@ -5005,7 +5020,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        var dlg = new GenerateDensityFamilyDialog(Nozzles.Select(n => n.DensityGCm3)) { Owner = this };
+        var dlg = new GenerateDensityFamilyDialog(Nozzles.Select(n => n.DensityGCm3)) { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedDensities.Count == 0) return;
 
         var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
@@ -5061,7 +5076,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        var dlg = new GenerateSinkSpeedFamilyDialog { Owner = this };
+        var dlg = new GenerateSinkSpeedFamilyDialog { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedSpeedsIns.Count == 0) return;
 
         var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
@@ -5403,7 +5418,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Width  = 260,
             Height = 145,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Owner       = this,
+            Owner       = Window.GetWindow(this),
             ResizeMode  = ResizeMode.NoResize,
             ShowInTaskbar = false
         };
@@ -5501,6 +5516,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // Connection
     private async void Connect_Click(object sender, RoutedEventArgs e)
     {
+        if (!CanTakeGauge()) return;
         UiStatus = "Connecting...";
         await _vm.ConnectAsync(initiatedByUser: true);
         UiStatus = "Connection requested";
@@ -5776,7 +5792,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var selection = OverlaySelection.Both;
             if (hasDesign && hasScan)
             {
-                var choiceDlg = new OverlaySelectDialog(proj.Name) { Owner = this };
+                var choiceDlg = new OverlaySelectDialog(proj.Name) { Owner = Window.GetWindow(this) };
                 if (choiceDlg.ShowDialog() != true) return;
                 selection = choiceDlg.Selection;
             }
@@ -5959,7 +5975,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             (ips, n) => SanitizeFileName($"{baseName} {Suffix(ips, n)}") + ProjectService.FileExtension,
             ips => PreviewCompensationErrors(ips / 39.3701),
             hasColorZones: colorZones.Count > 0)
-        { Owner = this };
+        { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true) return;
 
         double targetIns   = dlg.SelectedSpeedIns;
@@ -6329,7 +6345,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void Settings_Click(object sender, RoutedEventArgs e)
     {
         var copy = _vm.CloneSettings();
-        var win  = new SettingsWindow(copy) { Owner = this };
+        var win  = new SettingsWindow(copy) { Owner = Window.GetWindow(this) };
         if (win.ShowDialog() == true)
         {
             _vm.ApplySettings(win.EditableSettings);
@@ -6362,7 +6378,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             },
             openInProfiler: path =>
             {
-                Activate();
+                ActivateRequested?.Invoke(this);
                 if (!ConfirmDiscardIfDirty()) return;
                 try { LoadProjectFromFile(path); }
                 catch (Exception ex)
@@ -6373,8 +6389,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // Not owned: an owned window always floats above this one, which hides the line just
         // opened here with "Open in Profiler". Closing is chained by hand instead (below).
         _prototypeWindow.Closed += (_, _) => _prototypeWindow = null;
-        Closing -= MainWindow_ClosingPrototype;
-        Closing += MainWindow_ClosingPrototype;
         _prototypeWindow.Show();
     }
 
@@ -6386,7 +6400,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (_prototypeWindow != null) e.Cancel = true;
     }
 
-    private void Exit_Click(object sender, RoutedEventArgs e) => Close();
+    private void Exit_Click(object sender, RoutedEventArgs e) => ExitRequested?.Invoke(this);
 
     // Log
     private void TxtLog_TextChanged(object sender, TextChangedEventArgs e)
@@ -6473,7 +6487,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void AboutBtn_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new AboutDialog { Owner = this };
+        var dlg = new AboutDialog { Owner = Window.GetWindow(this) };
         dlg.ShowDialog();
     }
 

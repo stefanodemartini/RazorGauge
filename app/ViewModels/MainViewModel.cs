@@ -10,7 +10,10 @@ public class MainViewModel : ObservableObject
 {
     private readonly SettingsService _settingsService = new();
     private readonly BackendClient _backend = new();
-    private AppSettings _settings;
+    // Shared by every tab: one settings file on disk, so one copy in memory — otherwise a tab
+    // opened earlier would save its stale copy over changes made in another tab.
+    private static AppSettings? s_settings;
+    private AppSettings _settings { get => s_settings!; set => s_settings = value; }
 
     private bool _shouldReconnect;
     private CancellationTokenSource? _reconnectCts;
@@ -167,13 +170,14 @@ public class MainViewModel : ObservableObject
     }
 
     // Motor controls are unavailable until the device WebSocket is connected, and during GOTOPOS.
+    public bool IsConnected   => _backend.IsConnected;
     public bool CanControl    => _backend.IsConnected && !_isGoToActive;
     public bool CanEnableScan => _backend.IsConnected && !_scanReceiving && !_isGoToActive;
 
     // ── Constructor ──────────────────────────────────────────────────────────
     public MainViewModel()
     {
-        _settings = _settingsService.Load();
+        s_settings ??= _settingsService.Load();
 
         _backend.Connected += () =>
         {

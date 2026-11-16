@@ -68,6 +68,34 @@ La finestra si apre in **Modalità Design** (toggle "Design Mode" attivo in alto
 > `DisplaySegments`. Corretto aggiungendo `DisplaySegments.Clear()` a `ClearProjectState()`
 > (`Views/MainWindow.xaml.cs`).
 
+### Schede: più file aperti, anche affiancati (dal 16/11/2026)
+Sopra l'app c'è una barra di schede come quella di Chrome. Ogni scheda è un progetto completo e
+indipendente: ha la sua tabella, il suo grafico, i suoi ugelli e il suo stato salvato o non salvato.
+- **+** (`Ctrl+T`) apre una scheda vuota. Lì New, Open e Recent funzionano come prima. In una scheda
+  già occupata, Open sostituisce il progetto di quella scheda, come prima.
+- **Cambiare scheda**: clic sulla scheda, oppure `Ctrl+Tab` / `Ctrl+Shift+Tab`.
+- **Chiudere una scheda**: **×**, clic con la rotella oppure `Ctrl+W`. Se ci sono modifiche non salvate,
+  esce la stessa domanda di sempre. Chiudendo l'ultima scheda si chiude la finestra.
+- **Riordinare**: trascinare la scheda lungo la barra.
+- **Affiancare**: pulsante **◫ Side by side** in alto a destra, oppure trascinare una scheda sulla
+  metà destra dell'area di lavoro. Le schede mostrate sono due, una per lato, e la riga centrale si
+  trascina per cambiare le larghezze. Un clic su una scheda la mette nel lato attivo, cioè quello
+  con la scheda evidenziata in azzurro e l'ultimo cliccato. **▭ Single view** torna a una vista sola.
+  Quando il lato è stretto, il titolo "RazorGauge" e il nome del progetto spariscono
+  dall'intestazione, perché li mostra già la scheda, e così i pulsanti New/Open/Save restano visibili.
+- **Finestra separata**, per esempio per un secondo monitor: trascinare la scheda fuori dalla
+  finestra, oppure tasto destro → *Move to new window*. Trascinandola sulla barra di un'altra
+  finestra, la scheda entra in quella.
+- Il titolo della finestra è quello della scheda attiva.
+- **Gauge**: si collega solo la prima scheda aperta, all'avvio. Le altre non aprono una seconda
+  connessione: Connect in un'altra scheda viene rifiutato finché la connessione è aperta altrove.
+  Chiudendo la scheda collegata, la connessione si chiude e Connect funziona da un'altra scheda.
+- Le impostazioni (Settings) sono in comune a tutte le schede.
+- Lo stesso file aperto in due schede non viene segnalato: chi salva per ultimo sovrascrive.
+
+Tecnica: `MainWindow` ora è il pannello di un progetto (UserControl), la finestra è `ShellWindow`.
+La logica di `MainWindow` non è cambiata. Le aggiunte per le schede sono in `MainWindow.Tabs.cs`.
+
 ---
 
 ## 2. Modalità SCAN (acquisizione hardware)
