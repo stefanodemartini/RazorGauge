@@ -45,6 +45,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // not overwrite them). Either way the coloured per-slice profile is what gets drawn.
     private bool _zoneDerivedComp     = false;
     private double[]? _compMaterialDensities; // the real materials of the compensation being written — ramps excluded
+    private CompCompound[]? _compCompounds;   // its nozzles: (material, colour) pairs, see CompoundsOf
+    private Func<double, string>? _compColorAt; // NC colour zones carried into the C file being written; null = one colour
     private bool _lastZoneAdaptChoice = true; // "adjust diameters to preserve mass" — sticky across edits
 
     // Segment drawing — node.Y stores FULL DIAMETER in mm (not radius)
@@ -1226,7 +1228,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         project.SegmentMetadata   = meta;
         project.UseSharedDensity  = false;
         project.SharedDensityGCm3 = 0;
-        project.NozzleZones       = ZonesFromBakedMaterials(meta, project.NozzleDefinitions);
+        project.NozzleZones       = ZonesFromBakedMaterials(meta, project.NozzleDefinitions, _compColorAt);
         return project;
     }
 
@@ -1237,26 +1239,31 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// so a stale NC zone painted M2 where the slice is really M4, and every other material showed
     /// as M1 — two colours on screen against four nozzles in the table. A run of the M1 material
     /// needs no zone (M1 is the implicit base everywhere no zone covers).
+    /// With colour carried over (<paramref name="colorAt"/>), a slice goes to the nearest-density
+    /// nozzle OF ITS OWN COLOUR — two nozzles may share a density and differ only in pigment.
     /// </summary>
     private static List<NozzleZone> ZonesFromBakedMaterials(
-        List<ProjectSegmentMeta> meta, List<NozzleDefinition> nozzles)
+        List<ProjectSegmentMeta> meta, List<NozzleDefinition> nozzles, Func<double, string>? colorAt = null)
     {
-        int NozzleFor(double rho)
+        int NozzleFor(double rho, string? hex)
         {
-            int best = 0; double bestDiff = double.MaxValue;
-            for (int i = 0; i < nozzles.Count; i++)
-            {
-                if (nozzles[i].DensityGCm3 <= 0) continue;
-                double diff = Math.Abs(nozzles[i].DensityGCm3 - rho);
-                if (diff < bestDiff) { bestDiff = diff; best = i; }
-            }
-            return best;
+            int best = -1; double bestDiff = double.MaxValue;
+            for (int pass = 0; pass < 2 && best < 0; pass++)
+                for (int i = 0; i < nozzles.Count; i++)
+                {
+                    if (nozzles[i].DensityGCm3 <= 0) continue;
+                    if (pass == 0 && hex != null
+                        && !string.Equals(nozzles[i].ColorHex, hex, StringComparison.OrdinalIgnoreCase)) continue;
+                    double diff = Math.Abs(nozzles[i].DensityGCm3 - rho);
+                    if (diff < bestDiff) { bestDiff = diff; best = i; }
+                }
+            return Math.Max(best, 0);
         }
 
         var zones = new List<NozzleZone>();
         foreach (var m in meta)
         {
-            int idx = NozzleFor(m.SpecWeight);
+            int idx = NozzleFor(m.SpecWeight, colorAt?.Invoke((m.StartCm + m.EndCm) / 2));
             if (zones.Count > 0 && zones[^1].NozzleIndex == idx && Math.Abs(zones[^1].EndCm - m.StartCm) < 1e-6)
                 zones[^1].EndCm = m.EndCm;
             else
@@ -3794,9 +3801,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var diams = compSegs.Select(s => s.CompSliceDiamsMm.ToArray()).ToList();
         var dens  = QuantizeSliceDensities(
             compSegs.Select(s => new CompSliceRun(s.StartCm, s.EndCm, s.CompSliceXsCm, s.CompSliceDensities)).ToList(),
-            nozzleCount, out var materials);
+            nozzleCount, _compColorAt, Nozzles[0].ColorHex, out var materials, out var compounds);
         if (materials.Length == 0) return (false, 0.0);
         _compMaterialDensities = materials;
+        _compCompounds         = compounds;
 
         bool   anyAtFloor      = false;
         double worstSpeedErrMs = 0.0;
@@ -3850,25 +3858,80 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// dialog's preview, so the preview's errors are those of the file that would be written.
     /// </summary>
     private static List<double[]> QuantizeSliceDensities(List<CompSliceRun> runs, int nozzleCount,
-                                                         out double[] materials)
+        Func<double, string>? colorAt, string baseHex, out double[] materials, out CompCompound[] compounds)
     {
         double[] qDens = Quantize1D(runs.SelectMany(r => r.Densities), Math.Clamp(nozzleCount, 1, 4));
-        if (qDens.Length == 0) { materials = Array.Empty<double>(); return new List<double[]>(); }
+        if (qDens.Length == 0)
+        {
+            materials = Array.Empty<double>(); compounds = Array.Empty<CompCompound>();
+            return new List<double[]>();
+        }
 
         var dens = runs.Select(r => r.Densities
                          .Select(d => qDens.MinBy(c => Math.Abs(c - d))).ToArray()).ToList();
         materials = dens.SelectMany(d => d).Distinct().OrderBy(d => d).ToArray();
+        compounds = CompoundsOf(runs, dens, colorAt, baseHex);
         ApplyNozzleTransitions(runs, dens);
         return dens;
     }
 
+    /// <summary>One nozzle of a C file: a material (density) in one pigment.</summary>
+    private sealed record CompCompound(double Rho, string Hex);
+
+    /// <summary>
+    /// The nozzles a C line needs: every distinct (material, colour) pair along it, the colour
+    /// coming from the NC design's colour zones (<paramref name="colorAt"/>; null = one colour).
+    /// A colour zone lying on one material costs one nozzle, one crossing two materials costs two.
+    /// Order: the base colour's materials by density (M1 = the lightest — the base wherever no zone
+    /// covers), then the coloured ones in order of first appearance along the line.
+    /// </summary>
+    private static CompCompound[] CompoundsOf(List<CompSliceRun> runs, List<double[]> pureDens,
+                                              Func<double, string>? colorAt, string baseHex)
+    {
+        var seen = new List<(CompCompound C, double FirstX)>();
+        for (int k = 0; k < runs.Count; k++)
+            for (int i = 0; i < pureDens[k].Length; i++)
+            {
+                double x = runs[k].StartCm + runs[k].XsCm[i];
+                var c = new CompCompound(pureDens[k][i], colorAt?.Invoke(x) ?? baseHex);
+                if (!seen.Any(s => SameCompound(s.C, c))) seen.Add((c, x));
+            }
+        bool IsBase(CompCompound c) => string.Equals(c.Hex, baseHex, StringComparison.OrdinalIgnoreCase);
+        return seen.Where(s => IsBase(s.C)).OrderBy(s => s.C.Rho)
+                   .Concat(seen.Where(s => !IsBase(s.C)).OrderBy(s => s.FirstX))
+                   .Select(s => s.C).ToArray();
+    }
+
+    private static bool SameCompound(CompCompound a, CompCompound b) =>
+        Math.Abs(a.Rho - b.Rho) < 1e-9 && string.Equals(a.Hex, b.Hex, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The NC design's colour zones as a colour-at-X function (the zone nozzle's own pigment, M1's
+    /// elsewhere), or null when the design has none. Only colour matters here: a zone's own density
+    /// never reaches a C file (the physics re-solves the whole line).
+    /// </summary>
+    private Func<double, string>? NcColorAt()
+    {
+        string baseHex = Nozzles[0].ColorHex;
+        var spans = NozzleZones
+            .Where(z => z.EndCm > z.StartCm && z.NozzleIndex > 0 && z.NozzleIndex < Nozzles.Count
+                        && !string.Equals(Nozzles[z.NozzleIndex].ColorHex, baseHex, StringComparison.OrdinalIgnoreCase))
+            .Select(z => (z.StartCm, z.EndCm, Hex: Nozzles[z.NozzleIndex].ColorHex))
+            .ToList();
+        if (spans.Count == 0) return null;
+        return x => spans.FirstOrDefault(s => x >= s.StartCm && x < s.EndCm).Hex ?? baseHex;
+    }
+
     /// <summary>
     /// For the Compensate dialog: the speed deviation a C file at <paramref name="targetSpeedMs"/>
-    /// would have with 2, 3 and 4 nozzles (index 0 = 2 nozzles). Solved on local copies — the
-    /// design's segments are not touched.
+    /// would have with 2, 3 and 4 densities (index 0 = 2), and how many nozzles that line needs
+    /// once the NC colour zones are kept (&gt; 4 = the colours don't fit). Solved on local copies —
+    /// the design's segments are not touched.
     /// </summary>
-    private (double WorstIns, double MeanIns)[] PreviewCompensationErrors(double targetSpeedMs)
+    private (double WorstIns, double MeanIns, int Nozzles)[] PreviewCompensationErrors(double targetSpeedMs)
     {
+        var colorAt = NcColorAt();
+        string baseHex = Nozzles[0].ColorHex;
         var runs  = new List<CompSliceRun>();
         var diams = new List<double[]>();
         foreach (var seg in ProjectSegments.OrderBy(s => s.StartCm))
@@ -3882,10 +3945,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             diams.Add(d);
         }
 
-        var result = new (double, double)[3];
+        var result = new (double, double, int)[3];
         for (int n = 2; n <= 4; n++)
         {
-            var dens = QuantizeSliceDensities(runs, n, out _);
+            var dens = QuantizeSliceDensities(runs, n, colorAt, baseHex, out _, out var compounds);
             double worst = 0, sum = 0; int count = 0;
             for (int k = 0; k < dens.Count; k++)
                 for (int i = 0; i < dens[k].Length; i++)
@@ -3895,7 +3958,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     double err = Math.Abs(v - targetSpeedMs);
                     worst = Math.Max(worst, err); sum += err; count++;
                 }
-            result[n - 2] = (worst * 39.3701, count > 0 ? sum / count * 39.3701 : 0);
+            result[n - 2] = (worst * 39.3701, count > 0 ? sum / count * 39.3701 : 0, compounds.Length);
         }
         return result;
     }
@@ -3992,11 +4055,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // ugelli = 4 densità ⇒ colore unico". The old blue→red density gradient painted a
         // single-colour line as four colours that exist nowhere; the design sheet now tells
         // nozzles apart by pattern (NozzlePattern), never by colour.
+        // Fewer densities than nozzles leaves room for colour: then each nozzle is one (material,
+        // colour) pair, set by QuantizeCompensationToRealMaterials (CompoundsOf) — several nozzles
+        // may share a density, told apart by pigment.
         string lineColor = _ncNozzleColors[0];
+        var compounds = _compCompounds is { Length: > 0 and <= 4 } cc ? cc
+                      : qDens.Select(d => new CompCompound(d, lineColor)).ToArray();
+        qDens = compounds.Select(c => c.Rho).ToArray();
 
         for (int i = 0; i < qDens.Length && i < 4; i++)
         {
-            Nozzles[i].ColorHex    = lineColor;
+            Nozzles[i].ColorHex    = compounds[i].Hex;
             // Full precision, never rounded: the slices carry these exact values, and an exact
             // match is how a material is told from a transition ramp (ChartGeometry.TransitionTest).
             // At 2 decimals two materials 0.005 g/cm³ apart even collapsed to one value.
@@ -5912,24 +5981,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (proceed != MessageBoxResult.Yes) return;
         }
 
-        // Every nozzle is one compound (density + colour). The compensation spends all four on
-        // density, so the C line has one colour only — M1's. A colour-only zone (same density,
-        // other pigment) cannot survive; say so instead of silently dropping it.
+        // Every nozzle is one compound (density + colour). The design's colour zones are kept in
+        // the C file when (material, colour) pairs fit in 4 nozzles — the dialog shows, per density
+        // count, how many nozzles the line would need; checked again below, after the choice.
         var colorZones = NozzleZones
             .Where(z => z.EndCm > z.StartCm && z.NozzleIndex > 0 && z.NozzleIndex < Nozzles.Count
                         && !string.Equals(Nozzles[z.NozzleIndex].ColorHex, Nozzles[0].ColorHex, StringComparison.OrdinalIgnoreCase))
             .ToList();
-        if (colorZones.Count > 0)
-        {
-            string list = string.Join("\n", colorZones.Select(z =>
-                $"  • M{z.NozzleIndex + 1} #{Nozzles[z.NozzleIndex].ColorHex.ToUpperInvariant()}  {z.StartCm:0}–{z.EndCm:0} cm"));
-            var proceed = MessageBox.Show(
-                "This design has color zones:\n" + list + "\n\n" +
-                "A compensated line uses its nozzles for density, so it can only have one color: " +
-                $"the whole C line will be #{Nozzles[0].ColorHex.ToUpperInvariant()} (M1).\n\nContinue anyway?",
-                title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
-            if (proceed != MessageBoxResult.Yes) return;
-        }
 
         string folder   = Path.GetDirectoryName(_currentProjectPath)!;
         string baseName = Path.GetFileNameWithoutExtension(_currentProjectPath)!;
@@ -5946,7 +6004,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _compMaxSpeedMs * 39.3701,
             Math.Clamp(_vm.Settings.Design.CompNozzleCount, 2, 4),
             (ips, n) => SanitizeFileName($"{baseName} {Suffix(ips, n)}") + ProjectService.FileExtension,
-            ips => PreviewCompensationErrors(ips / 39.3701))
+            ips => PreviewCompensationErrors(ips / 39.3701),
+            hasColorZones: colorZones.Count > 0)
         { Owner = this };
         if (dlg.ShowDialog() != true) return;
 
@@ -5955,6 +6014,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         int    nozzleCount = dlg.SelectedNozzleCount;
         _vm.Settings.Design.CompNozzleCount = nozzleCount;
         _vm.SaveSettings();
+
+        // Colour zones: kept when the (material, colour) pairs fit in 4 nozzles, else the C line
+        // falls back to one colour (M1's) — said, never silent.
+        bool keepColors = false;
+        if (colorZones.Count > 0)
+        {
+            int needed = PreviewCompensationErrors(targetMs)[nozzleCount - 2].Nozzles;
+            keepColors = needed <= 4;
+            if (!keepColors)
+            {
+                string list = string.Join("\n", colorZones.Select(z =>
+                    $"  • M{z.NozzleIndex + 1} #{Nozzles[z.NozzleIndex].ColorHex.ToUpperInvariant()}  {z.StartCm:0}–{z.EndCm:0} cm"));
+                var proceed = MessageBox.Show(
+                    "This design has color zones:\n" + list + "\n\n" +
+                    $"With {nozzleCount} densities they would need {needed} nozzles (each nozzle is one density in one color, " +
+                    "and a color zone crossing two densities needs two). Only 4 exist, so the whole C line " +
+                    $"will be #{Nozzles[0].ColorHex.ToUpperInvariant()} (M1).\n\n" +
+                    "Choose fewer nozzles in the dialog to keep the colors.\n\nContinue with one color?",
+                    title, MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+                if (proceed != MessageBoxResult.Yes) return;
+            }
+        }
         string compName  = $"{_projectName} {Suffix(targetIns, nozzleCount)}";
         string compPath  = Path.Combine(folder,
             SanitizeFileName($"{baseName} {Suffix(targetIns, nozzleCount)}") + ProjectService.FileExtension);
@@ -5967,7 +6048,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (answer != MessageBoxResult.Yes) return;
         }
 
-        WriteCompensatedFile(compPath, compName, targetIns, targetMs, nozzleCount, title);
+        WriteCompensatedFile(compPath, compName, targetIns, targetMs, nozzleCount, keepColors, title);
     }
 
     /// <summary>
@@ -5976,7 +6057,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// open project changes; the only output is the file.
     /// </summary>
     private void WriteCompensatedFile(string compPath, string compName,
-                                      double targetIns, double targetMs, int nozzleCount, string title)
+                                      double targetIns, double targetMs, int nozzleCount,
+                                      bool keepColors, string title)
     {
         // Snapshot everything the solve is about to overwrite in place
         var savedNozzles = Nozzles.Select(n => (n.ColorHex, n.Label, n.DensityGCm3)).ToList();
@@ -5992,6 +6074,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             _compTargetSpeedMs  = targetMs;
             _compTargetSpeedIns = targetIns;
             _zoneDerivedComp    = false; // the target-speed pass supersedes the zone-based profile
+            _compColorAt        = keepColors ? NcColorAt() : null; // read before the nozzles are overwritten
             (compCount, anyClamped) = ComputeCompensationSlices(targetMs);
             if (compCount == 0)
             {
@@ -6032,6 +6115,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             foreach (var seg in ProjectSegments) seg.ClearCompensation();
             _zoneDerivedComp    = savedZoneComp;
             _compMaterialDensities = null;
+            _compCompounds      = null;
+            _compColorAt        = null;
             _compTargetSpeedMs  = savedTargetMs;
             _compTargetSpeedIns = savedTargetIns;
             if (savedZoneComp) MaybeApplyZoneDensityChange(forcePrompt: false);

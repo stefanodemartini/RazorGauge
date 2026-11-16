@@ -57,7 +57,7 @@
             <Rectangle Height="1" Fill="#2E3548" Margin="0,18,0,14"/>
 
             <!-- Nozzle count: each nozzle is one real material (density) -->
-            <TextBlock Text="Nozzles (materials)" FontSize="12" FontWeight="SemiBold"
+            <TextBlock x:Name="NozzleHeading" Text="Nozzles (materials)" FontSize="12" FontWeight="SemiBold"
                        Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
             <Grid x:Name="NozzleChoiceGrid">
                 <Grid.Resources>
@@ -79,6 +79,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition x:Name="ColorCol" Width="0"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
@@ -94,8 +95,12 @@
                 <TextBlock Style="{StaticResource Cell}" x:Name="Mean2"  Grid.Row="1" Grid.Column="2" Text="—"/>
                 <TextBlock Style="{StaticResource Cell}" x:Name="Mean3"  Grid.Row="2" Grid.Column="2" Text="—"/>
                 <TextBlock Style="{StaticResource Cell}" x:Name="Mean4"  Grid.Row="3" Grid.Column="2" Text="—"/>
+                <TextBlock Style="{StaticResource Cell}" Grid.Row="0" Grid.Column="3" Text="colors" Margin="14,0,0,2"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Col2" Grid.Row="1" Grid.Column="3" Text="—" Margin="14,0,0,0"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Col3" Grid.Row="2" Grid.Column="3" Text="—" Margin="14,0,0,0"/>
+                <TextBlock Style="{StaticResource Cell}" x:Name="Col4" Grid.Row="3" Grid.Column="3" Text="—" Margin="14,0,0,0"/>
             </Grid>
-            <TextBlock Text="Sink speed deviation from the target (in/s) of the line that would be written. Fewer nozzles = simpler extrusion, larger deviation."
+            <TextBlock x:Name="NozzleNote" Text="Sink speed deviation from the target (in/s) of the line that would be written. Fewer nozzles = simpler extrusion, larger deviation."
                        FontSize="10" Foreground="{StaticResource TextMuted}"
                        TextWrapping="Wrap" Margin="0,6,0,0"/>
 

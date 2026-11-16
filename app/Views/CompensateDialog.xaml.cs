@@ -14,7 +14,8 @@ namespace DiametroLineaDesktop.Views;
 public partial class CompensateDialog : Window
 {
     private readonly Func<double, int, string> _fileNameFor;
-    private readonly Func<double, (double WorstIns, double MeanIns)[]>? _previewErrors;
+    private readonly Func<double, (double WorstIns, double MeanIns, int Nozzles)[]>? _previewErrors;
+    private readonly bool _hasColorZones;
     private readonly DispatcherTimer _previewTimer;
     private bool _ready;
 
@@ -29,14 +30,31 @@ public partial class CompensateDialog : Window
     /// <param name="defaultIns">Initial slider position (in/s).</param>
     /// <param name="defaultNozzles">Initially selected nozzle count (2–4).</param>
     /// <param name="fileNameFor">Maps (target speed, nozzle count) to the file name that would be written.</param>
-    /// <param name="previewErrors">Maps a target speed to the (worst, mean) deviation in in/s for 2, 3, 4 nozzles.</param>
+    /// <param name="previewErrors">Maps a target speed to the (worst, mean) deviation in in/s for
+    /// 2, 3, 4 densities, and the nozzles each would need with the colour zones kept.</param>
+    /// <param name="hasColorZones">The design has colour zones: the choice is then a number of
+    /// densities, and a "colors" column says whether the colours still fit in the 4 nozzles.</param>
     public CompensateDialog(double minIns, double maxIns, double defaultIns, int defaultNozzles,
                             Func<double, int, string> fileNameFor,
-                            Func<double, (double WorstIns, double MeanIns)[]>? previewErrors = null)
+                            Func<double, (double WorstIns, double MeanIns, int Nozzles)[]>? previewErrors = null,
+                            bool hasColorZones = false)
     {
         _fileNameFor   = fileNameFor;
         _previewErrors = previewErrors;
+        _hasColorZones = hasColorZones;
         InitializeComponent();
+
+        if (hasColorZones)
+        {
+            // Each nozzle is one density in one colour: a colour zone takes a nozzle of its own
+            // for every density it lies on, so here the choice is the number of DENSITIES.
+            NozzleHeading.Text = "Densities (materials)";
+            Noz2.Content = "2 densities"; Noz3.Content = "3 densities"; Noz4.Content = "4 densities";
+            ColorCol.Width = GridLength.Auto;
+            NozzleNote.Text = "Sink speed deviation from the target (in/s). Colors: nozzles the line needs " +
+                              "with this design's color zones kept (one per density per color) — " +
+                              "over 4, the C line gets one color only.";
+        }
 
         // The solve runs on every slider stop, not on every pixel of a drag.
         _previewTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
@@ -87,15 +105,18 @@ public partial class CompensateDialog : Window
     private void UpdatePreview()
     {
         if (_previewErrors == null) return;
-        (double WorstIns, double MeanIns)[] e;
+        (double WorstIns, double MeanIns, int Nozzles)[] e;
         try { e = _previewErrors(SpeedSlider.Value); }
         catch { return; } // a preview must never block the dialog
         var worst = new[] { Worst2, Worst3, Worst4 };
         var mean  = new[] { Mean2,  Mean3,  Mean4  };
+        var col   = new[] { Col2,   Col3,   Col4   };
         for (int i = 0; i < 3 && i < e.Length; i++)
         {
             worst[i].Text = $"±{e[i].WorstIns:0.000}";
             mean[i].Text  = $"{e[i].MeanIns:0.000}";
+            if (_hasColorZones)
+                col[i].Text = e[i].Nozzles <= 4 ? $"✓ {e[i].Nozzles} nozzles" : $"✗ needs {e[i].Nozzles}";
         }
     }
 

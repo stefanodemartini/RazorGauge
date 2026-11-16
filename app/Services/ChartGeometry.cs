@@ -154,7 +154,21 @@ public static class ChartGeometry
         Func<double, bool>? isTransition = null)
     {
         if (isTransition != null && isTransition(density))
+        {
+            // A C file with fewer densities than nozzles spends the spare ones on colour: two
+            // nozzles share a density and differ only in pigment. There colour follows the zones,
+            // not the density, so a ramp keeps the pigment of the zone it lies in — mixing by
+            // density would pick whichever same-density nozzle came first.
+            bool colorByZone = nozzles.Where(n => n.DensityGCm3 > 0)
+                .GroupBy(n => Math.Round(n.DensityGCm3, 9))
+                .Any(g => g.Select(n => n.ColorHex.ToUpperInvariant()).Distinct().Count() > 1);
+            if (!colorByZone) return TransitionColor(density, nozzles);
+            var zone = zones.FirstOrDefault(z => xAbsCm >= z.StartCm && xAbsCm < z.EndCm);
+            string hereHex = zone != null && zone.NozzleIndex >= 0 && zone.NozzleIndex < nozzles.Count
+                ? nozzles[zone.NozzleIndex].ColorHex : nozzles[0].ColorHex;
+            if (TryParseHexColor(hereHex, out var solid)) return solid;
             return TransitionColor(density, nozzles);
+        }
         if (zones.Count > 0)
         {
             var zone = zones.FirstOrDefault(z => xAbsCm >= z.StartCm && xAbsCm < z.EndCm);

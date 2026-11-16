@@ -591,13 +591,22 @@ dopo il salvataggio. È il compromesso scelto deliberatamente: si accetta uno sc
 maggiore pur di non avere mai un salto di diametro.
 
 ### Ugelli nel file C
-- M1–M4 del file C vengono popolati con le densità reali usate, tante quanti gli ugelli scelti;
+- M1–M4 del file C vengono popolati con le densità reali usate (più gli ugelli colore, vedi sotto);
   gli ugelli in più restano vuoti (ρ = 0)
-- **Un solo colore per tutti gli ugelli**: quello di M1 nel progetto NC. Ogni ugello è un compound
-  (densità + colore): gli ugelli servono per le densità, quindi il colore è unico (per ora anche
-  con 2–3 ugelli). Se il
-  progetto NC ha zone di solo colore (stessa densità, altro pigmento), Compensate avvisa che nel
-  file C spariranno
+- **Colori (dal 16/11/2026)**: ogni ugello è un compound, cioè **una densità in un colore**. Se il
+  progetto NC ha zone colore (ugello di colore diverso da M1), il file C le conserva **quando ci
+  stanno in 4 ugelli**: servono tanti ugelli quante coppie (densità, colore) distinte ci sono lungo
+  la linea. Una zona colore che cade tutta su una densità costa un ugello, una che ne attraversa due
+  ne costa due. Per questo, con zone colore, il dialogo parla di **densità** (2/3/4) e la colonna
+  **colors** dice quanti ugelli servirebbero: `✓ 4 nozzles`, oppure `✗ needs 5`, e in quel caso il
+  file C viene di un colore solo (M1), con un avviso prima di scriverlo
+  - ordine degli ugelli nel C: prima le densità del colore base (M1 = la più leggera), poi quelle
+    colorate, nell'ordine in cui compaiono lungo la linea
+  - due ugelli possono avere la stessa densità e differire solo nel colore; il cambio di colore è
+    netto, al confine della zona NC (al cm); le rampe di densità prendono il colore della zona in
+    cui cadono
+  - Phantom ExtraHover V.2 (arancione 1900–2050 cm): con 2 densità servono 3 ugelli, con 3 ne
+    servono 4 (colore conservato), con 4 ne servirebbero 5 (un colore solo)
 - Densità salvata **a precisione piena** (mostrata
   con 3 decimali, label `ρ X.XXX`): è il confronto esatto con le densità delle slice che
   distingue un materiale da una transizione. A 2 decimali due materiali distanti 0.005 g/cm³

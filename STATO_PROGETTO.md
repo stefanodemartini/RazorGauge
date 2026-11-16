@@ -39,8 +39,17 @@ di 30 cm), su copie, senza toccare il progetto. File: `… C 0.55ips.flp` con 4,
 
 Il valore con 4 ugelli a 0.55 ips (0.065) è quello del 3/11, quindi il caso di sempre resta
 invariato. I file C a 2/3 ugelli contengono 2/3 densità, gli altri ugelli restano a ρ = 0.
-Aperto: con meno di 4 ugelli quelli liberi potrebbero portare colore (zone di solo colore dell'NC),
-ma per ora il C resta di un colore solo.
+**Stesso giorno, ugelli liberi per il colore (Stefano: "ottima idea").** Ogni ugello è una coppia
+(densità, colore) (`CompoundsOf`): le zone colore dell'NC passano nel C se le coppie distinte sono
+≤ 4, altrimenti il C viene di un colore solo, con avviso. Con zone colore il dialogo dice
+"densities" e mostra, per ogni scelta, gli ugelli necessari. Zone del C assegnate per colore e
+densità (`ZonesFromBakedMaterials` con `colorAt`); rampe colorate secondo la zona quando due ugelli
+hanno la stessa densità (`ChartGeometry.GetSliceColor`). Prova sul V.2 (arancione FF5C00,
+1900–2050 cm) a 0.55 ips:
+- 2 densità → 3 ugelli: 1.0147 / 1.0336 verde + 1.0336 arancione (M3 = 1900–2050)
+- 3 densità → 4 ugelli: 1.0121 / 1.0205 / 1.034 verde + 1.034 arancione (M4 = 1900–2050)
+- 4 densità → ne servirebbero 5: un colore solo, come prima
+PDF non controllato a vista (manca un renderer PDF sul PC): da guardare la prima volta.
 
 ### 3 novembre 2026 — compensazione: grafico, ugelli e colori incoerenti nel file C
 
