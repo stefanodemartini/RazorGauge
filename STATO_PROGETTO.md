@@ -22,6 +22,13 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 16 novembre 2026 — tolta la correzione scan Ø ±
+
+**Decisione di Stefano:** col nuovo dispositivo a ombra la misura è diretta, quindi la correzione
+degli scan del vecchio calibro (Ø ±, +0.06 mm o +8%) non serve più. Tolti pulsante, casella,
+interruttore mm/% e le tre impostazioni. Per uno scan vecchio, lo scarto da ricordare è ~0.06 mm
+costante (analisi 21/10).
+
 ### 16 novembre 2026 — Compensate con 2, 3 o 4 ugelli
 
 Richiesta di Stefano: la compensazione usava sempre 4 ugelli (k = 4 fisso). Ora il dialogo

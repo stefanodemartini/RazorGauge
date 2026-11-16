@@ -419,7 +419,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LineWidthSlider.Value = Math.Clamp(_vm.Settings.Chart.LineWidth, (int)LineWidthSlider.Minimum, (int)LineWidthSlider.Maximum);
         FilteredOpacitySlider.Value = Math.Clamp(_vm.Settings.Chart.FilteredOpacity, FilteredOpacitySlider.Minimum, FilteredOpacitySlider.Maximum);
         RawOpacitySlider.Value = Math.Clamp(_vm.Settings.Chart.RawOpacity, RawOpacitySlider.Minimum, RawOpacitySlider.Maximum);
-        ShowScanCorrectionSetting();
         _chartControlsInitialized = true;
     }
 
@@ -4353,98 +4352,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         TriggerCompRecompute();
         MarkDirty();
         UiStatus = "Profile reversed — position 0 is now the fly tip";
-    }
-
-    private bool ScanCorrectionInMm => _vm.Settings.Design.ScanCorrectionUnit != "%";
-
-    /// <summary>Shows the stored value of the active unit in the box and the unit on the toggle.</summary>
-    private void ShowScanCorrectionSetting()
-    {
-        var d = _vm.Settings.Design;
-        ScanInflateBox.Text = (ScanCorrectionInMm ? d.ScanOffsetMm : d.ScanInflatePercent)
-            .ToString(ScanCorrectionInMm ? "0.###" : "0.##", CultureInfo.CurrentCulture);
-        ScanCorrUnitBtn.Content = ScanCorrectionInMm ? "mm" : "%";
-    }
-
-    private void ScanCorrUnit_Click(object sender, RoutedEventArgs e)
-    {
-        _vm.Settings.Design.ScanCorrectionUnit = ScanCorrectionInMm ? "%" : "mm";
-        _vm.SaveSettings();
-        ShowScanCorrectionSetting();
-    }
-
-    /// <summary>
-    /// Temporary scan correction, until the laser reader: the current gauge reads the line thinner
-    /// than it is, so the profile traced over the scan is corrected — either by a fixed amount in mm
-    /// added to every diameter, or by a percentage. A negative value decreases instead. On the
-    /// Phantom Hover the gap was a near-constant ~0.06 mm across 0.96–2.18 mm (3% on the belly, 7% at
-    /// the tip), so the fixed offset is the better model; % stays available. The result replaces the
-    /// traced profile — like Reverse it writes into the nodes, so it is undoable, and it asks first
-    /// because pressing it twice would apply the correction twice.
-    /// </summary>
-    private void InflateDiameters_Click(object sender, RoutedEventArgs e)
-    {
-        if (_isCompensatedDerivative)
-        {
-            UiStatus = "C file: its geometry is the compensation result — scan correction not applied";
-            return;
-        }
-        if (_segmentNodes.Count < 2)
-        {
-            UiStatus = "Trace the profile over the scan first";
-            return;
-        }
-
-        bool inMm = ScanCorrectionInMm;
-        string text = ScanInflateBox.Text.Trim().TrimEnd('%').Trim();
-        if (text.EndsWith("mm", StringComparison.OrdinalIgnoreCase)) text = text[..^2].Trim();
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out double value) &&
-            !double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
-            value = double.NaN;
-        double limit = inMm ? 0.5 : 50;
-        if (double.IsNaN(value) || value == 0 || Math.Abs(value) > limit)
-        {
-            MessageBox.Show(inMm
-                    ? "Enter an amount in mm between -0.5 and 0.5, not 0 (e.g. 0.06 to increase, -0.06 to decrease)."
-                    : "Enter a percentage between -50 and 50, not 0 (e.g. 8 to increase, -8 to decrease).",
-                "Scan correction", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        double factor = 1.0 + value / 100.0;
-        Func<double, double> correct = inMm ? y => y + value : y => y * factor;
-        if (_segmentNodes.Any(n => correct(n.Y) <= 0.05))
-        {
-            MessageBox.Show("This decrease would leave a node at (or below) zero diameter.",
-                "Scan correction", MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        string verb   = value > 0 ? "Increase" : "Decrease";
-        string amount = inMm ? $"{Math.Abs(value):0.###} mm" : $"{Math.Abs(value):0.##}% (×{factor:0.0000})";
-        var answer = MessageBox.Show(
-            $"{verb} every drawn diameter by {amount}?\n\n" +
-            "The corrected profile replaces the traced one. Pressing it again would apply the " +
-            "correction a second time — use Ctrl+Z to go back.",
-            "Scan correction", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (answer != MessageBoxResult.OK) return;
-
-        if (inMm) _vm.Settings.Design.ScanOffsetMm = value;
-        else      _vm.Settings.Design.ScanInflatePercent = value;
-        _vm.SaveSettings();
-
-        PushUndo();
-        var corrected = _segmentNodes.Select(n => (n.X, Math.Round(correct(n.Y), 3))).ToList();
-        _segmentNodes.Clear();
-        _segmentNodes.AddRange(corrected);
-
-        RefreshSegmentTable();
-        RefreshPlot();
-        TriggerCompRecompute();
-        MarkDirty();
-        UiStatus = inMm
-            ? $"Scan correction · diameters {value:+0.###;-0.###} mm · Ctrl+Z to undo"
-            : $"Scan correction · diameters {value:+0.##;-0.##}% (×{factor:0.0000}) · Ctrl+Z to undo";
     }
 
     // ── Label hit-test helper ────────────────────────────────────────────────

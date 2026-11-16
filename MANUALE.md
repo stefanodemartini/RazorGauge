@@ -156,30 +156,17 @@ Attivare **Design Mode ON**. Il pannello sinistro mostra i controlli di design; 
 
 #### Undo
 - **Ctrl+Z** — annulla l'ultima modifica ai nodi (max 100 step)
-- Funziona per: aggiunta, rimozione, drag, edit, reverse, correzione scan Ø ±, clear
+- Funziona per: aggiunta, rimozione, drag, edit, reverse, clear
 
 #### Invertire il Profilo
 - **Reverse** — specchia le posizioni X mantenendo i diametri
 - Utile per impostare l'orientamento corretto (tip=0, reel=max)
 
-#### Correzione scan (Ø ±) — temporanea
-- Il gauge attuale legge la linea più sottile del vero: il profilo tracciato sullo scan va
-  maggiorato, in attesa del lettore laser
-- Pulsante **Ø ±**, casella del valore e pulsante dell'unità (**mm** / **%**, clic per alternare).
-  Unità e valori di entrambe le modalità sono ricordati nelle impostazioni
-  - **mm** (default, 0.06): somma la stessa quantità al diametro di **ogni nodo**. Ammesso ±0.5, non 0
-  - **%** (default 8): moltiplica ogni diametro per `1 + %/100`. Ammesso ±50, non 0
-- Le posizioni non cambiano. Valore **negativo** = diminuzione; rifiutata se porterebbe un nodo a Ø ≈ 0
-- **Perché mm è il default** — analisi del 21/10/2026 su *Phantom Hover (Real)* (design = misure
-  reali, scan = gauge): lo scarto è quasi **costante, ~0.06 mm** da Ø 0.96 a 2.18 (in percentuale
-  invece varia dal 7% in punta al 3% nel ventre). Errore medio dopo la correzione: +8% → 38 µm,
-  miglior % fissa (+5.5%) → 17 µm, **+0.06 mm → 8 µm**. Confermato su Phantom Extra Hover (due
-  scansioni) e Ballistic (galleggiante): scarto 0.05–0.06 mm, +8% sempre il peggiore. Ripetibilità
-  fra sessioni (scan e calibro) ~0.05 mm: inutile raffinare oltre
-- Attenzione: −8% non annulla un +8% (1.08 × 0.92 = 0.9936). Per annullare usa **Ctrl+Z**
-- Il profilo corretto **sostituisce** quello tracciato (scrive nei nodi). Chiede conferma perché
-  premerlo due volte applica la correzione due volte: per tornare indietro **Ctrl+Z**
-- Non disponibile su un file C (la sua geometria è il risultato della compensazione)
+#### Correzione scan (Ø ±) — tolta il 16/11/2026
+- Serviva a maggiorare il profilo tracciato sugli scan del vecchio calibro (che leggeva ~0.06 mm in
+  meno). Col nuovo lettore a ombra la misura è diretta e la correzione non serve più: pulsante,
+  casella e impostazioni sono stati rimossi. Gli scan vecchi, se servono ancora, vanno corretti a
+  mano (scarto misurato: ~0.06 mm costante, vedi git log prima del 16/11/2026)
 
 #### Cancellare il Profilo
 - **Clear Segments** — rimuove tutti i nodi (undoable)
