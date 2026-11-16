@@ -99,6 +99,7 @@ public partial class ShellWindow : Window
         view.PropertyChanged += View_PropertyChanged;
         view.ActivateRequested += View_ActivateRequested;
         view.ExitRequested += View_ExitRequested;
+        view.OpenInNewTabRequested += View_OpenInNewTabRequested;
         view.PreviewMouseDown += View_FocusGained;
         view.PreviewGotKeyboardFocus += View_FocusGained;
 
@@ -116,6 +117,7 @@ public partial class ShellWindow : Window
         view.PropertyChanged -= View_PropertyChanged;
         view.ActivateRequested -= View_ActivateRequested;
         view.ExitRequested -= View_ExitRequested;
+        view.OpenInNewTabRequested -= View_OpenInNewTabRequested;
         view.PreviewMouseDown -= View_FocusGained;
         view.PreviewGotKeyboardFocus -= View_FocusGained;
 
@@ -244,6 +246,31 @@ public partial class ShellWindow : Window
         if (v != _left && v != _right) Show(v);
         if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
         Activate();
+    }
+
+    /// <summary>
+    /// Opens a file in a new tab next to the one that asked. If the file is already open in a tab
+    /// of any window, that tab is shown and reloaded from disk instead of opening it twice.
+    /// </summary>
+    private void View_OpenInNewTabRequested(MainWindow from, string path)
+    {
+        static string Full(string p) => System.IO.Path.GetFullPath(p);
+        foreach (var w in System.Windows.Application.Current.Windows.OfType<ShellWindow>())
+        {
+            var existing = w._tabs.FirstOrDefault(t => t.View != from && t.View.ProjectPath is { } p
+                && string.Equals(Full(p), Full(path), StringComparison.OrdinalIgnoreCase));
+            if (existing == null) continue;
+            w.Show(existing.View);
+            if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
+            w.Activate();
+            existing.View.ReloadFromDisk(path);
+            return;
+        }
+        var v = new MainWindow { PendingOpenPath = path };
+        int idx = _tabs.FindIndex(t => t.View == from);
+        AddTab(v, idx < 0 ? _tabs.Count : idx + 1);
+        _focusRight = _right != null && from == _right;   // replace the pane the request came from
+        Show(v);
     }
 
     private static void View_ExitRequested(MainWindow v)

@@ -36,6 +36,8 @@ public partial class MainWindow
 
     /// <summary>Raised when this view wants to be the visible tab (e.g. "Open in Profiler").</summary>
     public event Action<MainWindow>? ActivateRequested;
+    /// <summary>Raised when a file this view produced (a C file) should be opened in a tab.</summary>
+    public event Action<MainWindow, string>? OpenInNewTabRequested;
     /// <summary>Raised by the Exit menu item: closes the whole application.</summary>
     public event Action<MainWindow>? ExitRequested;
 
@@ -82,6 +84,21 @@ public partial class MainWindow
         s_openViews.Remove(this);
         if (_vm.IsConnected) _ = _vm.DisconnectAsync();
         return true;
+    }
+
+    /// <summary>
+    /// Reloads this tab's file from disk (a C file just regenerated over the one shown here).
+    /// Asks first if this tab has unsaved changes.
+    /// </summary>
+    public void ReloadFromDisk(string path)
+    {
+        if (!ConfirmDiscardIfDirty()) return;
+        try { LoadProjectFromFile(path); }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Could not open project:\n{ex.Message}", "Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     /// <summary>One gauge, one WebSocket: refuse to connect while another tab holds it.</summary>

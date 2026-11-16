@@ -565,7 +565,11 @@ La compensazione risolve il problema fisico: sezioni di diametri diversi affonda
 3. **Salvare il progetto** — il file C prende il nome da quello del progetto
 4. Cliccare **⚖ Compensate…**
 5. Nel dialogo, scegliere la velocità target con lo slider (min/max mostrati come numeri ai lati) e il **numero di ugelli** (2, 3 o 4), poi premere **Create C file**
-6. Conferma con il nome del file scritto; per vedere o stampare il profilo compensato si apre quel file
+6. Il messaggio finale riporta **nome e cartella** del file C scritto e chiede se aprirlo (dal
+   16/11/2026). **Yes**: il file C si apre in una **nuova scheda** accanto all'NC, che resta aperto
+   così com'era. Se quel file C è già aperto in una scheda, viene mostrata quella e ricaricata da
+   disco, perché il file è appena stato riscritto; se ha modifiche non salvate, prima chiede.
+   **No**: resta sull'NC, e il file C si apre quando serve con Open o Recent
 
 ### Dialogo Compensate
 - Il range dello slider è la velocità di affondamento più lenta e più veloce già raggiunta dalle sezioni attuali: qualsiasi target al suo interno è ottenibile cambiando solo la densità

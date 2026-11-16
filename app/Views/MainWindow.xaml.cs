@@ -6112,16 +6112,20 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             ? "\n\n⚠ One or more sections use the ρ = 0.94 g/cm³ floor material — their diameter (and so their actual speed) departs a bit further from the target than the rest."
             : string.Empty;
         UiStatus = $"Compensated file saved: {Path.GetFileName(compPath)}  ({targetIns:0.000} in/s, worst deviation {worstSpeedErrIns:0.000} in/s)";
-        MessageBox.Show(
-            $"Saved {Path.GetFileName(compPath)}\n\n" +
+        var openIt = MessageBox.Show(
+            $"Compensated file saved.\n\n" +
+            $"Name:    {Path.GetFileName(compPath)}\n" +
+            $"Folder:  {Path.GetDirectoryName(compPath)}\n\n" +
             $"{compCount} section(s) compensated toward {targetIns:0.000} in/s, using at most 4 real materials, " +
             $"with a {NozzleTransitionCm:0} cm transition wherever one nozzle hands over to the next.\n" +
             $"Diameters stay close to the original taper (mass-conserving, same rule as a zone) — actual " +
             $"sink speed is an approximation, worst deviation {worstSpeedErrIns:0.000} in/s.\n" +
             "This design is unchanged — open the C file to see or print the compensated profile." +
-            clampWarn,
-            title, MessageBoxButton.OK,
+            clampWarn +
+            "\n\nOpen the C file now? (it opens in a new tab, this design stays open)",
+            title, MessageBoxButton.YesNo,
             anyClamped ? MessageBoxImage.Warning : MessageBoxImage.Information);
+        if (openIt == MessageBoxResult.Yes) OpenInNewTabRequested?.Invoke(this, compPath);
     }
 
     private void AutoFitToggle_Click(object sender, RoutedEventArgs e)
