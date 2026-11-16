@@ -566,10 +566,13 @@ diametro intatto il taper resta continuo ovunque, confine tra materiali compreso
    massimo metà di ciascun tratto vicino, quindi anche un tratto più corto di 30 cm conserva un
    pezzo di materiale puro. Il diametro non cambia; la velocità nella transizione sta fra quelle
    dei due materiali. Nel file C:
-   - grafico: la transizione è sfumata fra i colori dei due ugelli, senza badge M{n}
-   - quote e etichette Ø all'inizio e alla fine di ogni transizione
+   - **disegni (dal 16/11/2026)**: la transizione **non è disegnata**. Grafico e PDF mostrano un
+     cambio d'ugello netto, tratteggiato, a metà della rampa: la prima metà va all'ugello prima,
+     la seconda all'ugello dopo (fascia NOZZLE, tabella NOZZLES, colore del profilo). Nel PDF,
+     riquadro NOZZLES · DENSITY, una **nota** dice che a ogni cambio d'ugello la densità passa
+     linearmente da un materiale all'altro su 30 cm centrati sul confine tratteggiato. Masse e
+     velocità per ugello restano calcolate dalle densità reali delle slice, rampa compresa
    - tabella Segments: una riga per transizione, con la densità media (pesata sulla massa)
-   - PDF, "Density zones": una fascia `M3→M2` con le due densità e la posizione
 
 Risultato: **forma del taper perfettamente liscia**, e la velocità di affondamento diventa
 un'**approssimazione** del target invece che un valore esatto ovunque — assorbe interamente
@@ -619,14 +622,14 @@ distinte tre informazioni, che non si sovrappongono mai:
 - **NOZZLE · DENSITY (ugelli M)** — quale compound si estrude dove. Fascia **NOZZLE** sotto il
   profilo: ogni ugello ha un grigio e un tratteggio propri (M1 pieno, M2 `///`, M3 incrociato,
   M4 a punti), la densità scritta sotto e la sua catena di quote; confini **tratteggiati**; le
-  transizioni da 30 cm hanno il tratteggio diagonale
+  transizioni da 30 cm non sono disegnate (solo la nota nel PDF, vedi sopra)
 - **COLOR** — il pigmento vero. Il profilo è disegnato **solo** nel colore reale della linea;
   fascia **COLOR** con il codice esadecimale
 
 Nel PDF: riquadro riassuntivo SHAPE / NOZZLES · DENSITY / COLOR sopra il grafico, legenda degli
 stili di linea sotto, schede ugello (motivo + densità + colore) e **due tabelle**:
 1. **TAPER** — solo geometria: inizio, fine, lunghezza, Ø, pendenza, testa/running
-2. **NOZZLES** — solo materiale: ugello o transizione `M3→M2`, da/a, lunghezza, densità, colore,
+2. **NOZZLES** — solo materiale: ugello (le transizioni sono divise a metà fra i due vicini), da/a, lunghezza, densità, colore,
    massa, velocità; totale di massa uguale a quello del piè di pagina
 
 **Lingua del PDF**: in "📄 Export PDF", nel menu *Tipo file* della finestra Salva si sceglie

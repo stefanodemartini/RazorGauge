@@ -539,13 +539,15 @@ public static class FlyLinePdfExporter
                     {
                         var usedNozzles = schedule.Nozzles.Where(r => !r.IsTransition)
                             .Select(r => r.Nozzle).Distinct().OrderBy(i => i).ToList();
-                        var trans = schedule.Nozzles.Where(r => r.IsTransition).ToList();
                         string nozzleList = string.Join(", ", usedNozzles.Select(i => $"M{i + 1}"));
+                        // The ramps between nozzles are not drawn (ProductionSchedule.FoldTransitions):
+                        // the drawing shows one dashed boundary in the middle of each, this note the rest.
                         string nozzlesText = usedNozzles.Count <= 1
                             ? T("One nozzle (M1) over the whole line — single density.")
-                            : trans.Count > 0
-                                ? T("{0} nozzles ({1}), {2} linear density transitions of {3} cm. Boundaries drawn dashed.",
-                                    usedNozzles.Count, nozzleList, trans.Count, $"{trans.Max(t => t.LengthCm):0}")
+                            : schedule.TransitionCount > 0
+                                ? T("{0} nozzles ({1}). Boundaries drawn dashed.", usedNozzles.Count, nozzleList) + " " +
+                                  T("Note: at each nozzle change the density passes linearly from one material to the next over {0} cm, centred on the dashed boundary (not drawn).",
+                                    $"{schedule.TransitionCm:0}")
                                 : T("{0} nozzles ({1}), no transitions. Boundaries drawn dashed.", usedNozzles.Count, nozzleList);
                         string colorText = schedule.Colors.Count == 1
                             ? (usedNozzles.Count > 1
@@ -574,16 +576,12 @@ public static class FlyLinePdfExporter
                     // ── How to read the drawing ────────────────────────────
                     if (schedule != null)
                     {
-                        byte[] transSwatch = NozzlePattern.SwatchPng(NozzlePattern.Transition, 88, 32, 10);
                         string lineHex = schedule.Colors[0].Hex;
                         col.Item().PaddingHorizontal(6).Row(lr =>
                         {
                             lr.AutoItem().AlignMiddle().Text("━━  " + Ti("slope change (taper S)")).FontSize(7f).FontColor(ColText);
                             lr.ConstantItem(24);
                             lr.AutoItem().AlignMiddle().Text("┄┄  " + Ti("nozzle change (density M)")).FontSize(7f).FontColor(ColText);
-                            lr.ConstantItem(24);
-                            lr.ConstantItem(22).AlignMiddle().Height(8).Image(transSwatch).FitArea();
-                            lr.AutoItem().AlignMiddle().PaddingLeft(4).Text(Ti("linear density transition")).FontSize(7f).FontColor(ColText);
                             lr.ConstantItem(24);
                             lr.ConstantItem(22).AlignMiddle().Height(8).Border(0.5f).BorderColor(ColText).Background(C(lineHex));
                             lr.AutoItem().AlignMiddle().PaddingLeft(4).Text(Ti("the profile is drawn in the real line color only")).FontSize(7f).FontColor(ColText);

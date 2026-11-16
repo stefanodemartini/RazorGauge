@@ -117,6 +117,10 @@ public static class SheetText
             = "全线一个喷嘴 (M1) — 单一密度。",
         ["{0} nozzles ({1}), {2} linear density transitions of {3} cm. Boundaries drawn dashed."]
             = "{0} 个喷嘴（{1}），{2} 处 {3} cm 线性密度过渡。边界以虚线表示。",
+        ["{0} nozzles ({1}). Boundaries drawn dashed."]
+            = "{0} 个喷嘴（{1}）。边界以虚线表示。",
+        ["Note: at each nozzle change the density passes linearly from one material to the next over {0} cm, centred on the dashed boundary (not drawn)."]
+            = "注：每次换喷嘴时，密度在以虚线边界为中心的 {0} cm 内由一种材料线性过渡到下一种（图中未绘出）。",
         ["{0} nozzles ({1}), no transitions. Boundaries drawn dashed."]
             = "{0} 个喷嘴（{1}），无过渡。边界以虚线表示。",
         ["{0} over the whole line — the nozzles differ in density only."]

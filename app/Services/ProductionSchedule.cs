@@ -111,6 +111,7 @@ public sealed class ProductionSchedule
                 double r1 = i + 1 < spans.Count ? spans[i + 1].Density : double.NaN;
                 s.Nozzles.Add(new NozzleRun(sp.StartX, sp.EndX, NozzlePattern.Transition, from, to, r0, r1));
             }
+            FoldTransitions(s);
         }
 
         // COLOR — the nozzle's own pigment where a zone covers, M1's elsewhere
@@ -136,6 +137,47 @@ public sealed class ProductionSchedule
                 s.Colors.Add(new ColorRun(xs[i], xs[i + 1], hex));
         }
         return s;
+    }
+
+    /// <summary>How many nozzle-to-nozzle ramps the line really has (not drawn: see <see cref="FoldTransitions"/>).</summary>
+    public int TransitionCount { get; private set; }
+
+    /// <summary>Length of the longest of those ramps, cm (0 when there are none).</summary>
+    public double TransitionCm { get; private set; }
+
+    /// <summary>
+    /// The ramps where one nozzle hands over to the next are real (the density passes linearly from
+    /// one material to the other), but they are not drawn: Stefano's call (16/11/2026) — the sheet
+    /// shows one hard, dashed nozzle boundary in the middle of each ramp, and the PDF says in a note
+    /// how long the ramps are. Each ramp's first half goes to the nozzle before it, the second half
+    /// to the one after. Masses and sinks are still integrated from the real slice densities.
+    /// </summary>
+    private static void FoldTransitions(ProductionSchedule s)
+    {
+        var raw = s.Nozzles.ToList();
+        if (!raw.Any(r => r.IsTransition)) return;
+        s.Nozzles.Clear();
+        for (int i = 0; i < raw.Count; i++)
+        {
+            var r = raw[i];
+            if (!r.IsTransition)
+            {
+                if (s.Nozzles.Count > 0 && s.Nozzles[^1].Nozzle == r.Nozzle)
+                    s.Nozzles[^1] = s.Nozzles[^1] with { EndCm = r.EndCm };
+                else
+                    s.Nozzles.Add(r);
+                continue;
+            }
+            s.TransitionCount++;
+            s.TransitionCm = Math.Max(s.TransitionCm, r.LengthCm);
+            bool hasPrev = s.Nozzles.Count > 0;
+            bool hasNext = i + 1 < raw.Count && !raw[i + 1].IsTransition;
+            double mid = (r.StartCm + r.EndCm) / 2;
+            if (hasPrev) s.Nozzles[^1] = s.Nozzles[^1] with { EndCm = hasNext ? mid : r.EndCm };
+            if (hasNext) raw[i + 1] = raw[i + 1] with { StartCm = hasPrev ? mid : r.StartCm };
+            if (!hasPrev && !hasNext) // a lone ramp (no material either side): show it as its first nozzle
+                s.Nozzles.Add(new NozzleRun(r.StartCm, r.EndCm, r.From, r.From, r.From, r.StartRho, r.StartRho));
+        }
     }
 
     /// <summary>"M3", or "M3→M2" for a transition.</summary>

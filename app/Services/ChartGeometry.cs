@@ -99,9 +99,10 @@ public static class ChartGeometry
     }
 
     /// <summary>
-    /// Colour of a transition slice: the two real nozzle colours on either side of its density,
-    /// mixed in proportion — the gradient a producer actually sees as one material gives way to
-    /// the next.
+    /// Colour of a transition slice: whichever of the two real nozzle colours on either side of its
+    /// density is nearer — the ramp is not drawn (16/11/2026), so the colour switches hard in its
+    /// middle, on the dashed nozzle boundary (see ProductionSchedule.FoldTransitions); the PDF
+    /// states the ramp length in a note.
     /// </summary>
     public static ScottColor TransitionColor(double density, IReadOnlyList<NozzleDefinition> nozzles)
     {
@@ -112,7 +113,7 @@ public static class ChartGeometry
         TryParseHexColor(hi.ColorHex, out var ch);
         double t = hi.DensityGCm3 > lo.DensityGCm3
             ? Math.Clamp((density - lo.DensityGCm3) / (hi.DensityGCm3 - lo.DensityGCm3), 0, 1) : 0;
-        t = Math.Round(t * 10) / 10; // ten steps: runs of a few cm, drawn as one fill each
+        t = t < 0.5 ? 0 : 1;
         byte Mix(byte a, byte b) => (byte)Math.Round(a + (b - a) * t);
         return new ScottColor(Mix(cl.R, ch.R), Mix(cl.G, ch.G), Mix(cl.B, ch.B));
     }
