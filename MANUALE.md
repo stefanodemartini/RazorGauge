@@ -1061,6 +1061,11 @@ Un'annotazione contestuale appare anche sul grafico (soppressa durante Draw mode
 ### Drag Etichette
 In Design Mode è possibile trascinare il box dell'etichetta di ogni nodo. La posizione viene salvata nel file `.flp`.
 
+Vale anche sul **profilo compensato** (file C, o NC con zone a materiale proprio), dove le etichette
+sono solo ai cambi di pendenza: dal 16/11/2026 si trascinano anche lì, e il PDF usa la posizione
+scelta. Prima nel profilo compensato restavano ferme, perché il clic veniva confrontato con i nodi
+da ~1 cm del file C invece che con le etichette disegnate, e il disegno ignorava la posizione salvata.
+
 ### Quote di Lunghezza
 Sopra il profilo, ben distanziata dai tag "S{n}"/"M{n}" che restano attaccati al bordo, corre una catena continua di quote in stile disegno tecnico: un tick a 45° a ogni confine di taper fisico reale, una linea di quota fra due tick consecutivi e il numero (lunghezza in cm, senza unità di misura e senza zeri decimali inutili — es. "30" non "30.0") scritto orizzontale appena sopra la linea. Le quote seguono sempre e solo i tapers fisici reali (`GetTaperShapeBoundaries`), mai i cambi di materiale/colore — stesso principio delle etichette "S". Presente sia a schermo sia nel PDF esportato (stessa funzione condivisa `ChartGeometry.DrawLengthDimensionChain`).
 

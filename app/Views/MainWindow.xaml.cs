@@ -2426,8 +2426,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                 var node = labelNodes[ni];
                 double chartYBottom = -node.Y / 2.0;
                 double gap = node.Y * 0.40;
-                double lx = node.X;
-                double ly = chartYBottom - gap * (ni % 2 == 0 ? 1.0 : 2.2);
+                // A dragged label keeps its place here too (same offsets the PDF already honours);
+                // before, this branch always redrew the default spot, so a C file's labels looked
+                // stuck. FindLabelAt uses the same nodes and defaults (NodeLabelAnchors).
+                var (lx, ly) = _nodeLabelOffsets.TryGetValue(node.X, out var savedC)
+                               ? savedC : (node.X, chartYBottom - gap * (ni % 2 == 0 ? 1.0 : 2.2));
                 lowestLabel = Math.Min(lowestLabel, ly);
 
                 var leaderColor = new ScottColor(100, 100, 100);
@@ -4417,17 +4420,34 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     }
 
     // ── Label hit-test helper ────────────────────────────────────────────────
+    /// <summary>
+    /// The Ø labels RefreshPlot actually draws, with their default spot: every design node, or —
+    /// on a compensated profile (C file, zones with their own material) — only the taper-shape
+    /// boundaries, read off the compensated diameters. Hit-test and drag start must use exactly
+    /// this list, or a click lands on labels that are not there.
+    /// </summary>
+    private List<(double X, double DefaultLX, double DefaultLY)> NodeLabelAnchors()
+    {
+        bool inComp = (_inCompMode || _zoneDerivedComp) && ProjectSegments.Any(s => s.HasCompensation);
+        var nodes = inComp
+            ? GetTaperShapeBoundaries(GetCompNodes())
+            : _segmentNodes.OrderBy(n => n.X).Select(n => (n.X, n.Y)).ToList();
+        var list = new List<(double, double, double)>(nodes.Count);
+        for (int ni = 0; ni < nodes.Count; ni++)
+        {
+            var (x, y) = nodes[ni];
+            list.Add((x, x, -y / 2.0 - y * 0.40 * (ni % 2 == 0 ? 1.0 : 2.2)));
+        }
+        return list;
+    }
+
     /// <summary>Returns the node X whose label screen centre is within LabelHitRadiusPx of pos.</summary>
     private double? FindLabelAt(System.Windows.Point pos)
     {
         if (!_designMode || _segmentNodes.Count == 0) return null;
-        var sortedNodes = _segmentNodes.OrderBy(n => n.X).ToList();
-        for (int ni = 0; ni < sortedNodes.Count; ni++)
+        foreach (var (nodeX, defaultLX, defaultLY) in NodeLabelAnchors())
         {
-            var node = sortedNodes[ni];
-            double gap = node.Y * 0.40;
-            double defaultLX = node.X;
-            double defaultLY = -node.Y / 2.0 - gap * (ni % 2 == 0 ? 1.0 : 2.2);
+            var node = (X: nodeX, Y: 0.0);
             var (lx, ly) = _nodeLabelOffsets.TryGetValue(node.X, out var saved)
                            ? saved : (defaultLX, defaultLY);
             try
@@ -4454,13 +4474,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             {
                 _draggingLabelNodeX  = labelHit.Value;
                 _labelDragStartMouse = e.GetPosition(PlotControl);
-                var sn   = _segmentNodes.OrderBy(n => n.X).ToList();
-                int sni  = sn.FindIndex(n => n.X == labelHit.Value);
-                var snod = sn[Math.Max(0,sni)];
-                double sg = snod.Y * 0.40;
+                var anchor = NodeLabelAnchors().First(a => a.X == labelHit.Value);
                 _labelDragStartOffset = _nodeLabelOffsets.TryGetValue(labelHit.Value, out var cur)
                     ? cur
-                    : (snod.X, -snod.Y/2.0 - sg*(sni%2==0 ? 1.0 : 2.2));
+                    : (anchor.DefaultLX, anchor.DefaultLY);
                 PlotControl.CaptureMouse();
                 UiStatus   = $"Drag label for node at {labelHit.Value:0} cm";
                 e.Handled  = true;
