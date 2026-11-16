@@ -2540,7 +2540,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly record struct CompSnapshot(
         double StartCm, double[] SliceXsCm, double[] SliceDiamsMm,
         double[] SliceDensities, bool[] Clamped, double TargetSpeedMs,
-        double ExactBoundaryStartDiamMm, double ExactBoundaryEndDiamMm);
+        double ExactBoundaryStartDiamMm, double ExactBoundaryEndDiamMm,
+        ProjectSegment.ProducedPiece[]? ProducedPieces);
 
     private void RefreshSegmentTable()
     {
@@ -2556,7 +2557,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 compSnapshots[s.StartCm] = new CompSnapshot(
                     s.CompStartCm, s.CompSliceXsCm, s.CompSliceDiamsMm,
                     s.CompSliceDensities, s.CompSliceClamped, s.CompensatedTargetSpeedMs,
-                    s.ExactBoundaryStartDiamMm, s.ExactBoundaryEndDiamMm);
+                    s.ExactBoundaryStartDiamMm, s.ExactBoundaryEndDiamMm, s.ProducedPieces?.ToArray());
             s.PropertyChanged -= OnSegmentPropertyChanged;
         }
 
@@ -2598,7 +2599,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // silently attached some other segment's slices to it).
             if (compSnapshots.TryGetValue(startCm, out var cs))
                 seg.SetCompensation(cs.StartCm, cs.SliceXsCm, cs.SliceDiamsMm, cs.SliceDensities, cs.Clamped, cs.TargetSpeedMs,
-                    cs.ExactBoundaryStartDiamMm, cs.ExactBoundaryEndDiamMm);
+                    cs.ExactBoundaryStartDiamMm, cs.ExactBoundaryEndDiamMm,
+                    // Only while the segment still ends where it did: the pieces are absolute
+                    // positions, and a moved end node changes what is produced
+                    cs.ProducedPieces is { Length: > 0 } pp && Math.Abs(pp[^1].EndCm - seg.EndCm) < 1e-6 ? pp : null);
 
             seg.PropertyChanged += OnSegmentPropertyChanged;
             ProjectSegments.Add(seg);
@@ -2683,11 +2687,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 pieces.Select(s => (s.StartDiameterMm + s.EndDiameterMm) / 2.0).ToArray(),
                 pieces.Select(s => s.LengthCm).ToArray(),
                 pieces.Select(s => s.SpecWeightGCm3).ToArray());
+            // The row's mass is its real slices', not one frustum between its two end diameters
+            // (that lost the compensated belly in between).
             zone.SetCompensation(first.StartCm,
                 new[] { 0.0, last.EndCm - first.StartCm },
                 new[] { first.StartDiameterMm, last.EndDiameterMm },
                 new[] { rho, rho },
-                new[] { false, false }, speed, first.StartDiameterMm, last.EndDiameterMm);
+                new[] { false, false }, speed, first.StartDiameterMm, last.EndDiameterMm,
+                pieces.Select(s => new ProjectSegment.ProducedPiece(
+                    s.StartCm, s.EndCm, s.StartDiameterMm, s.EndDiameterMm, s.SpecWeightGCm3)).ToArray());
 
             DisplaySegments.Add(zone);
             i = j + 1;
@@ -3210,8 +3218,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
                 double segSpeed = SinkingSpeedCalc.RigidBodySinkSpeed(_waterIsSalt, _waterTempC,
                     diams, Enumerable.Repeat(dl, n).ToArray(), dens);
+
+                // Mass: the drawn taper cut exactly at every zone edge inside it, each piece at its
+                // own material — a 1 cm slice straddling an edge would otherwise count whole at one.
+                var cuts = new SortedSet<double> { seg.StartCm, seg.EndCm };
+                foreach (var z in NozzleZones)
+                {
+                    if (z.StartCm > seg.StartCm + eps && z.StartCm < seg.EndCm - eps) cuts.Add(z.StartCm);
+                    if (z.EndCm   > seg.StartCm + eps && z.EndCm   < seg.EndCm - eps) cuts.Add(z.EndCm);
+                }
+                double DrawnAt(double x) => seg.StartDiameterMm
+                    + (x - seg.StartCm) / seg.LengthCm * (seg.EndDiameterMm - seg.StartDiameterMm);
+                var cl = cuts.ToList();
+                var pieces = new ProjectSegment.ProducedPiece[cl.Count - 1];
+                for (int p = 0; p + 1 < cl.Count; p++)
+                    pieces[p] = new ProjectSegment.ProducedPiece(cl[p], cl[p + 1], DrawnAt(cl[p]), DrawnAt(cl[p + 1]),
+                        HardDensity((cl[p] + cl[p + 1]) / 2.0));
+
                 seg.SetCompensation(seg.StartCm, xs, diams, dens, clamped, segSpeed,
-                    seg.StartDiameterMm, seg.EndDiameterMm);
+                    seg.StartDiameterMm, seg.EndDiameterMm, pieces);
             }
         }
         else
@@ -3261,6 +3286,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
                 var allXs = new List<double>(); var allDiams = new List<double>();
                 var allDens = new List<double>(); var allLens = new List<double>(); var allClamped = new List<bool>();
+                var produced = new List<ProjectSegment.ProducedPiece>();
 
                 for (int p = 0; p < localXs.Count - 1; p++)
                 {
@@ -3272,6 +3298,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     double pieceRho = HardDensity((px0 + px1) / 2.0);
                     bool   wasClamped = pieceRho < SinkingSpeedCalc.RhoFloor;
                     if (wasClamped) pieceRho = SinkingSpeedCalc.RhoFloor;
+                    // Exactly what is extruded here: straight from pd0 to pd1, at pieceRho
+                    produced.Add(new ProjectSegment.ProducedPiece(px0, px1, pd0, pd1, pieceRho));
 
                     int    n  = Math.Max(1, (int)Math.Ceiling(pieceLen / sliceLenCm));
                     double dl = pieceLen / n;
@@ -3290,7 +3318,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 var clamped = allClamped.ToArray(); var xsArr = allXs.ToArray(); var lens = allLens.ToArray();
                 double segSpeed = SinkingSpeedCalc.RigidBodySinkSpeed(_waterIsSalt, _waterTempC, diams, lens, dens);
                 seg.SetCompensation(seg.StartCm, xsArr, diams, dens, clamped, segSpeed,
-                    resolvedDiam[seg.StartCm], resolvedDiam[seg.EndCm]);
+                    resolvedDiam[seg.StartCm], resolvedDiam[seg.EndCm], produced.ToArray());
                 if (seg.HasClampedSlices) anyClampedSlice = true;
             }
         }
@@ -3301,6 +3329,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _zoneDerivedComp = true;
         UpdateSinkingSpeeds();
         UpdateCompModeUI();
+        // The produced masses just changed: totals, AFFTA and the weight chart read them
+        RefreshTotals();
+        RefreshAfftaBadge();
+        RefreshAnalysisPlot();
         RefreshPlot();
         MarkDirty();
         UiStatus = "Zone densities applied — each zone's own sink speed is shown in the segments table."
@@ -4269,6 +4301,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         foreach (var seg in ProjectSegments.OrderBy(s => s.StartCm))
         {
+            // A live zone design knows exactly what it produces (ApplyZoneDensities): those pieces,
+            // with their adapted diameters — not the drawn ones at the zone's density, which
+            // overstated a denser zone's weight by about ρ_zone/ρ_base − 1 (16/11/2026).
+            if (seg.ProducedPieces is { Count: > 0 } produced)
+            {
+                foreach (var p in produced)
+                    result.Add(new ProjectSegment
+                    {
+                        Index = seg.Index, StartCm = p.StartCm, EndCm = p.EndCm,
+                        StartDiameterMm = p.StartDiamMm, EndDiameterMm = p.EndDiamMm,
+                        Name = seg.Name, SpecWeightGCm3 = p.DensityGCm3, IsHead = seg.IsHead
+                    });
+                continue;
+            }
             if (seg.LengthCm <= 0 || zones.Count == 0) { result.Add(seg); continue; }
 
             var cuts = new SortedSet<double> { seg.StartCm, seg.EndCm };

@@ -104,10 +104,33 @@ public class ProjectSegment : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Mass in grams, from the real applied density (EffectiveSpecWeightGCm3 — the zone's own
-    /// density where one applies, not the design's base) — zero when neither is set.
+    /// Mass in grams of what is really produced. When the producer of the compensation knows the
+    /// real produced geometry piece by piece (<see cref="ProducedPieces"/>: a live zone design, or a
+    /// grouped row of a C file) it is the exact sum of those frustums, each at its own density —
+    /// the drawn diameters are not what gets extruded once a zone has adapted them, and drawn volume
+    /// × zone density overstated a denser zone's mass by about ρ_zone/ρ_base − 1 (verified
+    /// 16/11/2026, +3 % on a whole line). Otherwise the drawn frustum at the applied density.
     /// </summary>
-    public double MassG => EffectiveSpecWeightGCm3 > 0 ? VolumeCm3 * EffectiveSpecWeightGCm3 : 0;
+    public double MassG => _producedPieces is { Length: > 0 } pp
+        ? pp.Sum(p => FrustumMassG(p.StartDiamMm, p.EndDiamMm, p.EndCm - p.StartCm, p.DensityGCm3))
+        : EffectiveSpecWeightGCm3 > 0 ? VolumeCm3 * EffectiveSpecWeightGCm3 : 0;
+
+    /// <summary>Mass in grams of a straight frustum: diameters in mm, length in cm, ρ in g/cm³.</summary>
+    public static double FrustumMassG(double d0Mm, double d1Mm, double lengthCm, double rho)
+    {
+        double r1 = d0Mm / 20.0, r2 = d1Mm / 20.0; // radius in cm
+        return Math.PI * lengthCm / 3.0 * (r1 * r1 + r1 * r2 + r2 * r2) * rho;
+    }
+
+    /// <summary>One straight piece of the line as really produced: absolute positions, its own two
+    /// end diameters and its own density.</summary>
+    public readonly record struct ProducedPiece(double StartCm, double EndCm, double StartDiamMm, double EndDiamMm, double DensityGCm3);
+
+    private ProducedPiece[]? _producedPieces;
+
+    /// <summary>The real produced geometry of this segment, piece by piece, when its compensation
+    /// producer knows it exactly (null otherwise). Set only through <see cref="SetCompensation"/>.</summary>
+    public IReadOnlyList<ProducedPiece>? ProducedPieces => _producedPieces;
 
     public string VolumeText => $"{VolumeCm3:0.000}";
     public string MassText   => EffectiveSpecWeightGCm3 > 0 ? $"{MassG:0.000}" : "—";
@@ -263,8 +286,10 @@ public class ProjectSegment : INotifyPropertyChanged
         : _exactBoundaryEndDiamMm;
 
     public void SetCompensation(double startCm, double[] sliceXsCm, double[] sliceDiamsMm, double[] sliceDensities, bool[] clamped, double targetSpeedMs,
-        double exactBoundaryStartDiamMm = double.NaN, double exactBoundaryEndDiamMm = double.NaN)
+        double exactBoundaryStartDiamMm = double.NaN, double exactBoundaryEndDiamMm = double.NaN,
+        ProducedPiece[]? producedPieces = null)
     {
+        _producedPieces     = producedPieces;
         _compStartCm        = startCm;
         _compSliceXsCm      = sliceXsCm;
         _compSliceDiamsMm   = sliceDiamsMm;
@@ -287,6 +312,7 @@ public class ProjectSegment : INotifyPropertyChanged
 
     public void ClearCompensation()
     {
+        _producedPieces     = null;
         _compSliceXsCm      = Array.Empty<double>();
         _compSliceDiamsMm   = Array.Empty<double>();
         _compSliceDensities = Array.Empty<double>();

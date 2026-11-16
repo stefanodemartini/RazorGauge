@@ -264,6 +264,8 @@ public static class FlyLinePdfExporter
         // this document reads every number straight off the segments it's already printing.
         double EffectiveMassG(ProjectSegment s)
         {
+            // Known produced geometry (a live zone design): MassG is already its exact sum.
+            if (s.ProducedPieces is { Count: > 0 }) return s.MassG;
             if (!(showCompensation && s.HasCompensation && s.CompSliceDiamsMm.Length > 0))
                 return s.MassG;
             // A row whose density doesn't actually vary (every DisplaySegments zone row — one row

@@ -51,6 +51,16 @@ NOZZLES, che usa le slice vere).
 Oggi nessun file NC in `Projects/` ha zone con densità diversa da M1 di più di 0.02: nessun PDF già
 emesso è toccato. Il CLI (`LineDesignBuilder`) cuoce i diametri nei nodi, quindi lì `MassG` è giusta.
 
+**CORRETTO il 16/11/2026.** `ApplyZoneDensities` passa a ogni segmento i tratti realmente prodotti
+(`ProjectSegment.ProducedPieces`: posizioni, due diametri, densità); `MassG` ne è la somma esatta
+dei tronchi di cono; `BuildEffectiveSegmentsForFamilySource` (AFFTA, Family) e `EffectiveMassG`
+(PDF) li usano; totali, badge AFFTA e grafico pesi vengono ricalcolati subito dopo l'applicazione
+delle zone (prima restavano vecchi fino al rebuild successivo della tabella). Anche le righe
+raggruppate della tabella di un file C sommano le loro slice invece di un tronco fra i due estremi.
+Verifica con harness sull'app vera (copia di Nautilus 0.5 + zona 500–1200 cm ρ 1.10): totale
+804.7 gr (prima 830.1), segmenti 300–980 / 980–1420 = 14.067 / 12.492 g, identici allo script;
+AFFTA 243.2 gr. File C Nautilus 1.5 C 1.50ips invariato (833.9 gr, righe tabella 834.1 gr).
+
 ## 3. Bordo zona a metà segmento: il tratto rimodellato ha lunghezza casuale
 
 Il bordo zona diventa un punto risolto (diametro × √(ρ_base/ρ_zona)); il tratto **fuori** zona fra il
