@@ -165,9 +165,9 @@ int Pdf(string[] a)
             project.IsSinking ? LineDensityClass.Sinking : LineDensityClass.Floating),
         project.IsFullLine, project.WaterType == "salt", project.WaterTempC,
         afftaBadge, project.ColorNote, nozzleDefs, nozzleZones, project.DesignLineColorHex,
-        // Same switch the GUI honours, so a headless export matches what the window would print.
-        project.ShowCore ? project.CoreType : string.Empty,
-        project.ShowCore ? project.CoreDiameterMm : null,
+        // Same rule as the GUI: the PDF always lists a picked core; ShowCore is only for the chart.
+        project.CoreType,
+        project.CoreDiameterMm,
         project.LaserMark, useComp, compNote, language);
 
     Console.WriteLine($"Saved: {outPath}");

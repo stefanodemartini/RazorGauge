@@ -521,9 +521,12 @@ carico di rottura e la gamma di diametro del fornitore:
 - Il Kevlar è quotato solo come "sopra 0.90" per entrambi i carichi: il Ø registrato è quel **minimo**,
   non una misura. Da sostituire con i valori veri prima di fidarsi di un core Kevlar disegnato in scala
 
-La spunta **Show** accanto al Ø è **un solo interruttore per entrambi i posti** in cui il core
-compare, così non capita mai che sia disegnato nel grafico e assente dal foglio (o viceversa).
-Spenta: niente banda nel grafico e **nessuna card Core nel PDF**, né tipo né diametro.
+La spunta **Show** accanto al Ø decide **solo se il core è disegnato nel grafico** dell'app.
+**Il PDF riporta sempre il core** (card Core con tipo e Ø) quando ne è scelto uno, che Show sia
+accesa o spenta. Cambiato il 16/11/2026: prima Show valeva per tutti e due i posti, e spegnerlo per
+pulire il grafico toglieva senza avviso il core dal foglio del produttore (successo su 8 file:
+Bellaria #8 Opt.1, Opt.2 e Opt.2 C, Phantom V.2 e i suoi due C, ST27-60 V.2 e il suo C, Buck).
+Vale anche per il CLI (`flyline pdf`).
 
 **Nel grafico** (solo in Design Mode) il core è disegnato dentro il rivestimento **alla sua
 dimensione vera**, come banda a diametro costante nello stesso sistema ±d/2 del profilo. Dove il

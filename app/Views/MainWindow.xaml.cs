@@ -120,8 +120,9 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     }
 
     private bool _showCore = true;
-    /// <summary>One switch for both places the core appears — the design chart and the PDF — so it
-    /// is never drawn in one and missing from the other.</summary>
+    /// <summary>Whether the core is drawn in the design chart. The PDF lists the core whenever one
+    /// is picked, regardless of this switch (since 16/11/2026: hiding it from the chart had silently
+    /// dropped it from the manufacturer's sheet).</summary>
     public bool ShowCore
     {
         get => _showCore;
@@ -4952,8 +4953,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                 exportComp ? ProjectSegments.ToList() : DisplaySegments.ToList(),
                 _lineType, _isFullLine, _waterIsSalt, _waterTempC, AfftaBadge, _colorNote,
                 pdfNozzleDefs, pdfNozzleZones, designHex,
-                _showCore ? _coreType : string.Empty,
-                _showCore ? _coreDiameterMm : null,
+                // The PDF always states the core when one is picked (Stefano, 16/11/2026): "Show"
+                // only decides whether it is drawn in the app's chart.
+                _coreType,
+                _coreDiameterMm,
                 laserMarkText, exportComp, compNote, language);
             UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}";
         }

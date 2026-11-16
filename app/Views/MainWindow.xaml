@@ -1329,7 +1329,7 @@
                                   IsChecked="{Binding ElementName=MainWin, Path=ShowCore}"
                                   FontSize="10" Foreground="{StaticResource TextMuted}"
                                   VerticalAlignment="Center" Margin="6,0,0,0"
-                                  ToolTip="Draw the core in the design chart and print it on the PDF"/>
+                                  ToolTip="Draw the core in the design chart (the PDF always lists the picked core)"/>
                         <TextBlock Text="{Binding ElementName=MainWin, Path=CoreSpecText}"
                                    FontSize="10" Foreground="{StaticResource TextMuted}"
                                    VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
