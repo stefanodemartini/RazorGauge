@@ -103,6 +103,10 @@
             <TextBlock x:Name="NozzleNote" Text="Sink speed deviation from the target (in/s) of the line that would be written. Fewer nozzles = simpler extrusion, larger deviation."
                        FontSize="10" Foreground="{StaticResource TextMuted}"
                        TextWrapping="Wrap" Margin="0,6,0,0"/>
+            <!-- Densities that coincide at 2 decimals: fewer real materials than chosen -->
+            <TextBlock x:Name="MergeWarning" Visibility="Collapsed"
+                       FontSize="11" Foreground="#F5B942"
+                       TextWrapping="Wrap" Margin="0,8,0,0"/>
 
             <Rectangle Height="1" Fill="#2E3548" Margin="0,18,0,14"/>
 

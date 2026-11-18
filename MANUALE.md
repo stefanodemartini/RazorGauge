@@ -633,16 +633,28 @@ maggiore pur di non avere mai un salto di diametro.
     cui cadono
   - Phantom ExtraHover V.2 (arancione 1900–2050 cm): con 2 densità servono 3 ugelli, con 3 ne
     servono 4 (colore conservato), con 4 ne servirebbero 5 (un colore solo)
-- Densità salvata **a precisione piena** (mostrata
-  con 3 decimali, label `ρ X.XXX`): è il confronto esatto con le densità delle slice che
-  distingue un materiale da una transizione. A 2 decimali due materiali distanti 0.005 g/cm³
-  risultavano uguali
+- **Densità degli ugelli a 2 decimali (dal 18/11/2026)**: è la precisione con cui le densità vanno
+  date al produttore del compound. I centri del k-means vengono arrotondati a 2 decimali **alla
+  sorgente**, quindi slice, file C, ugelli, legenda, PDF e anteprima degli scarti nel dialogo usano
+  tutti la densità che verrà davvero estrusa. Ovunque le densità sono mostrate a 2 decimali (label
+  `ρ X.XX`). Le rampe di transizione restano valori intermedi, non sono materiali
+- **Densità che coincidono a 2 decimali**: se due materiali, arrotondati, hanno la stessa densità
+  vengono **fusi in uno**: la linea ha una densità in meno di quelle scelte. Non è mai silenzioso:
+  - nel **dialogo Compensate**, sotto la tabella, un avviso arancione per la scelta selezionata:
+    `⚠ 4 densities chosen, but at 2 decimals only 3 are distinct (1.02 / 1.03 / 1.04 g/cm³)…` —
+    cioè quella scelta costa una coda multidensità ma rende come una con meno densità — e quanti
+    ugelli restano **liberi, utilizzabili per differenziare i colori**
+  - lo stesso avviso nel **messaggio finale** dopo il salvataggio del file C
+  - **aprendo un file C** generato prima del 18/11/2026 (densità a 3 decimali), se due ugelli hanno
+    densità diverse che a 2 decimali risultano uguali (es. 1.016 e 1.020 → 1.02) compare l'avviso
+    "Nozzles with the same density" con l'invito a rigenerarlo con ⚖ Compensate… dal file NC.
+    Due ugelli con densità **esattamente** uguale e colore diverso sono invece voluti (vedi Colori)
 - Le **zone del file C** vengono ricostruite da dove sta davvero ciascun materiale (M2–M4; M1 è la
   base dove non c'è zona). Le zone del progetto NC **non** vengono copiate: il grafico colora per
   zona, e una zona NC rimasta lì dipingeva un materiale sbagliato
 - Gli ugelli del progetto NC aperto non vengono toccati: colori, label e densità tornano esattamente com'erano
-- I file C generati prima del 3/11/2026 possono avere ancora zone NC copiate e densità a 2
-  decimali: rigenerarli con ⚖ Compensate… dal file NC
+- I file C generati prima del 3/11/2026 possono avere ancora zone NC copiate; quelli fra il
+  3/11 e il 18/11/2026 hanno densità a 3 decimali: rigenerarli con ⚖ Compensate… dal file NC
 
 ### Nomi dei taper
 I nomi automatici `S1`, `S2`, … seguono sempre l'ordine lungo la linea: inserendo o togliendo un

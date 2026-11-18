@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -14,7 +15,7 @@ namespace DiametroLineaDesktop.Views;
 public partial class CompensateDialog : Window
 {
     private readonly Func<double, int, string> _fileNameFor;
-    private readonly Func<double, (double WorstIns, double MeanIns, int Nozzles)[]>? _previewErrors;
+    private readonly Func<double, (double WorstIns, double MeanIns, int Nozzles, double[] Densities)[]>? _previewErrors;
     private readonly bool _hasColorZones;
     private readonly DispatcherTimer _previewTimer;
     private bool _ready;
@@ -36,7 +37,7 @@ public partial class CompensateDialog : Window
     /// densities, and a "colors" column says whether the colours still fit in the 4 nozzles.</param>
     public CompensateDialog(double minIns, double maxIns, double defaultIns, int defaultNozzles,
                             Func<double, int, string> fileNameFor,
-                            Func<double, (double WorstIns, double MeanIns, int Nozzles)[]>? previewErrors = null,
+                            Func<double, (double WorstIns, double MeanIns, int Nozzles, double[] Densities)[]>? previewErrors = null,
                             bool hasColorZones = false)
     {
         _fileNameFor   = fileNameFor;
@@ -93,6 +94,7 @@ public partial class CompensateDialog : Window
         if (sender is RadioButton rb && int.TryParse(rb.Tag?.ToString(), out int n))
             SelectedNozzleCount = n;
         UpdateLabels();
+        UpdateMergeWarning();
     }
 
     private void UpdateLabels()
@@ -105,7 +107,7 @@ public partial class CompensateDialog : Window
     private void UpdatePreview()
     {
         if (_previewErrors == null) return;
-        (double WorstIns, double MeanIns, int Nozzles)[] e;
+        (double WorstIns, double MeanIns, int Nozzles, double[] Densities)[] e;
         try { e = _previewErrors(SpeedSlider.Value); }
         catch { return; } // a preview must never block the dialog
         var worst = new[] { Worst2, Worst3, Worst4 };
@@ -118,6 +120,35 @@ public partial class CompensateDialog : Window
             if (_hasColorZones)
                 col[i].Text = e[i].Nozzles <= 4 ? $"✓ {e[i].Nozzles} nozzles" : $"✗ needs {e[i].Nozzles}";
         }
+        _lastPreview = e;
+        UpdateMergeWarning();
+    }
+
+    private (double WorstIns, double MeanIns, int Nozzles, double[] Densities)[]? _lastPreview;
+
+    /// <summary>
+    /// Nozzle densities are rounded to 2 decimals, and two k-means centres closer than 0.01 g/cm³
+    /// become one material: the chosen count then buys a multi-density line that is really one
+    /// density short. Said here, before the file is written, with the nozzle(s) it frees.
+    /// </summary>
+    private void UpdateMergeWarning()
+    {
+        if (!_ready) return;
+        int n = SelectedNozzleCount;
+        if (_lastPreview == null || n - 2 >= _lastPreview.Length) { MergeWarning.Visibility = Visibility.Collapsed; return; }
+        var p = _lastPreview[n - 2];
+        int distinct = p.Densities.Length;
+        if (distinct >= n || distinct == 0) { MergeWarning.Visibility = Visibility.Collapsed; return; }
+
+        string list = string.Join(" / ", p.Densities.Select(d => d.ToString("0.00")));
+        int free = Math.Max(0, 4 - p.Nozzles);
+        MergeWarning.Text =
+            $"⚠ {n} densities chosen, but at 2 decimals only {distinct} are distinct ({list} g/cm³): " +
+            $"some nozzles would share the same density, so this line is the same as with {distinct}. " +
+            (free > 0
+                ? $"{free} nozzle{(free > 1 ? "s are" : " is")} left free — usable to differentiate colors."
+                : "Choose fewer densities to free a nozzle for colors.");
+        MergeWarning.Visibility = Visibility.Visible;
     }
 
     private void OkBtn_Click(object sender, RoutedEventArgs e)

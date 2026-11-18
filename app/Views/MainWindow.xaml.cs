@@ -1533,6 +1533,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             _isDirty = wasDirty;
         }
         WarnIfZonesOverlap(); // a hand-edited or older file could carry an invalid overlap
+        WarnIfNozzleDensitiesCollide(); // a C file from before the 2-decimal rounding
 
         RefreshStatusBar();
         UpdateProjectTitle();
@@ -3055,6 +3056,33 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// otherwise do, by list order) — doesn't revert the edit, so the offending numbers stay
     /// visible in the grid to fix directly.
     /// </summary>
+    /// <summary>
+    /// A C file written before nozzle densities were rounded at the source (18/11/2026) can hold
+    /// two materials that differ only in the 3rd decimal — e.g. 1.016 and 1.020 — which now both
+    /// read "1.02": two nozzles of a multi-density line with what is, at the spec's precision, the
+    /// same density. Said on opening, with the fix: regenerate the C file from its design.
+    /// Nozzles with exactly the same density (a colour split, one material in two pigments) are fine.
+    /// </summary>
+    private void WarnIfNozzleDensitiesCollide()
+    {
+        var used = Nozzles.Select((n, i) => (Idx: i, Rho: n.DensityGCm3)).Where(n => n.Rho > 0).ToList();
+        var pairs = new List<string>();
+        for (int i = 0; i < used.Count; i++)
+            for (int j = i + 1; j < used.Count; j++)
+                if (Math.Abs(used[i].Rho - used[j].Rho) > 1e-9
+                    && Math.Round(used[i].Rho, 2) == Math.Round(used[j].Rho, 2))
+                    pairs.Add($"  • M{used[i].Idx + 1} ρ {used[i].Rho:0.000} and M{used[j].Idx + 1} ρ {used[j].Rho:0.000} " +
+                              $"→ both {Math.Round(used[i].Rho, 2):0.00} g/cm³");
+        if (pairs.Count == 0) return;
+        MessageBox.Show(
+            "At 2 decimals some nozzles of this file have the same density:\n" + string.Join("\n", pairs) + "\n\n" +
+            "The file was written before densities were rounded at the source, so it pays for a " +
+            "multi-density line with nozzles that are, at the compounder's precision, the same material.\n\n" +
+            "Regenerate it: open its design and run Compensate again — the matching densities will be " +
+            "merged into one and the freed nozzle can be used to differentiate colors.",
+            "Nozzles with the same density", MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
     private void WarnIfZonesOverlap()
     {
         var zones = NozzleZones.Where(z => z.EndCm > z.StartCm).ToList();
@@ -3982,7 +4010,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// once the NC colour zones are kept (&gt; 4 = the colours don't fit). Solved on local copies —
     /// the design's segments are not touched.
     /// </summary>
-    private (double WorstIns, double MeanIns, int Nozzles)[] PreviewCompensationErrors(double targetSpeedMs)
+    private (double WorstIns, double MeanIns, int Nozzles, double[] Densities)[] PreviewCompensationErrors(double targetSpeedMs)
     {
         var colorAt = NcColorAt();
         string baseHex = Nozzles[0].ColorHex;
@@ -3999,10 +4027,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             diams.Add(d);
         }
 
-        var result = new (double, double, int)[3];
+        var result = new (double, double, int, double[])[3];
         for (int n = 2; n <= 4; n++)
         {
-            var dens = QuantizeSliceDensities(runs, n, colorAt, baseHex, out _, out var compounds);
+            var dens = QuantizeSliceDensities(runs, n, colorAt, baseHex, out var materials, out var compounds);
             double worst = 0, sum = 0; int count = 0;
             for (int k = 0; k < dens.Count; k++)
                 for (int i = 0; i < dens[k].Length; i++)
@@ -4012,7 +4040,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                     double err = Math.Abs(v - targetSpeedMs);
                     worst = Math.Max(worst, err); sum += err; count++;
                 }
-            result[n - 2] = (worst * 39.3701, count > 0 ? sum / count * 39.3701 : 0, compounds.Length);
+            result[n - 2] = (worst * 39.3701, count > 0 ? sum / count * 39.3701 : 0, compounds.Length, materials);
         }
         return result;
     }
@@ -6089,6 +6117,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         int compCount;
         bool anyClamped;
         double worstSpeedErrIns;
+        double[] usedDensities = Array.Empty<double>();
+        int usedNozzles = 0;
         try
         {
             _compTargetSpeedMs  = targetMs;
@@ -6112,6 +6142,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             // Quantization re-flags clamped slices against the REAL assigned material, superseding
             // the continuous-solve flag ComputeCompensationSlices returned above.
             (anyClamped, worstSpeedErrIns) = QuantizeCompensationToRealMaterials(targetMs, nozzleCount);
+            usedDensities = _compMaterialDensities?.ToArray() ?? Array.Empty<double>();
+            usedNozzles   = _compCompounds?.Length ?? usedDensities.Length;
 
             // The C file's material list is the quantized density gradient, not this design's
             // nozzles — sync it in so BuildProjectObject picks it up, then restore below.
@@ -6159,6 +6191,17 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         string clampWarn = anyClamped
             ? "\n\n⚠ One or more sections use the ρ = 0.94 g/cm³ floor material — their diameter (and so their actual speed) departs a bit further from the target than the rest."
             : string.Empty;
+        // Two densities that coincide at 2 decimals were merged into one material: the line has
+        // fewer densities than were chosen. Said, with the nozzles it leaves free for colours.
+        string mergeWarn = string.Empty;
+        if (usedDensities.Length > 0 && usedDensities.Length < nozzleCount)
+        {
+            int free = Math.Max(0, 4 - usedNozzles);
+            mergeWarn = $"\n\n⚠ {nozzleCount} densities were chosen, but at 2 decimals only {usedDensities.Length} are distinct " +
+                        $"({string.Join(" / ", usedDensities.Select(d => d.ToString("0.00")))} g/cm³): some nozzles would have had " +
+                        $"the same density, so they were merged — this line is the same as with {usedDensities.Length} densities." +
+                        (free > 0 ? $" {free} nozzle{(free > 1 ? "s are" : " is")} free and can be used to differentiate colors." : "");
+        }
         UiStatus = $"Compensated file saved: {Path.GetFileName(compPath)}  ({targetIns:0.000} in/s, worst deviation {worstSpeedErrIns:0.000} in/s)";
         var openIt = MessageBox.Show(
             $"Compensated file saved.\n\n" +
@@ -6169,10 +6212,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             $"Diameters stay close to the original taper (mass-conserving, same rule as a zone) — actual " +
             $"sink speed is an approximation, worst deviation {worstSpeedErrIns:0.000} in/s.\n" +
             "This design is unchanged — open the C file to see or print the compensated profile." +
-            clampWarn +
+            clampWarn + mergeWarn +
             "\n\nOpen the C file now? (it opens in a new tab, this design stays open)",
             title, MessageBoxButton.YesNo,
-            anyClamped ? MessageBoxImage.Warning : MessageBoxImage.Information);
+            anyClamped || mergeWarn.Length > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
         if (openIt == MessageBoxResult.Yes) OpenInNewTabRequested?.Invoke(this, compPath);
     }
 
