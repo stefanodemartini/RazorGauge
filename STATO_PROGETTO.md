@@ -48,8 +48,10 @@ Risultati (in/s, acqua del file):
 Conclusione: finché non si conosce ρ_core le previsioni sulla punta non sono affidabili nemmeno
 nel segno. Misura proposta, fattibile subito: pesare ~10 m di core nudo (bilancia 0.01 g) e misurarne
 il Ø col RazorGauge ⇒ ρ_core. In alternativa si calibra all'inverso da una linea vera di cui si
-conosce il comportamento della punta. Da chiarire ancora: le densità dei .flp progettati sono del
-compound o medie misurate?
+conosce il comportamento della punta. **Chiarito da Stefano:** le densità dei .flp progettati
+(valori tondi, ugelli) sono quelle del **compound dell'ugello** = ρ_coat. Vale quindi la prima
+lettura: oggi le velocità di quei progetti trascurano il core. I file QC "(Real)" (valori non tondi)
+restano da interpretare come medie misurate.
 
 ### 18 novembre 2026 — densità a 2 decimali, tabella Zones, ugelli, PDF
 
