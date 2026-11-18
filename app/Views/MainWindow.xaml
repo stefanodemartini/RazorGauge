@@ -1163,6 +1163,10 @@
                                 Click="AddNozzleMaterial_Click"
                                 Padding="6,1" FontSize="10" Margin="10,0,0,0"
                                 ToolTip="Reveal another nozzle slot to define a new colour/density for a manual zone"/>
+                        <Button Content="✕ Material"
+                                Click="RemoveNozzleMaterial_Click"
+                                Padding="6,1" FontSize="10" Margin="6,0,0,0"
+                                ToolTip="Remove the selected nozzle — only if no zone uses it (M1 stays). Also right-click a nozzle row."/>
                     </StackPanel>
                     <Border BorderBrush="{StaticResource BorderBrush2}" BorderThickness="1">
                         <DataGrid x:Name="NozzleDefsGrid"
@@ -1174,7 +1178,10 @@
                                   CanUserReorderColumns="False"
                                   CellEditEnding="NozzleDefsGrid_CellEditEnding"
                                   BeginningEdit="NozzleDefsGrid_BeginningEdit"
+                                  ContextMenuOpening="NozzleDefsGrid_ContextMenuOpening"
                                   RowHeight="26">
+                            <!-- Filled on opening, for the right-clicked nozzle (MainWindow.NozzleMenu.cs) -->
+                            <DataGrid.ContextMenu><ContextMenu/></DataGrid.ContextMenu>
                             <DataGrid.Columns>
                                 <!-- Active nozzle selector -->
                                 <DataGridTemplateColumn Header="" Width="26" IsReadOnly="True">

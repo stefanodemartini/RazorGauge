@@ -248,6 +248,11 @@ Sotto la tabella appare la riga **Totals**:
 - La zona viene colorata con Lambert cylindrical shading (aspetto 3D solido)
 - **Delete** su riga selezionata → elimina la zona
 - **La tabella Zones è la sequenza completa della linea (dal 18/11/2026)**: le zone in ordine di posizione e, al loro posto, i tratti di **M1** (il materiale base) che le zone lasciano liberi, dall'inizio alla fine della linea. Le righe M1 sono in grigio corsivo, calcolate dai buchi fra le zone: non si modificano né si cancellano (si spostano o si tolgono le zone intorno) e non vengono salvate nel file. Una zona si toglie selezionandola e premendo **✕ Remove** (accanto a ＋ Add Zone) oppure Canc.
+- **Togliere un ugello non usato (dal 18/11/2026)**: selezionarlo e premere **✕ Material** (accanto a
+  ＋ Material) oppure tasto destro sulla riga → *Remove Mx*. Si può solo se nessuna zona lo usa; M1
+  (materiale base) resta sempre. Se nel menu la voce è grigia, dice il perché ("2 zones use it…").
+  Gli slot sono fissi (M1–M4): togliendone uno in mezzo, quelli sopra scalano di un posto e le zone
+  vengono rinumerate (M3 diventa M2), così non restano buchi. Dal menu anche *Use Mx for new zones*
 - **Menu col tasto destro sulle righe Zones (dal 18/11/2026)**:
   - su una **zona**: *Change nozzle ▸* (M1–M4 con colore e densità), *Edit start* / *Edit end* (apre
     la cella in modifica), *Extend ▸* (fino alla zona precedente/successiva o a inizio/fine linea;
