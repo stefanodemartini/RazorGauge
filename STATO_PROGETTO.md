@@ -22,6 +22,35 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 18 novembre 2026 — core + coating: stima sui profili esistenti (solo calcolo, app invariata)
+
+Finora la linea è trattata come materiale unico. Modello nuovo discusso con Stefano:
+`ρ_eff(x) = [ρ_core·A(d_core) + ρ_coat·(A(D) − A(d_core))] / A(D)`, dove si controlla solo ρ_coat
+(l'ugello). **Il coating non penetra nella treccia**: con l'acetone si ammorbidisce e poi, con un
+cappio di nylon, scivola via come un tubo, quindi non è agganciato alle fibre. Il core è
+tutto l'involucro d_core, aria compresa. In punta il core occupa il **30–69 %** della sezione
+(nel corpo il 6–22 %).
+
+Incognita decisiva: la **densità apparente del core** (λ/A(d_core)). Il fornitore dà solo i Ø; si
+chiede il dtex/g·m. Stimata con PET 1.38 × impaccamento 0.50/0.65/0.80 ⇒ **0.69 / 0.90 / 1.10**.
+Script: `strumenti/stima_affondamento_core.py` (densità del file = coating, tutti i progetti con
+core da catalogo) e `strumenti/stima_affondamento_core_misurate.py` (file QC "(Real)": densità =
+media della linea finita, massa totale conservata, coating ricavato).
+
+Risultati (in/s, acqua del file):
+- **Densità del file letta come coating**: il segno della punta dipende dal core. Con core 0.90 le
+  linee da ~0.4–0.5 in/s (Bellaria, Nautilus, Phantom Hover, ST27 V.2, Buck) **galleggerebbero in
+  punta** (−0.4…−0.75); con core 1.10 affonderebbero più veloci (0.7–0.9).
+- **Densità media misurata (QC Real)**: punta più lenta, corpo più veloce. Con core 0.90 la punta
+  passa da 0.93 a 0.69 e il corpo da 1.69 a 1.93 (Phantom Extra Hover real 001). Con core 1.10
+  (≈ densità della linea) quasi invariato. Coating ricavato ≈ 1.12–1.22.
+
+Conclusione: finché non si conosce ρ_core le previsioni sulla punta non sono affidabili nemmeno
+nel segno. Misura proposta, fattibile subito: pesare ~10 m di core nudo (bilancia 0.01 g) e misurarne
+il Ø col RazorGauge ⇒ ρ_core. In alternativa si calibra all'inverso da una linea vera di cui si
+conosce il comportamento della punta. Da chiarire ancora: le densità dei .flp progettati sono del
+compound o medie misurate?
+
 ### 18 novembre 2026 — densità a 2 decimali, tabella Zones, ugelli, PDF
 
 Richieste di Stefano nella stessa sessione (dettaglio d'uso in `MANUALE.md`, commit `3313367`…`b08f3da`).
