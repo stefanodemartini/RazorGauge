@@ -647,7 +647,11 @@ maggiore pur di non avere mai un salto di diametro.
   - lo stesso avviso nel **messaggio finale** dopo il salvataggio del file C
   - **aprendo un file C** generato prima del 18/11/2026 (densità a 3 decimali), se due ugelli hanno
     densità diverse che a 2 decimali risultano uguali (es. 1.016 e 1.020 → 1.02) compare l'avviso
-    "Nozzles with the same density" con l'invito a rigenerarlo con ⚖ Compensate… dal file NC.
+    "Nozzles with the same density", che chiede **"Regenerate it now?"**. Con **Sì** il progetto NC
+    si apre in una nuova scheda e parte ⚖ Compensate… già impostato con la velocità e il numero di
+    densità del file C; si conferma nel dialogo e si sovrascrive il file C. Il progetto NC è
+    ricavato dal nome del file C (`<progetto> C 0.50ips[ 3noz].flp` → `<progetto>.flp` nella stessa
+    cartella); se non c'è (rinominato o spostato) viene chiesto di sceglierlo.
     Due ugelli con densità **esattamente** uguale e colore diverso sono invece voluti (vedi Colori)
 - Le **zone del file C** vengono ricostruite da dove sta davvero ciascun materiale (M2–M4; M1 è la
   base dove non c'è zona). Le zone del progetto NC **non** vengono copiate: il grafico colora per

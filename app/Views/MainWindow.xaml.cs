@@ -1538,6 +1538,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         RefreshStatusBar();
         UpdateProjectTitle();
         UiStatus = $"Project loaded: {_projectName}  ({project.ScanPoints.Count} scan pts, {project.ImportedSeries.Count} series, {project.DesignNodes.Count} nodes)";
+        RunPendingRegenerate(path);
     }
 
     private static ScottColor ParseColorHex(string hex, int fallbackIndex)
@@ -3060,8 +3061,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// A C file written before nozzle densities were rounded at the source (18/11/2026) can hold
     /// two materials that differ only in the 3rd decimal — e.g. 1.016 and 1.020 — which now both
     /// read "1.02": two nozzles of a multi-density line with what is, at the spec's precision, the
-    /// same density. Said on opening, with the fix: regenerate the C file from its design.
-    /// Nozzles with exactly the same density (a colour split, one material in two pigments) are fine.
+    /// same density. Said on opening, with a way out: a C file is locked, so "regenerate" means
+    /// opening its NC design and running Compensate there — offered as one click (see
+    /// <see cref="RegenerateCompFile"/>). Nozzles with exactly the same density (a colour split,
+    /// one material in two pigments) are fine.
     /// </summary>
     private void WarnIfNozzleDensitiesCollide()
     {
@@ -3074,13 +3077,78 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                     pairs.Add($"  • M{used[i].Idx + 1} ρ {used[i].Rho:0.000} and M{used[j].Idx + 1} ρ {used[j].Rho:0.000} " +
                               $"→ both {Math.Round(used[i].Rho, 2):0.00} g/cm³");
         if (pairs.Count == 0) return;
-        MessageBox.Show(
-            "At 2 decimals some nozzles of this file have the same density:\n" + string.Join("\n", pairs) + "\n\n" +
-            "The file was written before densities were rounded at the source, so it pays for a " +
-            "multi-density line with nozzles that are, at the compounder's precision, the same material.\n\n" +
-            "Regenerate it: open its design and run Compensate again — the matching densities will be " +
-            "merged into one and the freed nozzle can be used to differentiate colors.",
-            "Nozzles with the same density", MessageBoxButton.OK, MessageBoxImage.Warning);
+
+        string? cPath = _currentProjectPath;
+        // After the load has finished and the tab is in its window: regenerating opens another tab.
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            if (cPath == null || _currentProjectPath != cPath) return;
+            var answer = MessageBox.Show(
+                "At 2 decimals some nozzles of this file have the same density:\n" + string.Join("\n", pairs) + "\n\n" +
+                "The file was written before densities were rounded at the source, so it pays for a " +
+                "multi-density line with nozzles that are, at the compounder's precision, the same material.\n\n" +
+                "Regenerate it now? Its design opens in a new tab and Compensate starts with the same " +
+                "speed and number of densities — you confirm in the dialog, the matching densities are " +
+                "merged into one and the freed nozzle can be used to differentiate colors.",
+                "Nozzles with the same density", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (answer == MessageBoxResult.Yes) RegenerateCompFile(cPath);
+        }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+    }
+
+    /// <summary>A regenerate request waiting for its NC design to finish loading in a tab.</summary>
+    private static (string NcPath, double Ips, int Densities, DateTime At)? s_pendingRegenerate;
+
+    /// <summary>
+    /// Regenerates a C file from its NC design. A C file doesn't record its design, but its name
+    /// does: "&lt;design&gt; C 0.50ips[ 3noz].flp" next to "&lt;design&gt;.flp". When that file isn't
+    /// there (renamed, moved) the design is asked for. The design opens in a tab of its own and,
+    /// once loaded, Compensate starts preset to the C file's speed and density count.
+    /// </summary>
+    private void RegenerateCompFile(string cPath)
+    {
+        string folder = Path.GetDirectoryName(cPath) ?? "";
+        var m = System.Text.RegularExpressions.Regex.Match(Path.GetFileNameWithoutExtension(cPath),
+            @"^(?<base>.+) C (?<ips>\d+(?:[.,]\d+)?)ips(?: (?<n>[234])noz)?$");
+        double ips = _compTargetSpeedIns > 0 ? _compTargetSpeedIns : 0;
+        int densities = Nozzles.Count(n => n.DensityGCm3 > 0) is var k && k >= 2 ? Math.Min(k, 4) : 4;
+        string? ncPath = null;
+        if (m.Success)
+        {
+            if (double.TryParse(m.Groups["ips"].Value.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
+                ips = v;
+            densities = m.Groups["n"].Success ? int.Parse(m.Groups["n"].Value) : 4;
+            string guess = Path.Combine(folder, m.Groups["base"].Value + ProjectService.FileExtension);
+            if (File.Exists(guess)) ncPath = guess;
+        }
+        if (ncPath == null)
+        {
+            MessageBox.Show("The design this C file was made from was not found next to it.\n\nChoose it.",
+                            "Regenerate", MessageBoxButton.OK, MessageBoxImage.Information);
+            var dlg = new OpenFileDialog
+            {
+                Title = "Design (NC) of " + Path.GetFileName(cPath),
+                Filter = $"RazorGauge project (*{ProjectService.FileExtension})|*{ProjectService.FileExtension}",
+                InitialDirectory = folder,
+            };
+            if (dlg.ShowDialog() != true) return;
+            ncPath = dlg.FileName;
+        }
+
+        s_pendingRegenerate = (Path.GetFullPath(ncPath), ips, densities, DateTime.Now);
+        OpenInNewTabRequested?.Invoke(this, ncPath);
+    }
+
+    /// <summary>Called at the end of every project load: runs a regenerate request waiting for this file.</summary>
+    private void RunPendingRegenerate(string loadedPath)
+    {
+        if (s_pendingRegenerate is not { } r) return;
+        // A request that didn't reach its design (load refused, dirty tab kept) must not fire later.
+        if ((DateTime.Now - r.At).TotalSeconds > 60) { s_pendingRegenerate = null; return; }
+        if (!string.Equals(Path.GetFullPath(loadedPath), r.NcPath, StringComparison.OrdinalIgnoreCase)) return;
+        s_pendingRegenerate = null;
+        if (_isCompensatedDerivative) return;
+        Dispatcher.BeginInvoke(new Action(() => RunCompensate(r.Ips, r.Densities)),
+                               System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
 
     private void WarnIfZonesOverlap()
@@ -5985,7 +6053,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// its own sibling C file and restores this design exactly as it was — same flow as the family
     /// generators, so a C profile only ever exists as a file on disk.
     /// </summary>
-    private void Compensate_Click(object sender, RoutedEventArgs e)
+    private void Compensate_Click(object sender, RoutedEventArgs e) => RunCompensate(null, null);
+
+    /// <param name="presetIns">Initial target speed (in/s); null = the fastest section's.</param>
+    /// <param name="presetDensities">Initial density count; null = the last one chosen.</param>
+    private void RunCompensate(double? presetIns, int? presetDensities)
     {
         const string title = "Compensate";
 
@@ -6049,8 +6121,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         var dlg = new CompensateDialog(
             _compMinSpeedMs * 39.3701,
             _compMaxSpeedMs * 39.3701,
-            _compMaxSpeedMs * 39.3701,
-            Math.Clamp(_vm.Settings.Design.CompNozzleCount, 2, 4),
+            presetIns ?? _compMaxSpeedMs * 39.3701,
+            Math.Clamp(presetDensities ?? _vm.Settings.Design.CompNozzleCount, 2, 4),
             (ips, n) => SanitizeFileName($"{baseName} {Suffix(ips, n)}") + ProjectService.FileExtension,
             ips => PreviewCompensationErrors(ips / 39.3701),
             hasColorZones: colorZones.Count > 0)
