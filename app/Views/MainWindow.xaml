@@ -1245,10 +1245,13 @@
                                   CanUserDeleteRows="False"
                                   CanUserSortColumns="False"
                                   BeginningEdit="NozzleZonesGrid_BeginningEdit"
+                                  ContextMenuOpening="NozzleZonesGrid_ContextMenuOpening"
                                   CellEditEnding="NozzleZonesGrid_CellEditEnding"
                                   PreviewKeyDown="NozzleZonesGrid_PreviewKeyDown"
                                   RowHeight="26"
-                                  ToolTip="The line's materials in order. Grey rows are M1, the base material, wherever no zone applies (derived, not editable). Del removes the selected zone. Each zone uses one nozzle.">
+                                  ToolTip="The line's materials in order. Grey rows are M1, the base material, wherever no zone applies (derived, not editable). Right-click a row for its options (change nozzle, extend, split, merge, remove…). Del removes the selected zone. Each zone uses one nozzle.">
+                            <!-- Filled on opening, for the right-clicked row (MainWindow.ZoneMenu.cs) -->
+                            <DataGrid.ContextMenu><ContextMenu/></DataGrid.ContextMenu>
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                     <Style.Triggers>
