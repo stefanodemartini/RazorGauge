@@ -247,7 +247,7 @@ Sotto la tabella appare la riga **Totals**:
 - **Add Zone** → aggiunge una zona al profilo (start cm, end cm, ugello assegnato)
 - La zona viene colorata con Lambert cylindrical shading (aspetto 3D solido)
 - **Delete** su riga selezionata → elimina la zona
-- **La tabella Zones è la sequenza completa della linea (dal 18/11/2026)**: le zone in ordine di posizione e, al loro posto, i tratti di **M1** (il materiale base) che le zone lasciano liberi, dall'inizio alla fine della linea. Le righe M1 sono in grigio corsivo, calcolate dai buchi fra le zone: non si modificano né si cancellano (si spostano o si tolgono le zone intorno) e non vengono salvate nel file. Prima M1 era una riga fissa sopra la tabella e il suo tratto (spesso il più lungo, a metà linea) non compariva da nessuna parte
+- **La tabella Zones è la sequenza completa della linea (dal 18/11/2026)**: le zone in ordine di posizione e, al loro posto, i tratti di **M1** (il materiale base) che le zone lasciano liberi, dall'inizio alla fine della linea. Le righe M1 sono in grigio corsivo, calcolate dai buchi fra le zone: non si modificano né si cancellano (si spostano o si tolgono le zone intorno) e non vengono salvate nel file. Una zona si toglie selezionandola e premendo **✕ Remove** (accanto a ＋ Add Zone) oppure Canc. Prima M1 era una riga fissa sopra la tabella e il suo tratto (spesso il più lungo, a metà linea) non compariva da nessuna parte
 
 ### Zona con Densità Propria (materiale diverso da M1)
 Se la zona appena aggiunta (o un ugello già assegnato a una zona) ha una densità che differisce da quella di M1 di più di 0.02 g/cm³, l'app considera la zona un materiale realmente diverso — non solo un colore — e chiede:

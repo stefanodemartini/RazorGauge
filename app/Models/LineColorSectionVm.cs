@@ -103,6 +103,15 @@ public class NozzleZoneVm : INotifyPropertyChanged
     public double DensityGCm3 => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].DensityGCm3 : 0;
     public string NozzleLabel => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].DisplayName  : $"M{_nozzleIndex + 1}";
 
+    /// <summary>The assigned nozzle's colour, density or label changed: refresh the derived cells
+    /// without rebuilding the grid's rows (that drops keyboard focus — Del stopped working).</summary>
+    public void NotifyNozzleChanged()
+    {
+        OnPropertyChanged(nameof(ColorHex));
+        OnPropertyChanged(nameof(DensityGCm3));
+        OnPropertyChanged(nameof(NozzleLabel));
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
     private void OnPropertyChanged(string name) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

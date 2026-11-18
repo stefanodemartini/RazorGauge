@@ -504,7 +504,15 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         {
             if (e.NewItems != null)
                 foreach (NozzleZoneVm z in e.NewItems)
-                    z.PropertyChanged += (_, _) => { UpdateNozzleUsageLabels(); QueueZoneSequence(); };
+                    z.PropertyChanged += (_, ev) =>
+                    {
+                        UpdateNozzleUsageLabels();
+                        // Only a moved/reassigned zone changes the sequence — the derived-cell
+                        // notifications raised by the rebuild itself must not queue another one.
+                        if (ev.PropertyName is nameof(NozzleZoneVm.StartCm) or nameof(NozzleZoneVm.EndCm)
+                                            or nameof(NozzleZoneVm.NozzleIndex))
+                            QueueZoneSequence();
+                    };
             QueueZoneSequence();
             RefreshPlot(); MarkDirty(); UpdateNozzleUsageLabels(); RefreshVisibleNozzles();
             NotifyM1ZoneSummaryChanged();
@@ -3230,7 +3238,13 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             p.First.IsImplicit ? p.Second.IsImplicit && Math.Abs(p.First.StartCm - p.Second.StartCm) < 1e-9
                                  && Math.Abs(p.First.EndCm - p.Second.EndCm) < 1e-9
                                : ReferenceEquals(p.First, p.Second));
-        if (same) { NozzleZonesGrid?.Items.Refresh(); return; }
+        if (same)
+        {
+            // Nozzle colour/density may have changed: refresh the cells, not the rows — rebuilding
+            // the rows (Items.Refresh) drops the keyboard focus and Del stopped reaching the grid.
+            foreach (var r in ZoneSequence) r.NotifyNozzleChanged();
+            return;
+        }
         var selected = NozzleZonesGrid?.SelectedItem;
         ZoneSequence.Clear();
         foreach (var r in rows) ZoneSequence.Add(r);
@@ -3255,18 +3269,35 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
 
     private void NozzleZonesGrid_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Delete &&
-            sender is DataGrid dg &&
-            dg.SelectedItem is NozzleZoneVm zone)
+        if (e.Key != Key.Delete || sender is not DataGrid dg) return;
+        // A cell being typed into keeps Del for its text
+        if (e.OriginalSource is System.Windows.Controls.TextBox) return;
+        RemoveSelectedZone();
+        e.Handled = true;
+    }
+
+    private void RemoveZone_Click(object sender, RoutedEventArgs e) => RemoveSelectedZone();
+
+    /// <summary>Removes the zone selected in the Zones table. An M1 row is not a zone: it is the
+    /// base material between zones, so there is nothing to remove — said, not silently ignored.</summary>
+    private void RemoveSelectedZone()
+    {
+        if (NozzleZonesGrid.SelectedItem is not NozzleZoneVm zone)
         {
-            if (zone.IsImplicit) { e.Handled = true; return; } // M1 stretch: remove the zones around it instead
-            NozzleZones.Remove(zone);
-            UpdateNozzleBadge();
-            RefreshPlot();
-            MarkDirty();
-            MaybeApplyZoneDensityChange(forcePrompt: false);
-            e.Handled = true;
+            UiStatus = "Select a zone in the Zones table first";
+            return;
         }
+        if (zone.IsImplicit)
+        {
+            UiStatus = "M1 rows are the base material between zones — remove or move the zones around it";
+            return;
+        }
+        NozzleZones.Remove(zone);
+        UpdateNozzleBadge();
+        RefreshPlot();
+        MarkDirty();
+        MaybeApplyZoneDensityChange(forcePrompt: false);
+        UiStatus = $"Zone {zone.NozzleLabel} {zone.StartCm:0.0}–{zone.EndCm:0.0} cm removed";
     }
 
     /// <summary>
