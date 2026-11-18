@@ -53,6 +53,25 @@ conosce il comportamento della punta. **Chiarito da Stefano:** le densità dei .
 lettura: oggi le velocità di quei progetti trascurano il core. I file QC "(Real)" (valori non tondi)
 restano da interpretare come medie misurate.
 
+**In attesa (18/11):** Stefano ha chiesto al fornitore il **peso in g/m di ogni size** di core.
+Procedura all'arrivo dei dati:
+1. ρ_core = λ [g/m] / A(d_core) [mm²], con il Ø minimo e il Ø massimo del catalogo per vedere
+   quanto pesa la tolleranza. Esempio 17 lb (0.685 mm): 0.33 g/m ≈ 0.90, 0.40 g/m ≈ 1.10.
+2. Controllo incrociato: pesare 10 m di almeno un size di core nudo (bilancia 0.01 g).
+3. Rilanciare `strumenti/stima_affondamento_core*.py` con i valori veri al posto degli scenari.
+4. Aggiungere λ a ogni voce di `app/Models/CoreCatalog.cs` (e al gemello FlyLinePhysics).
+
+Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
+- **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
+  alla geometria, interruttore per progetto.
+- **Fase 2:** Compensate (risolve ρ_coat per sezione) e riscalatura a massa costante corretta
+  `A(D_new) = A_core + (m − λ_core)/ρ_coat_new`. Il limite minimo 0.94 passa al coating.
+  Segnalare le punte non costruibili.
+- **Fase 3:** PDF con coat density per ugello, ρ_eff per sezione e avvisi.
+
+Non cambia: forma, ugelli, zone sui nodi (niente rampa), file C separati, etichette S/M.
+Da tenere presente, non modellato: l'acqua che risale nella treccia dalla punta tagliata.
+
 ### 18 novembre 2026 — densità a 2 decimali, tabella Zones, ugelli, PDF
 
 Richieste di Stefano nella stessa sessione (dettaglio d'uso in `MANUALE.md`, commit `3313367`…`b08f3da`).
