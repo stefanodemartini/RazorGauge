@@ -51,3 +51,9 @@ fp-info-cache
 # Python
 __pycache__/
 *.pyc
+
+# Immagini e installer locali (non rigenerabili dagli script, ma pesanti: restano fuori dal repo)
+immagini/
+
+# Output di compilazione del firmware (Arduino CLI)
+master_razorgauge/build/
