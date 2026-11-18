@@ -93,8 +93,13 @@ public class NozzleZoneVm : INotifyPropertyChanged
         }
     }
 
+    /// <summary>A stretch of base material (M1) shown in the Zones table between real zones, so
+    /// the table reads as the line's full sequence. Display only: never in NozzleZones, never
+    /// saved, not editable.</summary>
+    public bool IsImplicit { get; init; }
+
     // Derived from nozzle definition
-    public string ColorHex    => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].ColorHex    : "888888";
+    public string ColorHex   => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].ColorHex    : "888888";
     public double DensityGCm3 => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].DensityGCm3 : 0;
     public string NozzleLabel => _nozzleIndex < _nozzles.Count ? _nozzles[_nozzleIndex].DisplayName  : $"M{_nozzleIndex + 1}";
 

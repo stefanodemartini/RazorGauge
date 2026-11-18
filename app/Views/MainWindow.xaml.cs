@@ -72,6 +72,9 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     // Nozzle materials (fixed 4) + zone assignments
     public ObservableCollection<NozzleDefinitionVm> Nozzles    { get; } = new();
     public ObservableCollection<NozzleZoneVm>       NozzleZones { get; } = new();
+    /// <summary>What the Zones table shows: the real zones in order along the line, with the base
+    /// material (M1) stretches between them as read-only rows — see <see cref="RebuildZoneSequence"/>.</summary>
+    public ObservableCollection<NozzleZoneVm>       ZoneSequence { get; } = new();
     // Subset of Nozzles actually shown in the grid: only the materials the flyline really needs
     // (M1 alone for a single-material line; more only when distinct colours/densities are in use).
     public ObservableCollection<NozzleDefinitionVm> VisibleNozzles { get; } = new();
@@ -491,6 +494,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                 if (ev.PropertyName != nameof(NozzleDefinitionVm.IsActive)) MarkDirty();
                 UpdateNozzleBadge();
                 if (noz.Number == 1) NotifyM1ZoneSummaryChanged();
+                QueueZoneSequence(); // swatches, labels and densities of the rows
             };
             Nozzles.Add(noz);
         }
@@ -500,7 +504,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         {
             if (e.NewItems != null)
                 foreach (NozzleZoneVm z in e.NewItems)
-                    z.PropertyChanged += (_, _) => UpdateNozzleUsageLabels();
+                    z.PropertyChanged += (_, _) => { UpdateNozzleUsageLabels(); QueueZoneSequence(); };
+            QueueZoneSequence();
             RefreshPlot(); MarkDirty(); UpdateNozzleUsageLabels(); RefreshVisibleNozzles();
             NotifyM1ZoneSummaryChanged();
         };
@@ -3191,12 +3196,70 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             }
     }
 
+    /// <summary>
+    /// The Zones table as the line's full sequence: every real zone in order of position, and every
+    /// stretch the zones leave to the base material (M1, from the line start to its end) as a
+    /// read-only row in its place. With M1 pinned above the table instead, its longest stretch
+    /// (often the middle of the line) appeared nowhere and had to be read from a gap in the numbers.
+    /// The real rows are the very NozzleZones objects, so editing one edits the zone.
+    /// </summary>
+    private void RebuildZoneSequence()
+    {
+        var real = NozzleZones.OrderBy(z => z.StartCm).ThenBy(z => z.EndCm).ToList();
+        var rows = new List<NozzleZoneVm>();
+        double lineStart = _segmentNodes.Count > 0 ? _segmentNodes.Min(n => n.X) : 0;
+        double lineEnd   = _segmentNodes.Count > 0 ? _segmentNodes.Max(n => n.X)
+                         : real.Count > 0 ? real.Max(z => z.EndCm) : 0;
+        const double minGapCm = 0.05;
+        double cursor = lineStart;
+        void Gap(double a, double b)
+        {
+            if (b - a > minGapCm)
+                rows.Add(new NozzleZoneVm(Nozzles) { IsImplicit = true, NozzleIndex = 0, StartCm = a, EndCm = b });
+        }
+        foreach (var z in real)
+        {
+            Gap(cursor, z.StartCm);
+            rows.Add(z);
+            cursor = Math.Max(cursor, z.EndCm);
+        }
+        Gap(cursor, lineEnd);
+
+        // Unchanged: leave the grid alone (keeps selection and any edit in progress).
+        bool same = rows.Count == ZoneSequence.Count && rows.Zip(ZoneSequence).All(p =>
+            p.First.IsImplicit ? p.Second.IsImplicit && Math.Abs(p.First.StartCm - p.Second.StartCm) < 1e-9
+                                 && Math.Abs(p.First.EndCm - p.Second.EndCm) < 1e-9
+                               : ReferenceEquals(p.First, p.Second));
+        if (same) { NozzleZonesGrid?.Items.Refresh(); return; }
+        var selected = NozzleZonesGrid?.SelectedItem;
+        ZoneSequence.Clear();
+        foreach (var r in rows) ZoneSequence.Add(r);
+        if (selected is NozzleZoneVm { IsImplicit: false } sz && NozzleZonesGrid != null) NozzleZonesGrid.SelectedItem = sz;
+    }
+
+    private bool _zoneSequenceQueued;
+    /// <summary>Rebuilds the sequence once, after the current edit/commit has finished.</summary>
+    private void QueueZoneSequence()
+    {
+        if (_zoneSequenceQueued) return;
+        _zoneSequenceQueued = true;
+        Dispatcher.BeginInvoke(new Action(() => { _zoneSequenceQueued = false; RebuildZoneSequence(); }),
+                               System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>The base-material rows are derived from the zones around them: not editable.</summary>
+    private void NozzleZonesGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
+    {
+        if (e.Row.Item is NozzleZoneVm { IsImplicit: true }) e.Cancel = true;
+    }
+
     private void NozzleZonesGrid_PreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Delete &&
             sender is DataGrid dg &&
             dg.SelectedItem is NozzleZoneVm zone)
         {
+            if (zone.IsImplicit) { e.Handled = true; return; } // M1 stretch: remove the zones around it instead
             NozzleZones.Remove(zone);
             UpdateNozzleBadge();
             RefreshPlot();
@@ -6485,6 +6548,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
 
     private void RefreshTotals()
     {
+        QueueZoneSequence(); // the line's ends bound the first and last M1 stretch
         if (ProjectSegments.Count == 0) { TotalVolumeText = string.Empty; TaperDescription = null; return; }
 
         double totalVol  = ProjectSegments.Sum(s => s.VolumeCm3);
