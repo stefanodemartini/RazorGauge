@@ -241,7 +241,8 @@ public static class FlyLinePdfExporter
         string laserMark = "",
         bool showCompensation = false,
         string compensationNote = "",
-        SheetLanguage language = SheetLanguage.English)
+        SheetLanguage language = SheetLanguage.English,
+        SinkMapRenderer.Result? sinkMap = null)
     {
         QuestPDF.Settings.License = LicenseType.Community;
 
@@ -587,6 +588,28 @@ public static class FlyLinePdfExporter
                             lr.ConstantItem(24);
                             lr.ConstantItem(22).AlignMiddle().Height(8).Border(0.5f).BorderColor(ColText).Background(C(lineHex));
                             lr.AutoItem().AlignMiddle().PaddingLeft(4).Text(Ti("the profile is drawn in the real line color only")).FontSize(7f).FontColor(ColText);
+                        });
+                    }
+
+                    // ── Sink speed map (when the app's Sink Map is on) ─────
+                    // Its own image under the profile: the materials chart above stays as it is —
+                    // the two colourings never share a drawing.
+                    if (sinkMap != null)
+                    {
+                        // Title and picture stay together: never the title at the foot of one page
+                        // and the map on the next.
+                        col.Item().ShowEntire().Column(sm => {
+                        sm.Item().PaddingTop(6).PaddingHorizontal(6).Row(hr =>
+                        {
+                            hr.AutoItem().AlignMiddle().Text(Ti("SINK SPEED MAP")).FontSize(8f).Bold().FontColor(ColText);
+                            hr.ConstantItem(10);
+                            hr.RelativeItem().AlignMiddle().Text(
+                                Math.Abs(sinkMap.MaxIns - sinkMap.MinIns) < 0.0005
+                                    ? T("Local sink speed of each section (isolated cylinder of its own diameter and density): the same everywhere, {0:0.000} in/s.", sinkMap.MaxIns)
+                                    : T("Local sink speed of each section (isolated cylinder of its own diameter and density): blue = slowest {0:0.000} in/s, red = fastest {1:0.000} in/s. The whole line, joined, sinks at one speed in between.", sinkMap.MinIns, sinkMap.MaxIns))
+                                .FontSize(7f).FontColor(ColText);
+                        });
+                        sm.Item().Image(sinkMap.Png).FitWidth();
                         });
                     }
 

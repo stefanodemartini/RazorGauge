@@ -130,6 +130,13 @@ public static class SheetText
         ["nozzle change (density M)"]  = "喷嘴变化（密度 M）",
         ["linear density transition"]  = "线性密度过渡",
         ["the profile is drawn in the real line color only"] = "轮廓仅以线的实际颜色绘制",
+        ["SINK SPEED MAP"] = "沉降速度图",
+        ["uniform"]  = "均匀",
+        ["floating"] = "漂浮",
+        ["Local sink speed of each section (isolated cylinder of its own diameter and density): the same everywhere, {0:0.000} in/s."]
+            = "各段的局部沉降速度（按其自身直径和密度的独立圆柱计算）：全线相同，{0:0.000} in/s。",
+        ["Local sink speed of each section (isolated cylinder of its own diameter and density): blue = slowest {0:0.000} in/s, red = fastest {1:0.000} in/s. The whole line, joined, sinks at one speed in between."]
+            = "各段的局部沉降速度（按其自身直径和密度的独立圆柱计算）：蓝色 = 最慢 {0:0.000} in/s，红色 = 最快 {1:0.000} in/s。整条线连在一起时以介于两者之间的单一速度下沉。",
 
         // ── cards, notes ───────────────────────────────────────────────────
         ["Materials"] = "材料",

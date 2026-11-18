@@ -2175,17 +2175,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         }
     }
 
-    /// <summary>Maps t ∈ [0,1] to a blue→cyan→green→yellow→red colour ramp.</summary>
-    private static ScottColor SpeedColor(double t)
-    {
-        t = Math.Clamp(t, 0.0, 1.0);
-        byte r, g, b;
-        if (t < 0.25)      { double s = t / 0.25;        r = 0;           g = (byte)(s * 255);       b = 255; }
-        else if (t < 0.50) { double s = (t - 0.25)/0.25; r = 0;           g = 255;                   b = (byte)((1-s)*255); }
-        else if (t < 0.75) { double s = (t - 0.50)/0.25; r = (byte)(s*255); g = 255;                 b = 0; }
-        else               { double s = (t - 0.75)/0.25; r = 255;          g = (byte)((1-s)*255);    b = 0; }
-        return new ScottColor(r, g, b);
-    }
+    /// <summary>Maps t ∈ [0,1] to the blue→red Sink Map ramp — one definition, shared with the PDF.</summary>
+    private static ScottColor SpeedColor(double t) => SinkMapRenderer.SpeedColor(t);
 
     // InterpolateProfileY, TryParseHexColor, DensityColor and DrawLineFill used to live here as
     // private static methods — moved verbatim to Services/ChartGeometry so the headless PDF path
@@ -5201,8 +5192,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                 // only decides whether it is drawn in the app's chart.
                 _coreType,
                 _coreDiameterMm,
-                laserMarkText, exportComp, compNote, language);
-            UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}";
+                laserMarkText, exportComp, compNote, language,
+                // The Sink Map goes into the sheet when it is on in the app — same switch, same picture.
+                _showSinkSpeedMap ? SinkMapRenderer.Render(ProjectSegments, _waterIsSalt, _waterTempC, language) : null);
+            UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}" + (_showSinkSpeedMap ? " (with sink speed map)" : "");
         }
         catch (Exception ex)
         {

@@ -565,6 +565,14 @@ il diametro e lo recupera dalla voce che il suo `CoreType` nomina, se ne nomina 
 
 ### Mappa Velocità Affondamento
 - **Sink Map** toggle → sovrappone una heatmap colorata al profilo
+  - **nel PDF (dal 18/11/2026)**: se la Sink Map è accesa quando si esporta, il PDF aggiunge sotto il
+    profilo un blocco **SINK SPEED MAP**. È un grafico a parte, per non mescolare i colori con quello
+    dei materiali: il profilo colorato per velocità locale (blu = più lenta, rosso = più veloce su
+    questa linea), con sotto la barra dei colori e la scala in in/s (minimo, centro, massimo). Una riga
+    di testo spiega il modello: ogni sezione come cilindro isolato del suo diametro e della sua
+    densità; la linea intera, unita, affonda a una sola velocità intermedia. Titolo e grafico non
+    vengono mai separati fra due pagine. Con la Sink Map spenta il PDF resta com'era. Anche la CLI:
+    `flyline pdf file.flp --sinkmap`
 - Colore = velocità locale relativa (blu=lento → rosso=veloce)
 
 ---

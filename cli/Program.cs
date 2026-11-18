@@ -168,7 +168,9 @@ int Pdf(string[] a)
         // Same rule as the GUI: the PDF always lists a picked core; ShowCore is only for the chart.
         project.CoreType,
         project.CoreDiameterMm,
-        project.LaserMark, useComp, compNote, language);
+        project.LaserMark, useComp, compNote, language,
+        // --sinkmap: the sink speed map under the profile, as the GUI adds when its Sink Map is on.
+        a.Contains("--sinkmap") ? SinkMapRenderer.Render(segments, project.WaterType == "salt", project.WaterTempC, language) : null);
 
     Console.WriteLine($"Saved: {outPath}");
     return 0;
