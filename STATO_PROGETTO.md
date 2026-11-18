@@ -22,6 +22,53 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 18 novembre 2026 — densità a 2 decimali, tabella Zones, ugelli, PDF
+
+Richieste di Stefano nella stessa sessione (dettaglio d'uso in `MANUALE.md`, commit `3313367`…`b08f3da`).
+
+- **Densità degli ugelli a 2 decimali alla sorgente**: i centri della quantizzazione k-means
+  (`QuantizeSliceDensities`) sono arrotondati a 0.01 g/cm³ prima di costruire il file C. Così file C,
+  legenda, PDF e anteprima degli errori usano le densità che si danno davvero al produttore. Tutte
+  le visualizzazioni di densità sono ora a 2 decimali (tabella segmenti, etichetta del grafico,
+  ugelli, PDF).
+- **Densità coincidenti dopo l'arrotondamento**: due centri diversi a 3 decimali possono diventare
+  uguali a 2, e allora si pagherebbe una coda multidensità con due ugelli uguali. Vengono uniti (un
+  ugello in meno) e c'è un avviso in tre punti: nel dialogo Compensate (riga gialla), nel messaggio
+  finale e all'apertura di un file C vecchio. L'avviso dice che l'ugello liberato si può usare per
+  differenziare i colori. Per i file C vecchi l'avviso offre **Regenerate**: apre il progetto NC e
+  rilancia Compensate con la stessa velocità e lo stesso numero di densità. Caso reale:
+  4 densità chieste, intervallo ideale 1.016–1.033, a 2 decimali diventano 1.02 / 1.03, cioè 2.
+- **Riga verde (volume e massa di testa e totali) nei file C controllata**: ricalcolata dal file,
+  torna (C: 26.351 cm³ / 26.895 g; NC: 26.033 cm³ / 26.814 g). Nella tabella segmenti del C i
+  pezzetti < 2 cm fra una rampa e un confine di taper sono uniti alla riga della rampa (prima
+  compariva una riga S8 da 1 cm); vale solo per la visualizzazione, la geometria salvata non cambia.
+- **Tabella Zones = sequenza completa della linea**: tolta la riga M1 fissa in alto (confondeva).
+  I tratti scoperti compaiono al loro posto come righe M1 derivate, in corsivo e di sola lettura.
+  Bug trovato da Stefano: Canc non cancellava più. Causa: la ricostruzione a ogni aggiornamento
+  (`Items.Refresh`) rubava il fuoco. Ora le righe vengono notificate, non ricostruite; c'è anche il
+  pulsante ✕ Remove.
+- **Menu col tasto destro sulle zone** (Stefano: "fai tutto"): cambia ugello, modifica
+  inizio/fine, estendi (alla precedente, alla successiva, alle estremità, anche sopra altre zone
+  con conferma), dividi, unisci con la successiva, mostra sul grafico, rimuovi. Sulle righe M1 c'è
+  "crea zona". Nei file C le voci che modificano sono disattivate.
+- **Rimozione degli ugelli non usati** (pulsante ✕ Material e tasto destro): M1 e gli ugelli usati
+  da zone non si possono togliere, e il menu dice perché. Gli slot sono fissi, quindi il buco si
+  chiude: gli ugelli sopra scendono di un posto e le zone vengono rinumerate.
+- **PDF, etichette dei nodi senza sovrapposizioni**: l'altezza dell'immagine del grafico segue la
+  scala usata per disporre le etichette (600–1600 px). Prova su Coastal: 933 px, nessuna
+  sovrapposizione.
+- **Generate by Sink Speed creava due segmenti da 5 cm**: erano nodi spuri ai confini delle zone.
+  Ora i generatori di famiglie prendono la forma dai nodi disegnati e la massa dal progetto
+  effettivo. Le varianti a materiale unico hanno solo M1.
+- **Sink Map nel PDF** (`SinkMapRenderer`, stesso modello dello schermo: ogni fetta è un cilindro
+  isolato col suo Ø e la sua densità): è un'immagine a parte con barra dei colori in in/s, mai
+  sovrapposta al grafico dei materiali. **Decisione di Stefano**: è l'ultima sezione del documento
+  ("3 · SINK SPEED MAP" nei file C, senza numero negli NC) e va inclusa esplicitamente. A ogni
+  Export PDF c'è la domanda Sì/No/Annulla (predefinito No), indipendente dall'interruttore Sink Map
+  dello schermo. Da CLI: `flyline pdf … --sinkmap`. Verificato coi PDF della CLI su ST27 V.2 C
+  0.50ips (pagina 2, dopo le tabelle 1 e 2) e Coastal(Original) (pagina 2, dopo la tabella). La
+  domanda all'esportazione nell'app non è stata provata.
+
 ### 16 novembre 2026 — tolta la correzione scan Ø ±
 
 **Decisione di Stefano:** col nuovo dispositivo a ombra la misura è diretta, quindi la correzione
