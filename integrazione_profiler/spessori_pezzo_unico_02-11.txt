@@ -1,0 +1,57 @@
+SPESSORI SOTTO 1 mm NEL PEZZO UNICO (segnalati da PolyD, 02/11/2026)
+Metodo: per ogni faccia, materiale dietro la faccia lungo la normale (strumenti/spessori_minimi.py).
+
+PRIMA: 78.5 mm2 sotto 1 mm. Zone principali corrette:
+ - fondo della cava della chiavetta verso lo scarico ruota 0.86 mm (27 mm2) -> cava 1.6 profonda, chiavetta 1.4 alta: 1.26 mm
+ - fondo della gola all'inizio del braccio d'uscita 0.56-1.0 mm (17 mm2) -> tolto fino a Z 62.6 (li' la linea appoggia sulla ruota), invito sullo spigolo
+ - anello della tasca encoder verso le finestre ad arco 0.93 mm (26 mm2) -> tasca r 18.8 (era 19.0): 1.18 mm
+ - incavi di scatto delle guide dello sportellino: pareti laterali 0.8 mm (8 x 0.5 mm2) -> incavi passanti su tutta la testa
+ - smusso anteriore sotto i fori M3 a Y 3 (0.79 mm) -> niente smusso vicino ai fori
+ - pellicole 0.01-0.2 mm (soffitto della gola d'uscita, alette sulle orecchie del rullo, gradino scarico ruota, smussi del braccio) -> tolte
+DOPO:
+area <0.98 mm: 0.15 mm2
+area   0.05  min 0.73  X  20.4- 20.7 Y   64.2-  64.4 Z   83.3-  83.4
+area   0.05  min 0.73  X  23.8- 24.0 Y   64.2-  64.4 Z   83.3-  83.4
+area   0.02  min 0.58  X   6.6-  6.6 Y    0.0-   3.1 Z   15.7-  18.7
+area   0.02  min 0.58  X   6.6-  6.6 Y    0.0-   3.1 Z   80.4-  83.4
+area   0.01  min 0.03  X   3.7-  3.7 Y   41.0-  41.0 Z  -12.4- -12.4
+area   0.00  min 0.00  X  24.1- 24.2 Y   69.9-  69.9 Z   78.8-  78.9
+area   0.00  min 0.29  X  20.3- 20.4 Y   69.9-  69.9 Z   78.8-  78.9
+
+03/11/2026 - braccio d'ingresso con raccordi R0.5 tondi (testata, spigoli alti della gola aperta, borchia del perno):
+area <0.98 mm: 0.05 mm2
+area   0.02  min 0.58  X   6.6-  6.6 Y    0.0-   3.1 Z   15.7-  18.7
+area   0.02  min 0.58  X   6.6-  6.6 Y    0.0-   3.1 Z   80.4-  83.4
+area   0.01  min 0.03  X   3.7-  3.7 Y   41.0-  41.0 Z  -12.4- -12.4
+area   0.00  min 0.00  X  24.1- 24.2 Y   69.9-  69.9 Z   78.8-  78.9
+area   0.00  min 0.03  X  20.3- 20.3 Y   69.9-  69.9 Z   78.9-  78.9
+area   0.00  min 0.36  X  23.9- 23.9 Y   63.9-  63.9 Z   83.3-  83.3
+area   0.00  min 0.44  X   7.7-  7.7 Y   64.0-  64.0 Z   83.4-  83.4
+
+03/11/2026 - tutti i raccordi R0.5 (perimetro anteriore, senza esclusioni vicino ai fori M3 a Y 3):
+area <0.98 mm: 0.01 mm2
+area   0.01  min 0.03  X   3.7-  3.7 Y   41.0-  41.0 Z  -12.4- -12.4
+area   0.00  min 0.00  X  24.1- 24.2 Y   69.9-  69.9 Z   78.8-  78.9
+area   0.00  min 0.03  X  20.3- 20.3 Y   69.9-  69.9 Z   78.9-  78.9
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z    0.5-   0.5
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z   -9.5-  -9.5
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z   -3.4-  -3.4
+area   0.00  min 0.36  X  23.9- 23.9 Y   63.9-  63.9 Z   83.3-  83.3
+
+03/11/2026 - gola d'ingresso rifatta uniforme (3.6, fondo a pendenza unica, raccordi R0.5 in alto):
+area <0.98 mm: 0.01 mm2
+area   0.01  min 0.03  X   3.7-  3.7 Y   41.0-  41.0 Z  -12.4- -12.4
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z    0.5-   0.5
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z   -9.5-  -9.5
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z   -3.4-  -3.4
+area   0.00  min 0.36  X  23.9- 23.9 Y   63.9-  63.9 Z   83.3-  83.3
+area   0.00  min 0.44  X   7.0-  7.0 Y   69.9-  69.9 Z   58.4-  58.4
+area   0.00  min 0.23  X   7.8-  7.8 Y   63.9-  63.9 Z   83.3-  83.3
+
+03/11/2026 - finestre encoder rifatte r 21.5-27.3 (fuori dal foro Ø42 della piastra):
+area <0.98 mm: 0.01 mm2
+area   0.01  min 0.03  X   3.7-  3.7 Y   41.0-  41.0 Z  -12.4- -12.4
+area   0.00  min 0.47  X  20.3- 20.3 Y   67.1-  67.1 Z   13.0-  13.0
+area   0.00  min 0.47  X  20.3- 20.3 Y   67.1-  67.1 Z   37.0-  37.0
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z    0.5-   0.5
+area   0.00  min 0.35  X   7.2-  7.2 Y   41.5-  41.5 Z   -9.5-  -9.5

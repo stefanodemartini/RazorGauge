@@ -20,7 +20,7 @@ OK Fori passanti Ø3-4 del pezzo senza foro corrispondente nella piastra: nessun
 OK Piastra verticale: nessuna compenetrazione con le parti dell'assieme 
 OK Corpo encoder nel foro Ø42 della piastra: raggio max 19.10 (gioco 1.90)
 OK Ruota CNC dallo STEP: Ø63.66 x 16.78
-OK Ruota CNC (mozzo Ø18 + battistrada, tolleranza Ø ±0.10, eccentricità 0.05): gioco minimo >= 0.5 mm | sotto 1 mm: pezzo_unico 0.79 mm a X 22.3 Y 65.1 Z 37.0
+OK Ruota CNC (mozzo Ø18 + battistrada, tolleranza Ø ±0.10, eccentricità 0.05): gioco minimo >= 0.5 mm | sotto 1 mm: pezzo_unico 0.79 mm a X 23.2 Y 65.1 Z 37.0
 OK Pezzo unico sotto il bordo superiore della piastra (Y 202.61 < 207.00)
 
 RISULTATO: TUTTO OK

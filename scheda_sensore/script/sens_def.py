@@ -38,10 +38,12 @@ R("R8", "10k", "AO_BUF", "VN", B)                  # guadagno non invertente 2
 R("R9", "10k", "VN", "GND", B)                     # -> Vout = 0.958*AO + 0.154 V
 R("R10", "100", "AO_BUF", "AO", B)                 # isolamento verso cavo e filtro della RazorBoard
 
-B = "Connettore verso RazorBoard J5"
-add("J1", "GH 6p", "Connector_Generic:Conn_01x06", "Connector_JST:JST_GH_SM06B-GHS-TB_1x06-1MP_P1.25mm_Horizontal",
-    {1: "VDD", 2: "GND", 3: "SI", 4: "CLK", 5: "AO", 6: "GND"}, B,
-    mpn="JST SM06B-GHS-TB(LF)(SN) - cavo: 1 3V3 / 2 GND / 3 SI / 4 CLK / 5 AO / 6 calza (= J5 pin 1-5, 8)", lcsc="C133065")
+B = "Cavo verso RazorBoard J5 (saldato)"
+# 31/10/2026 (Stefano): niente connettore, il cavo si salda su 5 piazzole passanti (passo 2 mm, foro 0.8). La calza del cavo
+# schermato va SOLO a J5-8 sulla RazorBoard (lato sensore isolata, niente anello di massa). J1 non e' montato da JLCPCB.
+add("J1", "Cavo 5 fili", "Connector_Generic:Conn_01x05", "Connector_PinHeader_2.00mm:PinHeader_1x05_P2.00mm_Vertical",
+    {1: "VDD", 2: "GND", 3: "SI", 4: "CLK", 5: "AO"}, B,
+    mpn="piazzole per saldare il cavo: 1 3V3 / 2 GND / 3 SI / 4 CLK / 5 AO (= J5 pin 1-5; calza solo su J5-8) - NON MONTARE", lcsc="")
 
 def nets():
     n = {}

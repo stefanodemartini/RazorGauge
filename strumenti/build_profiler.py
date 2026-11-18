@@ -6,7 +6,8 @@ P = trimesh.load(src); C = trimesh.load(col)
 ENC_C = (35.0, 49.55)            # asse dell'encoder / ruota (Y, Z)
 ENC_R = 26.5                     # sede del corpo encoder Ø53 (corpo Ø38): comprende le 4 finestre ad arco (r 20-26), niente pareti sottili
 ENC_WALL = 3.0                   # fondo della sede = spessore della piastra originale: l'albero sporge come prima
-ENC_FR = 19.0                    # tasca anteriore Ø38 (30/10/2026): teste viti encoder (r 14-15 + 2.75, margine 1.25) e mozzo Ø29 della ruota originale.
+ENC_FR = 18.8                    # 02/11/2026 da 19.0: anello verso le finestre ad arco da 0.93 a 1.13 mm (PolyD: pareti >= 1 mm).
+                                 # tasca anteriore Ø38 (30/10/2026): teste viti encoder (r 14-15 + 2.75, margine 1.25) e mozzo Ø29 della ruota originale.
                                  # NON r 20 (raggio interno delle 4 finestre ad arco r 20-26: superfici coincidenti = lamelle nell'STL) e non 21-23
                                  # (il cerchio taglia gli spigoli delle finestre di sbieco: cunei 0.05-0.4 mm). Con 19: anello pieno 1.0 mm verso le finestre.
 DZ = -16.0                       # rullo inferiore + braccio spostati: centro Z -6.45 = 28.00 mm dal laser (simmetrico alla ruota)
@@ -100,7 +101,7 @@ res = U([res, extrude_yz(PLATE2D, 0.0, X_BACKCOL)])
 # sede della linguetta posteriore della slitta v2 (28/10/2026): fondo a filo della mensola (Y 58.11 = riferimento),
 # linguetta 2.0 x 12 (Z 11.55-23.55) -> sede 2.25 x 12.5, profonda fino a X 4.72 (0.1 oltre la punta)
 TR_Y0 = 58.11
-res = D([res, B(4.72, 9.0, TR_Y0 - 0.3, TR_Y0 + 2.25, 11.4, 23.7)])   # 31/10/2026: gioco laterale della linguetta 0.15 (era 0.25): slitta ripetibile
+res = D([res, B(4.72, 9.0, TR_Y0 - 0.3, TR_Y0 + 2.25, 11.35, 23.75)])   # gioco laterale della linguetta 0.2 (02/11/2026, linee guida PolyD; 31/10 era 0.15, prima 0.25)
 # --- fori Ø3 originali della zona encoder e di fissaggio (Ø2.99) portati a Ø3.3: nel PA12 MJF i fori escono ~0.1 mm piu piccoli
 HOLES33 = [(3.0, 18.7), (3.0, 80.4), (57.97, 80.44), (49.01, 49.53), (47.98, 42.03), (35.0, 64.53), (28.02, 61.69), (28.02, 37.42), (22.03, 42.06)]
 hc = []
@@ -147,7 +148,23 @@ res = D([res, encs])
 _win = [sg.Polygon(r) for g in (PLATE2D.geoms if hasattr(PLATE2D, "geoms") else [PLATE2D]) for r in g.interiors
         if 19.5 < sg.Polygon(r).centroid.distance(sg.Point(*ENC_C)) < 24.5 and sg.Polygon(r).area > 50]
 print("finestre encoder:", len(_win))
-res = D([res, extrude_yz(so.unary_union(_win), -0.1, X_BACKCOL)])
+# 03/11/2026 (Stefano: confronto col foro Ø42 della piastra CNC): le finestre originali r 20-26 cadevano dentro il foro Ø42 solo per
+#     1 mm -> da dietro 4 fessure a mezzaluna e il resto chiuso dall'alluminio. Servono solo a risparmiare materiale: richiuse e rifatte
+#     FUORI dal foro (r 21.5-27.3, stessi settori angolari, angoli raccordati R1): niente fessure, risparmio uguale (4.2 cm3 contro 4.1),
+#     davanti aperte, il fondo e' la piastra in alluminio. Lontane dalla base della mensola (Y 44-64, Z 1-31) di almeno 1 mm.
+res = U([res, extrude_yz(so.unary_union(_win).buffer(0.05, 16), 0.0, X_BACKCOL)])          # finestre originali richiuse
+_cy, _cz = ENC_C
+_ring = sg.Point(_cy, _cz).buffer(27.3, 256).difference(sg.Point(_cy, _cz).buffer(21.5, 256))
+_nw = []
+for _w in _win:
+    _p = np.array(_w.exterior.coords); _a = np.arctan2(_p[:, 1] - _cz, _p[:, 0] - _cy)
+    if _a.max() - _a.min() > np.pi: _a = np.where(_a < 0, _a + 2*np.pi, _a)
+    _A = np.linspace(_a.min(), _a.max(), 90)
+    _sec = sg.Polygon([(_cy, _cz)] + [(_cy + 40*np.cos(t), _cz + 40*np.sin(t)) for t in _A])
+    _nw.append(_sec.intersection(_ring))
+_NW = so.unary_union(_nw).difference(sg.box(44.0 - 1.0, 1.0 - 1.0, 64.0 + 1.0, 31.0 + 1.0)).buffer(-1.0, 32).buffer(1.0, 32)
+print("finestre encoder rifatte: area %.0f mm2" % _NW.area)
+res = D([res, extrude_yz(_NW, -0.1, X_BACKCOL)])
 # --- blocchi guida per le forcelle ORIGINALI, inserite DAL BASSO (senza rullo): sede rettangolare chiusa 16.3 x 12.3,
 #     piu stretta del rullo; il bordo inferiore resta sopra rullo e bullone; in alto il cappello del supporto originale
 blocks, cuts = [], []
@@ -210,9 +227,9 @@ for z in SH_Z:
     rails.append(B(SH_HEAD_X[0], SH_HEAD_X[1], SH_Y0, SH_Y1, z - 3.0, z + 3.0))                  # testa
     rails.append(B(36.6, SH_HEAD_X[1], SH_Y0, SH_Y0 + 1.5, z - 4.4, z + 4.4))                    # piede (fermo in basso)
     for yd in SH_DET_Y:                                                       # incavi di scatto a fianchi inclinati 30 gradi (31/10/2026: a spigolo vivo
-        _x0, _x1 = SH_HEAD_X[1] - 0.35, SH_HEAD_X[1] + 0.1                     #  servivano ~1.6 N per nottolino e lo spigolo poteva puntare)
-        rcut.append(trimesh.convex.convex_hull(np.array([[_x0, yd + dy, zz] for dy in (-0.4, 0.4) for zz in (z - 2.2, z + 2.2)] +
-                                                          [[_x1, yd + dy, zz] for dy in (-1.26, 1.26) for zz in (z - 2.2, z + 2.2)])))
+        _x0, _x1 = SH_HEAD_X[1] - 0.35, SH_HEAD_X[1] + 0.1                     #  servivano ~1.6 N per nottolino e lo spigolo poteva puntare). 02/11: passanti su tutta la testa (prima +/-2.2: ai lati restavano pareti da 0.8)
+        rcut.append(trimesh.convex.convex_hull(np.array([[_x0, yd + dy, zz] for dy in (-0.4, 0.4) for zz in (z - 3.1, z + 3.1)] +
+                                                          [[_x1, yd + dy, zz] for dy in (-1.26, 1.26) for zz in (z - 3.1, z + 3.1)])))
     rcut.append(_bump([[SH_HEAD_X[1] + 0.1, SH_Y1 + 0.1, zz] for zz in (z - 3.1, z + 3.1)] + [[SH_HEAD_X[1] - 0.6, SH_Y1 + 0.1, zz] for zz in (z - 3.1, z + 3.1)],
                       [[SH_HEAD_X[1] + 0.1, SH_Y1 - 1.5, zz] for zz in (z - 3.1, z + 3.1)]))     # smusso in cima alla testa (invito del nottolino)
 res = D([U([res] + rails), U(rcut)])
@@ -259,39 +276,120 @@ res = U([res] + [j_guide(a, b) for (a, b) in J_SPANS])
 HOLE_OLD, HOLE_NEW = (57.97, 18.67), (52.0, 18.67)
 plug = trimesh.creation.cylinder(radius=1.8, height=7.22, sections=48); plug.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0,1,0])); plug.apply_translation([3.61, *HOLE_OLD])
 # r 1.8 > foro Ø3.3: nessun anello residuo. Tratto X 0-3.2 pieno; davanti (X 3.2-7.22) riempio solo sotto Y 58.2 per non toccare la sede della linguetta della slitta (Y 58.87-60.95)
-plug = trimesh.boolean.intersection([plug, U([B(-0.1, 3.2, 50, 70, 0, 40), B(3.0, 7.22, 50, 58.0, 0, 40)])])   # 58.0: sotto la sede della linguetta v2 (fondo 58.11)
-res = U([res, plug])
+plug = trimesh.boolean.intersection([plug, B(-0.1, 7.22, 50, 70, 0, 40)])   # 04/11/2026: foro richiuso tutto (prima restava una tasca 1.5 mm dietro la sede
+res = U([res, plug])                                                          #   della linguetta e un rialzo 0.19 sul suo fondo) e sede della linguetta ritagliata:
+res = D([res, B(4.72, 9.0, TR_Y0 - 0.3, TR_Y0 + 2.25, 11.35, 23.75)])         #   stessa sede di riga 104 (gioco 0.2)
 hn = trimesh.creation.cylinder(radius=1.65, height=X_BACKCOL + 1, sections=48); hn.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0,1,0])); hn.apply_translation([X_BACKCOL/2, *HOLE_NEW])
 res = D([res, hn])
+# 05/11/2026 (Stefano, stampa anche presso JLC3DP: tolleranza +/-0.4% oltre 100 mm): gli 8 fori delle viti M3 x 12 pezzo -> piastra
+#     in alluminio portati a Ø3.6 (prima 3.3-3.4): +/-0.15 di recupero per lato sull'interasse (fino a 166 mm tra i fori estremi).
+FIX8 = [(y, z) for (y, z, _) in MOUNT] + [(3.0, 18.7), (3.0, 80.4), (57.97, 80.44), HOLE_NEW]
+_f8 = []
+for (y, z) in FIX8:
+    h = trimesh.creation.cylinder(radius=1.8, height=X_BACKCOL + 0.4, sections=64); h.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0,1,0])); h.apply_translation([X_BACKCOL/2, y, z]); _f8.append(h)
+res = D([res, U(_f8)])
 # 28/10/2026: la mensola della slitta copre il foro: canale Ø6.5 per la vite e il cacciavite, da X 7.22 al fronte della mensola
 bore = trimesh.creation.cylinder(radius=3.25, height=35, sections=48); bore.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [0,1,0])); bore.apply_translation([7.22 + 17.5, *HOLE_NEW])
 bore_open = B(7.22, 42.5, HOLE_NEW[0] - 3.25, HOLE_NEW[0] + 3.25, HOLE_NEW[1], 34.0)   # canale aperto verso la ruota: niente lamelle tra canale e scarico ruota
 bore_open = U([bore_open, B(12.0, 42.5, 46.9, HOLE_NEW[0] - 3.25 + 0.01, HOLE_NEW[1], 34.0)])   # 30/10/2026: sotto il canale, lato ruota, restava un cuneo 0.15-0.4 mm tra canale e scarico ruota
 res = D([res, U([bore, bore_open])])
-# 31/10/2026: FORO DI USCITA della coda di topo dopo la ruota (blocco ORIGINALE, Z 78.5-83.4): era 3.0 x 2.8 (Y 65.6-68.4) ->
+# 31/10/2026: FORO D'INGRESSO della coda di topo prima della ruota (03/11: era chiamato 'di uscita'; la coda di topo ENTRA da qui, lato ruota Z+) (blocco ORIGINALE, Z 78.5-83.4): era 3.0 x 2.8 (Y 65.6-68.4) ->
 #     la Ø3 passava schiacciata e strisciando, la Ø2 toccava il soffitto se dritta. Allargato a 3.6 x 3.7 (Y 65.3-69.0, pareti
-#     0.9 sopra / 1.4 sotto), spigoli lungo Z R0.6, fondo a rampa dall'interno, smusso all'uscita (niente invito sul soffitto: con 0.9 di parete lascerebbe un filo).
-def _ex_rect(hw, y0, y1, z):
-    pr = sg.box(XB - hw, y0, XB + hw, y1).buffer(-0.6, 16).buffer(0.6, 16)
+#     0.9 sopra / 1.4 sotto), spigoli lungo Z R0.6, fondo a rampa dall'interno, smusso all'imbocco (niente invito sul soffitto: con 0.9 di parete lascerebbe un filo).
+# 03/11/2026 (Stefano: la gola della mensola d'ingresso non era uniforme): prima c'erano la gola originale larga 3.0 (Z 60.5-78.5),
+#     il foro allargato a 3.6 solo sotto Y 69.0 (Z 69-83: sotto le pareti restava uno sbalzo), il fondo con due pendenze e un gradino
+#     di 0.05 dove era stato tolto il soffitto. Ora: riempita e rifatta come UNA gola sola, aperta in alto per tutta la lunghezza,
+#     larga 3.6 (X 20.42-24.02), spigoli del fondo R0.6, fondo con una pendenza unica dall'inizio del fondo (Y 66.78 a Z 62.6, come l'originale) alla fine del
+#     braccio (Y 65.30 a Z 83.43), invito all'imbocco (0.4 per lato e sotto negli ultimi 0.8 mm).
+GW2 = 1.8
+def _gfloor(z): return 66.78 + (65.30 - 66.78) * (z - 62.6) / (83.43 - 62.6)   # a Z 62.6 come l'originale (sotto il fondo resta >= 1 mm)
+def _gring(hw, y0, z, r=0.6):
+    pr = sg.box(XB - hw, y0, XB + hw, 72.5).buffer(-r, 16).buffer(r, 16)
     return np.array([[x, y, z] for x, y in pr.exterior.coords])
-_ex = [trimesh.convex.convex_hull(np.vstack([_ex_rect(1.8, 65.3, 69.0, 77.0), _ex_rect(1.8, 65.3, 69.0, 83.0)])),
-       trimesh.convex.convex_hull(np.vstack([_ex_rect(1.8, 66.3, 69.0, 69.0), _ex_rect(1.8, 65.3, 69.0, 77.05)])),   # fondo a rampa (niente gradino)
-       trimesh.convex.convex_hull(np.vstack([_ex_rect(1.8, 65.3, 69.0, 82.9), _ex_rect(2.2, 64.9, 69.3, 83.7)]))]
-res = D([res, U(_ex)])
+res = U([res, B(XB - 2.05, XB + 2.05, 65.2, 69.91, 66.5, 83.43)])                  # riempimento (sopra il fondo pieno: Z >= 66.5)
+_ch = [trimesh.convex.convex_hull(np.vstack([_gring(GW2, _gfloor(59.5), 59.5), _gring(GW2, _gfloor(84.5), 84.5)])),   # gola unica
+       trimesh.convex.convex_hull(np.vstack([_gring(GW2, _gfloor(82.93), 82.93), _gring(GW2 + 0.4, _gfloor(83.73) - 0.4, 83.73, 1.0)]))]   # invito
+res = D([res, U(_ch)])
 # 31/10/2026 (Stefano: la copertura della gola d'ingresso a sinistra trattiene la coda di topo durante la scansione ma spesso
-#     e' un problema): COPERTURA RIMOVIBILE. Tolto dal pezzo il tratto sopra la gola (X 16 - fronte, Y 67.4 - 70, Z 77.9 - fine: comprende l invito originale del soffitto);
-#     al suo posto il tappino strumenti/build_tappo_uscita.py: a U rovesciata, rifa' il soffitto a Y 69.0, 2 perni Ø2.4 nei fori
-#     Ø2.6 delle due pareti, clip elastica che aggancia il sotto del braccio sul fronte. Senza tappino la gola e' aperta in alto.
-TU_X0, TU_Y0, TU_Z0 = 16.0, 67.4, 77.9
-TU_PINS = ((18.2, 80.85), (26.2, 80.85))                                   # (X, Z) dei perni
-res = D([res, U([B(TU_X0, 28.6, TU_Y0, 70.1, TU_Z0, 83.8)] +
-               [trimesh.creation.cylinder(radius=1.3, height=2.6, sections=32).apply_transform(
-                    trimesh.transformations.rotation_matrix(np.pi/2, [1, 0, 0])).apply_translation([px, TU_Y0 - 1.25, pz]) for px, pz in TU_PINS])])
+#     e' un problema; il tappino a incastro era troppo complicato): PIASTRINA GIREVOLE. Tolto il soffitto della gola (Z 77.8 - fine):
+#     gola aperta in alto per tutta la lunghezza. Sopra il braccio una piastrina (strumenti/build_piastrina_ingresso.py) gira su una
+#     perno (05/11: stampato Ø4 + vite M2, prima vite a spalla M3 in un inserto): chiusa copre la gola (soffitto a Y 69.9), ruotata di
+#     90 gradi verso l'interno lascia la gola libera. Due scatti (dente sotto la piastrina, due incavi nel braccio).
+PU_PIV = (13.5, 80.0)                                                       # perno (X, Z) sul braccio pieno, accanto alla gola
+PU_DET = ((18.5, 80.0), (13.5, 75.0))                                       # incavi di scatto: chiusa / aperta
+# 31/10/2026: borchia cilindrica attorno all inserto del perno (r 4.6, Y 63.8-69.9, come il foro passante): verso la fine del pezzo (Z 83.43) la parete
+#     era 1.4 mm, ora 2.6 (sporge fino a Z 84.6, sotto la piastrina, dentro il contorno della piastra in alluminio Z <= 92).
+# 01/11/2026 (Stefano): la faccia di testa del braccio d'ingresso (Z 83.43) aveva gli spigoli vivi, mentre gli spigoli lungo Z del braccio
+#     sono raccordati R0.5: smusso 0.5 (03/11: ora raccordo tondo R0.5, vedi sotto) sul perimetro della faccia di testa del braccio, gola compresa, tranne lo
+#     spigolo sulla faccia posteriore (X 0, appoggio sulla piastra: vivo); anche la borchia del perno ha gli spigoli smussati 0.5.
+_ZA = 83.43
+_s = res.section(plane_origin=[0, 0, _ZA - 1.0], plane_normal=[0, 0, 1]); _pl, _ = _s.to_2D(to_2D=np.eye(4))
+_arm = so.unary_union(list(_pl.polygons_full)).buffer(0).intersection(sg.box(-1.0, 63.0, 30.0, 70.5))
+_armx = so.unary_union([_arm, sg.box(-5.0, 55.0, 0.3, 75.0),          # faccia posteriore (X 0, in appoggio sulla piastra): spigolo VIVO
+                        sg.box(-5.0, 55.0, 8.0, 64.0),                # blocco sotto il braccio (contorno della piastra): invariato
+                        sg.box(20.40, 63.0, 24.04, 71.0)])            # gola (anche sotto: il fondo all'imbocco resta >= 1.0 mm): ha gia' il suo smusso d'imbita (sotto il fondo resterebbero 0.45 mm)
+# 03/11/2026 (Stefano: gli smussi del braccio non erano tutti uguali, preferisce quello dell'STL originale): al posto dello smusso
+#     a gradini 0.5 la testata (Z 83.43) ha un RACCORDO TONDO R0.5 come gli spigoli lungo Z del braccio originale (sfera R0.5 fatta
+#     scorrere sul profilo: minkowski). Stesse esclusioni di prima (faccia posteriore X 0-1, blocco sotto, gola con il suo invito).
+import manifold3d as _mf
+def _to_mf(t): return _mf.Manifold(_mf.Mesh(vert_properties=np.asarray(t.vertices, np.float32), tri_verts=np.asarray(t.faces, np.uint32)))
+def _to_tm(m):
+    mm = m.to_mesh(); t = trimesh.Trimesh(np.asarray(mm.vert_properties)[:, :3], np.asarray(mm.tri_verts), process=False); return t
+_RA = 0.5
+_core = []
+for _q in getattr(_armx.buffer(-_RA + 0.02, 32), "geoms", [_armx.buffer(-_RA + 0.02, 32)]):
+    if _q.geom_type == "Polygon" and _q.area > 1e-3:
+        _m = trimesh.creation.extrude_polygon(_q, 3.0 - _RA + 0.003); _m.apply_translation([0, 0, _ZA - 3.0]); _core.append(_m)
+_rnd = _to_mf(_core[0])
+for _m in _core[1:]: _rnd = _rnd + _to_mf(_m)
+_rnd = _to_tm(_rnd.minkowski_sum(_mf.Manifold.sphere(_RA, 48)))      # +0.02 di lato: il raccordo non intacca le facce laterali
+_reg = trimesh.creation.extrude_polygon(sg.box(1.0, 63.0, 30.0, 70.5), _RA + 0.6); _reg.apply_translation([0, 0, _ZA - _RA - 0.05])
+res = D([res, D([_reg, _rnd])])
+# spigoli alti della gola (aperta per tutta la lunghezza): raccordo R0.5 come gli altri spigoli lungo Z del braccio
+_gq = []
+for _xc, _sx in ((XB - GW2, 1), (XB + GW2, -1)):          # _sx: verso la gola (03/11: il segno era invertito, il raccordo non tagliava)
+    _sq = sg.box(min(_xc, _xc - _sx*_RA), 69.91 - _RA, max(_xc, _xc - _sx*_RA), 69.91 + 0.1)
+    _sq = so.unary_union([_sq, sg.box(min(_xc, _xc + _sx*0.05), 69.91 - _RA, max(_xc, _xc + _sx*0.05), 69.91 + 0.1)])
+    _q = _sq.difference(sg.Point(_xc - _sx*_RA, 69.91 - _RA).buffer(_RA, 64))
+    _m = trimesh.creation.extrude_polygon(_q, _ZA + 0.5 - 60.0); _m.apply_translation([0, 0, 60.0]); _gq.append(_m)   # 03/11: per tutta la gola
+res = D([res, U(_gq)])
+# borchia del perno: spigoli sopra e sotto con raccordo R0.5 (prima smusso dritto 0.5)
+_boss = _to_tm(_mf.Manifold.cylinder(6.1 - 2*_RA, 4.6 - _RA, 4.6 - _RA, 96, True).minkowski_sum(_mf.Manifold.sphere(_RA, 48)))
+_boss.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2, [1, 0, 0]))
+_boss.apply_translation([PU_PIV[0], 69.9 - 3.05, PU_PIV[1]]); res = U([res, _boss])
+# 02/11/2026 (PolyD: parti sotto 1 mm): alla fine del braccio d'ingresso, verso la ruota (Z 60.6-62.6) il fondo della gola, tra la gola e lo scarico
+#     della ruota, era spesso 0.5-1.0 mm. Tolto: li' la coda di topo appoggia ancora sulla ruota; il fondo comincia a Z 62.6 (1.0 mm)
+#     con un invito sullo spigolo d'ingresso.
+_gf = trimesh.convex.convex_hull(np.array([[x, y, z] for x in (XB - GW2, XB + GW2) for (y, z) in ((60.0, 58.0), (67.6, 58.0), (67.6, 63.2), (66.3, 62.6), (60.0, 62.6))]))
+res = D([res, _gf])
+_pu = []                                                                     # 03/11: soffitto gia' tolto dalla gola unica
+# 05/11/2026: niente piu' inserto nel braccio (borchia piena): perno stampato, vedi sotto
+for dx, dz in PU_DET:
+    s_ = trimesh.creation.icosphere(subdivisions=3, radius=0.75); s_.apply_translation([dx, 69.9 + 0.25, dz]); _pu.append(s_)   # incavo 0.5 profondo
+res = D([res, U(_pu)])
+# 05/11/2026 (Stefano: niente vite a spalla): PERNO STAMPATO della piastrina, tutt'uno con la borchia: Ø4.0 alto 2.0 sopra il
+#     braccio (Y 69.9-71.9), raccordo ~0.3 alla base, smusso 0.2 in cima; foro Ø1.7 profondo 6 per una vite M2 x 5 autofilettante
+#     che con una rondella M2 larga (Ø6, DIN 9021) si stringe sulla testa del perno e trattiene la piastrina (foro Ø4.3) con 0.2 di gioco.
+def _cylY(r0, r1, y0, y1, sec=64):
+    a = trimesh.creation.cylinder(radius=1.0, height=1.0, sections=sec); v = a.vertices.copy(); top = v[:, 2] > 0
+    v[:, :2] *= np.where(top, r1, r0)[:, None]; v[:, 2] = np.where(top, y1, y0); a = trimesh.Trimesh(v, a.faces); a.fix_normals()
+    a.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2, [1, 0, 0])); a.apply_translation([PU_PIV[0], 0, PU_PIV[1]]); return a
+_pin = U([_cylY(2.0, 2.0, 69.8, 71.7), _cylY(2.0, 1.8, 71.7, 71.9), _cylY(2.32, 2.0, 69.85, 70.22)])
+res = U([res, _pin])
+res = D([res, _cylY(0.85, 0.85, 65.9, 72.5, 32)])
+# 31/10/2026: PASSAGGIO PER UNA FASCETTA sotto la mensola (fermacavo del cavo del sensore, che passa sotto a Y ~43.5, Z 13):
+#     due asole dal basso (Z 4.5-6.1 e 12.9-14.5; oltre Z 16.2 c'e' lo scarico della ruota) unite da un tunnel lungo Z sopra un ponticello di 1.5 mm. Fascetta fino a 2.5 x 1.1.
+# 02/11/2026: tasca di alleggerimento chiusa dal basso nella mensola (sotto la slitta c'era un pieno da 11.9 mm; PolyD sconsiglia
+#     pareti oltre 10 mm: cavita' in superficie). Aperta in basso (Y 47), 5 mm di profondita': sopra restano 6.1 mm fino al piano della slitta.
+res = D([res, B(9.0, 20.5, 46.5, 52.0, 5.5, 11.5)])
+FC_X = (24.0, 27.0)
+res = D([res, U([B(FC_X[0], FC_X[1], 48.5, 50.1, 4.5, 14.5),
+                 B(FC_X[0], FC_X[1], 46.8, 48.6, 4.5, 6.1), B(FC_X[0], FC_X[1], 46.8, 48.6, 12.9, 14.5)])])
 # pulizia: alette da 0.1 mm lasciate dallo spostamento del braccio del rullo inferiore (estratto da X 2.9) fuori dal contorno piastra
-res = D([res, U([B(-1, 3.06, 30.0, 41.15, ZE - 3, 17.0), B(-1, 3.06, 40.0, 70.0, ZE - 3, ZE - 0.01)])])
+res = D([res, U([B(-1, 3.7, 30.0, 41.15, ZE - 3, 17.0), B(-1, 3.06, 40.0, 70.0, ZE - 3, ZE - 0.01)])])   # 02/11: fino a X 3.7 (alette 0.18 sulle orecchie)
 # --- SMUSSI DI STAMPA (spigoli esterni liberi; nessun accoppiamento toccato) -----------------------------------
-#  (1) angoli convessi del contorno piastra raccordati R3 (come l'originale), (2) smusso 0.6 sul perimetro esterno della faccia
-#  posteriore (appoggio sulla piastra di supporto: resta piana) e della faccia anteriore dove non c'e' nulla attaccato,
+#  (1) angoli convessi del contorno piastra raccordati R3 (come l'originale, a tutto spessore), (2) smusso 0.6 sul perimetro esterno della
+#  faccia anteriore dove non c'e' nulla attaccato (01/11/2026: NIENTE smusso sulla faccia posteriore, in appoggio sulla piastra in alluminio),
 #  (3) invito 0.5 sulla bocca della sede encoder, (4) smusso 0.7 sugli spigoli verticali anteriori liberi dei blocchi guida (uguale a quello dei tappi).
 #  Esclusi: fori, sedi, guide, facce di battuta, tutto cio' che si accoppia.
 def _sec2d(m, x):
@@ -310,13 +408,16 @@ def _ext2(poly, x0, x1):
 cut = []
 _Er = _E.buffer(-3.0, 64).buffer(3.0, 64)                                      # contorno con gli angoli convessi raccordati R3
 _OUT = _E.buffer(0.6, 16)                                                       # le fasce partono FUORI dal pezzo: niente lamelle sul bordo
-_CH, _H = 0.6, 0.1                                                              # smussi 0.6 a gradini da 0.1 (risoluzione MJF ~0.08)
-_NS = int(round(_CH / _H))
-m = _ext2(_OUT.difference(_Er).difference(_F), _CH - 0.013, X_BACKCOL - _CH + 0.013); cut += [m] if m is not None else []   # (1) raccordi
-for i in range(_NS):
-    d = _CH - (i + 0.5) * _H
-    m = _ext2(_OUT.difference(_Er.buffer(-d, 32)), (-0.2 if i == 0 else i * _H - 0.013), (i + 1) * _H); cut += [m] if m is not None else []          # (2) retro
-    m = _ext2(_OUT.difference(_Er.buffer(-d, 32)).difference(_F), X_BACKCOL - (i + 1) * _H, (X_BACKCOL + 0.2 if i == 0 else X_BACKCOL - i * _H + 0.013)); cut += [m] if m is not None else []   # fronte
+# 03/11/2026 (Stefano): niente piu' smussi a gradini: il perimetro della faccia anteriore ha un RACCORDO TONDO R0.5 come gli spigoli
+#     dell'STL originale (prima smusso 0.6 a gradini da 0.1). Sfera R0.5 fatta scorrere sul contorno (minkowski, manifold3d).
+#     (2) retro: TOLTO il 01/11/2026 (Stefano): gli spigoli della faccia posteriore, in appoggio sulla piastra in alluminio, restano vivi
+_RP = 0.5
+_NOCH = so.unary_union([sg.Point(3.0, 18.70).buffer(3.6, 32), sg.Point(3.0, 80.40).buffer(3.6, 32)])   # 02/11: niente raccordo anteriore vicino ai fori M3 a Y 3 (restavano 0.8 mm sotto il foro)
+m = _ext2(_OUT.difference(_Er).difference(_F), -0.2, X_BACKCOL + 0.2); cut += [m] if m is not None else []   # (1) angoli R3 a tutto spessore
+_cp = _ext2(_Er.buffer(-_RP + 0.02, 32), X_BACKCOL - 3.0, X_BACKCOL - _RP + 0.003)
+_rp = _to_tm(_to_mf(_cp).minkowski_sum(_mf.Manifold.sphere(_RP, 48)))
+m = _ext2(_OUT.difference(_F), X_BACKCOL - _RP - 0.05, X_BACKCOL + 0.2)   # col raccordo R0.5 sotto i fori M3 a Y 3 restano >= 1 mm: niente esclusione
+if m is not None: cut.append(D([m, _rp]))                                        # (2) fronte: raccordo R0.5
 # (3) invito 0.5 x 45 sul bordo della tasca anteriore dell'encoder: cono vero (non a gradini: si vedevano anelli)
 _c = trimesh.creation.cylinder(radius=1.0, height=1.0, sections=192)          # tronco di cono da r ENC_FR (X 7.22-0.5) a r ENC_FR+0.5 (X 7.22) e oltre
 _v = _c.vertices.copy(); top = _v[:, 2] > 0
@@ -332,8 +433,24 @@ def _wedge(xc, zc, sx, sz, y0, y1, L=1.0):                                     #
     return w
 for c in Z_FORK:                                                                # (4) spigoli verticali anteriori dei blocchi guida
     for sz in (-1, 1):
-        cut.append(_wedge(XB + SX/2 + GW, c + sz*GZ, 1, sz, GY0 - 0.2, LUG_Y0 + 0.01))
-        cut.append(_wedge(TAP_X[1] + 2.75, c + sz*GZ, 1, sz, LUG_Y0 - 0.01, GTOP + 0.2))
+        if (c, sz) in ((Z_FORK[0], -1), (Z_FORK[1], 1)):                        # 04/11/2026: spigolo accanto alla guida dello sportellino
+            _xc, _zc = XB + SX/2 + GW, c + sz*GZ                                   # (anima a Z -13.95 / 57.05): smusso 0.65 che finisce a filo
+            _t = sg.Polygon([(_xc, _zc + 0.3*sz), (_xc - 0.95, _zc + 0.3*sz), (_xc, _zc - 0.65*sz)])   # sotto l'anima, senza tagliarla
+            _w = trimesh.creation.extrude_polygon(_t, LUG_Y0 + 0.01 - (GY0 - 0.2))     # (prima: tacca 0.35 sotto la radice della guida)
+            _w.apply_transform(np.array([[1,0,0,0],[0,0,1,GY0 - 0.2],[0,1,0,0],[0,0,0,1]], dtype=float))
+            if _w.volume < 0: _w.invert()
+            cut.append(_w)
+        else:
+            cut.append(_wedge(XB + SX/2 + GW, c + sz*GZ, 1, sz, GY0 - 0.2, LUG_Y0 + 0.01))
+        if (c, sz) in ((Z_FORK[0], -1), (Z_FORK[1], 1)):                        # 04/11/2026: idem sulla spalla anteriore (tratto alto)
+            _xc, _zc = TAP_X[1] + 2.75, c + sz*GZ
+            _t = sg.Polygon([(_xc, _zc + 0.3*sz), (_xc - 0.95, _zc + 0.3*sz), (_xc, _zc - 0.65*sz)])
+            _w = trimesh.creation.extrude_polygon(_t, GTOP + 0.2 - (LUG_Y0 - 0.01))
+            _w.apply_transform(np.array([[1,0,0,0],[0,0,1,LUG_Y0 - 0.01],[0,1,0,0],[0,0,0,1]], dtype=float))
+            if _w.volume < 0: _w.invert()
+            cut.append(_w)
+        else:
+            cut.append(_wedge(TAP_X[1] + 2.75, c + sz*GZ, 1, sz, LUG_Y0 - 0.01, GTOP + 0.2))
 res = D([res, U(cut)])
 parts = res.split(only_watertight=False)
 res = max(parts, key=lambda p: p.volume)   # scarta eventuali schegge a volume nullo

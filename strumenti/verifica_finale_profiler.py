@@ -15,12 +15,12 @@ def rep(ok,txt): res.append(("OK " if ok else "!! ")+txt); print(res[-1],flush=T
 # A) interferenze statiche tra parti rigide (escluse le coppie a contatto voluto)
 rigid=["pezzo_unico","coperchio","carrello","slitta_sensore","scheda_sensore","laser","tappo_laser","grani_laser","lente_L1","lente_L2","ruota_encoder_200mm","encoder_LPD3806",
        "rullo_inferiore_spostato","rullo_spintore_lato_misura","rullo_superiore_su_ruota","forcella_spintore_lato_misura","forcella_spintore_sulla_ruota",
-       "cavo_sensore","bullone_dado_perno_forcella_spintore_lato_misura","bullone_dado_perno_forcella_spintore_sulla_ruota","sportello_luce","tappo_uscita"]
-allowed={frozenset(p) for p in [("pezzo_unico","laser"),("laser","tappo_laser"),("laser","grani_laser"),("pezzo_unico","grani_laser"),("pezzo_unico","tappo_laser"),("pezzo_unico","lente_L1"),("carrello","lente_L2"),("slitta_sensore","scheda_sensore"),
+       "cavo_sensore","bullone_dado_perno_forcella_spintore_lato_misura","bullone_dado_perno_forcella_spintore_sulla_ruota","sportello_luce","piastrina_ingresso","vite_perno_piastrina"]
+allowed={frozenset(p) for p in [("pezzo_unico","laser"),("laser","tappo_laser"),("laser","grani_laser"),("pezzo_unico","grani_laser"),("pezzo_unico","tappo_laser"),("pezzo_unico","lente_L1"),("carrello","lente_L2"),("slitta_sensore","scheda_sensore"),("slitta_sensore","cavo_sensore"),
          ("scheda_sensore","cavo_sensore"),("rullo_spintore_lato_misura","forcella_spintore_lato_misura"),("rullo_superiore_su_ruota","forcella_spintore_sulla_ruota"),
          ("forcella_spintore_lato_misura","bullone_dado_perno_forcella_spintore_lato_misura"),("forcella_spintore_sulla_ruota","bullone_dado_perno_forcella_spintore_sulla_ruota"),
          ("rullo_spintore_lato_misura","bullone_dado_perno_forcella_spintore_lato_misura"),("rullo_superiore_su_ruota","bullone_dado_perno_forcella_spintore_sulla_ruota"),
-         ("pezzo_unico","rullo_inferiore_spostato"),("pezzo_unico","forcella_spintore_lato_misura"),("pezzo_unico","forcella_spintore_sulla_ruota"),("pezzo_unico","sportello_luce")]}
+         ("pezzo_unico","rullo_inferiore_spostato"),("pezzo_unico","forcella_spintore_lato_misura"),("pezzo_unico","forcella_spintore_sulla_ruota"),("pezzo_unico","sportello_luce"),("pezzo_unico","vite_perno_piastrina")]}
 bad=[]
 for a,b in itertools.combinations([r for r in rigid if r in g],2):
     if frozenset((a,b)) in allowed: continue
@@ -34,7 +34,18 @@ def crop(m,b,pad=3.0):                    # ritaglio locale: contains/closest_po
     return trimesh.boolean.intersection([m,trimesh.creation.box(bounds=[b[0]-pad,b[1]+pad])],engine="manifold")
 for nm in ("lente_L1","laser"):
     Pc=crop(P,g[nm].bounds); pts,fi=trimesh.sample.sample_surface(g[nm],3000); _,d,_=trimesh.proximity.closest_point(Pc,pts)
-    pin=pts-g[nm].face_normals[fi]*0.03                                    # 0.03 dentro la superficie: il contatto voluto (cono) non conta
+    if nm=="laser":                                                         # foro Ø9.0 esatto: controllo con un laser Ø8.8 (nessuna parete dentro il foro)
+        ax_=np.array([22.22,0,21.55]); lt=trimesh.creation.cylinder(radius=4.4,height=19.9,sections=96)
+        lt.apply_transform(trimesh.transformations.rotation_matrix(-np.pi/2,[1,0,0])); lt.apply_translation([22.22,g[nm].bounds[:,1].mean(),21.55])
+        v_=vol(lt,P); r_=[]
+        for y_ in np.linspace(g[nm].bounds[0][1]+1,g[nm].bounds[1][1]-1,5):
+            for a_ in np.linspace(0,2*np.pi,48,endpoint=False):           # 48 direzioni: il minimo e' il diametro sui piatti del poligono
+                d_=np.array([np.cos(a_),0,np.sin(a_)]); l_=np.asarray(P.ray.intersects_location(np.array([[22.22,y_,21.55]]),np.array([d_]))[0]).reshape(-1,3)
+                if len(l_): r_.append(np.linalg.norm((l_-[22.22,y_,21.55])[:,[0,2]],axis=1).min())
+        lb=np.asarray(P.ray.intersects_location(np.array([[22.22+3.7,g[nm].bounds[0][1]+0.5,21.55]]),np.array([[0,-1.0,0]]))[0]).reshape(-1,3)
+        rep(v_<=1e-3 and abs(min(r_)-9.03/2)<0.02 and abs(lb[:,1].max()-g[nm].bounds[0][1])<0.02,"laser Ø8.97 nella sede: foro Ø%.3f (sui piatti) su tutta la lunghezza, battuta piana a Y %.2f sotto la faccia del laser"%(2*min(r_),lb[:,1].max()))
+        continue
+    pin=pts-g[nm].face_normals[fi]*0.03
     rep(not Pc.contains(pin).any(),"%s nella sede: nessuna compenetrazione oltre 0.03 mm (contatto min %.2f)"%(nm,d.min()))
 pts=g["lente_L2"].sample(3000); rep(not g["carrello"].contains(pts).any(),"lente L2 nel carrello: nessuna compenetrazione")
 # C) carrello su tutta la corsa (-5..+6) nella colonna e sotto il coperchio
@@ -93,7 +104,7 @@ rep(_O.bounds[0][0]-_cod>=1.0 and g["ruota_encoder_200mm"].bounds[0][0]-_cod>=1.
 # M) MONTABILITA' (30/10/2026, richiesta di Stefano: controllare sempre che i pezzi si possano montare), nell'ordine di montaggio
 def _cylX(x0,x1,y,z,r,sec=96):
     c=trimesh.creation.cylinder(radius=r,height=x1-x0,sections=sec); c.apply_transform(trimesh.transformations.rotation_matrix(np.pi/2,[0,1,0])); c.apply_translation([(x0+x1)/2,y,z]); return c
-_fixed=[("pezzo_unico",P)]+[(k,gg) for k,gg in g.items() if k not in ("pezzo_unico","ruota_encoder_200mm","albero_encoder","encoder_LPD3806","cavo_2mm","sportello_luce","tappo_uscita")]   # sportellino e tappino: si tolgono prima di montare la ruota
+_fixed=[("pezzo_unico",P)]+[(k,gg) for k,gg in g.items() if k not in ("pezzo_unico","ruota_encoder_200mm","albero_encoder","encoder_LPD3806","cavo_2mm","sportello_luce","piastrina_ingresso","vite_perno_piastrina")]   # sportellino e piastrina: si tolgono prima di montare la ruota
 def _hits(vol_mesh, parts):
     out=[]
     for k,gg in parts:
@@ -172,19 +183,21 @@ _th=np.full(_ok.sum(),99.0); _th[_ri]=np.linalg.norm(_l-(_c[_ok]-_n[_ok]*0.005)[
 _ta=_a[_ok][_th<0.5].sum(); _r=np.hypot(_c[:,1]-35,_c[:,2]-49.55)
 _enc=(_r<28)&(_c[:,0]<8)&(_ok); _te=_th[_enc[_ok]].min()
 rep(_ta<1.0 and _te>0.8,"Q mesh pezzo unico: superficie con materiale < 0.5 mm = %.2f mm2 (solo STL originale), zona encoder spessore minimo %.2f mm, piani %s"%(_ta,_te,sorted(set(np.round(_c[_enc&(np.abs(_n[:,0])>0.99),0],2)))))
-# TU) TAPPINO REMOVIBILE della gola di uscita (31/10/2026): sta nel vano, si toglie sollevandolo (la clip si apre), gola aperta senza
-_T=g["tappo_uscita"]
-_Tb=trimesh.boolean.intersection([_T,trimesh.creation.box(bounds=[[0,64.0,70],[40,80,90]])],engine="manifold")   # senza il dente della clip
+# TU) PIASTRINA GIREVOLE sulla gola d'ingresso (31/10/2026): ruota di 90 gradi sul perno senza toccare nulla; aperta la gola e' libera
+_PL=g["piastrina_ingresso"]; _piv=np.array([13.5,0,80.0])
+_PLs=trimesh.boolean.intersection([_PL,trimesh.creation.box(bounds=[[0,69.95,60],[40,80,90]])],engine="manifold")   # senza il dente di scatto
 _tm=0.0
-for dy in np.arange(0,12.1,0.5):
-    s_=_Tb.copy(); s_.apply_translation([0,dy,0]); _tm=max([_tm,vol(s_,P)]+[vol(s_,g[k]) for k in g if k not in ("tappo_uscita","pezzo_unico","cavo_2mm")])
-_cl=max(vol(_T.copy().apply_translation([0,dy,0]),P) for dy in (1.0,2.0,3.0))
-rep(_tm<=1e-3 and _cl>0.05,"TU tappino gola d'uscita: si sfila verso l'alto senza toccare nulla (max %.3f); la clip deve aprirsi per uscire (dente %.2f mm3 sul fronte del braccio)"%(_tm,_cl))
-_sw=trimesh.creation.box(bounds=[[22.22-1.45,67.6,60.6],[22.22+1.45,85.0,83.4]])     # coda di topo Ø2.9 calata dall'alto lungo tutta la gola
-_ov=vol(_sw,P)
-rep(_ov<=1e-3,"TU senza tappino la gola e' aperta in alto per tutta la lunghezza (Z 60.6-83.4): la coda di topo si cala dall'alto (ostacoli %.3f mm3)"%_ov)
+for a_ in np.arange(0,90.1,5.0):
+    s_=_PLs.copy(); s_.apply_transform(trimesh.transformations.rotation_matrix(np.radians(a_),[0,1,0],point=_piv))
+    _tm=max([_tm,vol(s_,P)]+[vol(s_,g[k]) for k in g if k not in ("piastrina_ingresso","vite_perno_piastrina","pezzo_unico","cavo_2mm")])
+_dt=[vol(_PL.copy().apply_transform(trimesh.transformations.rotation_matrix(np.radians(a_),[0,1,0],point=_piv)),P) for a_ in (0.0,45.0,90.0)]
+rep(_tm<=1e-3 and _dt[0]<0.02 and _dt[2]<0.02 and _dt[1]>0.02,"TU piastrina girevole: ruota 0-90 gradi senza toccare nulla (max %.3f); scatto libero chiusa %.3f / aperta %.3f, in presa a 45 gradi %.3f mm3"%(_tm,_dt[0],_dt[2],_dt[1]))
+_op=_PL.copy(); _op.apply_transform(trimesh.transformations.rotation_matrix(np.radians(90),[0,1,0],point=_piv))
+_sw=trimesh.creation.box(bounds=[[22.22-1.45,67.6,60.6],[22.22+1.45,85.0,83.4]])
+_ov=vol(_sw,P)+vol(_sw,_op)+vol(_sw,g["vite_perno_piastrina"])
+rep(_ov<=1e-3,"TU piastrina aperta: gola libera in alto per tutta la lunghezza (Z 60.6-83.4), la coda di topo si cala dall'alto (ostacoli %.3f mm3)"%_ov)
 # Q2) pezzi stampati piccoli (31/10/2026): spessore minimo del materiale (slitta, sportellino, tappino gola, coperchio, carrello)
-for _k in ("slitta_sensore","sportello_luce","tappo_uscita","coperchio","carrello"):
+for _k in ("slitta_sensore","sportello_luce","piastrina_ingresso","coperchio","carrello"):
     _m=g[_k]; _c2=_m.triangles_center; _n2=_m.face_normals; _ok2=_m.area_faces>1e-4
     _R2=trimesh.ray.ray_pyembree.RayMeshIntersector(_m); _p2=_c2[_ok2]-_n2[_ok2]*0.005
     _l2,_r2,_=_R2.intersects_location(_p2,-_n2[_ok2],multiple_hits=False); _t2=np.full(len(_p2),99.0); _t2[_r2]=np.linalg.norm(_l2-_p2[_r2],axis=1)
@@ -208,14 +221,14 @@ for b in beam:
         if v>1e-3: okb=False; msg.append("%s %.2f"%(k,v))
 rep(okb,"Fascio laser (Ø16 tra chip e L2, cono L2→L1) libero da ostacoli %s"%("" if okb else msg))
 # F) linea Ø0.5 / 2 / 3 mm sul percorso reale (31/10/2026): dritta sul piano rullo inferiore - ruota (fondo Y 66.91) fino alla
-#    cima della ruota (Z 49.55), poi verso l'uscita puo' scendere di qualche grado (la ruota e' sotto, la linea non e' vincolata):
-#    cerco l'angolo minimo che la fa passare libera nel foro di uscita del blocco originale. OK se <= 2 gradi.
-_lk=("pezzo_unico","coperchio","slitta_sensore","scheda_sensore","ruota_encoder_200mm","rullo_inferiore_spostato","sportello_luce","tappo_uscita")
+#    cima della ruota (Z 49.55), poi verso l'ingresso puo' scendere di qualche grado (la ruota e' sotto, la linea non e' vincolata):
+#    cerco l'angolo minimo che la fa passare libera nel foro d'ingresso del blocco originale. OK se <= 2 gradi.
+_lk=("pezzo_unico","coperchio","slitta_sensore","scheda_sensore","ruota_encoder_200mm","rullo_inferiore_spostato","sportello_luce","piastrina_ingresso","vite_perno_piastrina")
 def _seg(a,b,r):
     a=np.array(a,float); b=np.array(b,float); L=np.linalg.norm(b-a); c=trimesh.creation.cylinder(radius=r,height=L,sections=48)
     c.apply_transform(trimesh.geometry.align_vectors([0,0,1],(b-a)/L)); c.apply_translation((a+b)/2); return c
-# dopo la cima della ruota la coda di topo e' un filo teso: appoggia sulla ruota e sul fondo della guida originale di uscita
-# (che scende verso l'uscita) e lascia il pezzo con un angolo che dipende da dove si trova la bobina. Percorso = inviluppo
+# dopo la cima della ruota la coda di topo e' un filo teso: appoggia sulla ruota e sul fondo della guida originale d'ingresso
+# (che scende verso l'ingresso) e lascia il pezzo con un angolo che dipende da dove si trova la bobina. Percorso = inviluppo
 # superiore degli appoggi (ruota, fondo della guida) tra la cima della ruota e un punto a Z 95 piu' o meno in basso.
 _fl=[]
 for z in np.arange(49.6,83.4,0.2):
@@ -244,7 +257,7 @@ for dia in (0.5,2.0,3.0):
         if not hit:
             angs=[np.degrees(np.arctan2(H[i][1]-H[i+1][1],H[i+1][0]-H[i][0])) for i in range(len(H)-1)]
             best=(ye,max(angs)); break
-    rep(not hA and best is not None and best[1]<=5.0,"Linea Ø%.1f: libera tra i rulli %s; dopo la ruota (filo teso su ruota e fondo della guida di uscita) passa libera%s"%(dia,"si" if not hA else hA,(", piega massima %.1f gradi"%best[1]) if best else ": NO"))
+    rep(not hA and best is not None and best[1]<=5.0,"Linea Ø%.1f: libera tra i rulli %s; prima della ruota (filo teso su ruota e fondo della guida d'ingresso) passa libera%s"%(dia,"si" if not hA else hA,(", piega massima %.1f gradi"%best[1]) if best else ": NO"))
 chip_y=64.41; rep(abs(66.91-chip_y-2.5)<1e-6,"Distanza chip ↔ fondo linea 2.50 mm")
 # G) forcelle su tutta la corsa: ripreso da chk_forks2 (gia' eseguito) -> rieseguo in breve
 from forks import place
@@ -278,17 +291,60 @@ for c in (-6.45,49.55):
 rep(wf<=1e-3,"Forcelle + rulli + bulloni: liberi da senza cavo a cavo 3 mm +2 mm (max compenetrazione %.3f)"%wf)
 # H) fori M2 della scheda v2: materiale della slitta attorno (anello r 1.3-2.0) e foro libero al centro
 R=trimesh.load("tray.stl"); okh=True
-for (tx,ty) in ((-10.5,-2),(-10.5,6),(10.5,-2.5)):
+for (tx,ty) in ((-10.0,-2),(-10.0,6),(10.0,-2.5)):
     ring=[[tx+r*np.cos(a_),ty+r*np.sin(a_),-4.5] for r in (1.3,2.0) for a_ in np.linspace(0,2*np.pi,12,endpoint=False)]
     if not R.contains(ring).all() or R.contains([[tx,ty,-4.5]]).any(): okh=False
 rep(okh,"Fori M2 della scheda v2 sopra la slitta (foro Ø1.7 autofilettante, parete >= 2 mm)")
 # I) viti M3 della slitta raggiungibili dall'alto (cacciavite Ø3.2)
 oks=True
 inter=trimesh.ray.ray_triangle.RayMeshIntersector(trimesh.util.concatenate([P,g["coperchio"]]))
-for (sx,sy) in ((15.9,9.0),(16.0,14.3)):
+for (sx,sy) in ((15.9,12.55),):
     X=22.22+sx; Z=21.55-sy
     for dx in (-1.6,0,1.6):
         for dz in (-1.6,0,1.6):
             if len(inter.intersects_location(np.array([[X+dx,61.7,Z+dz]]),np.array([[0,1,0]]))[0]): oks=False
-rep(oks,"Viti M3 della slitta raggiungibili dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)")
+rep(oks,"Vite M3 della slitta raggiungibile dall'alto (nessun ostacolo sopra, cacciavite Ø3.2)")
+# J) chiavetta di centraggio (31/10/2026): costola sotto la slitta nella cava della mensola, aperta sul fronte
+_key=trimesh.boolean.intersection([R,trimesh.creation.box(bounds=[[-30,-30,-8.2],[30,30,-6.31]])])          # parte della slitta sotto il piano (torre)
+_key.apply_transform(np.array([[1,0,0,22.22],[0,0,1,64.41],[0,-1,0,21.55],[0,0,0,1]],float))               # torre -> piastra
+_kv=vol(_key,P); _kb=_key.bounds
+# gioco laterale: distanza minima costola -> mensola lungo Z
+_S=_key.sample(4000); _q,_d,_=trimesh.proximity.closest_point(Pz if False else P,_S)
+_side=min(_d)
+# percorso di inserimento: costola traslata verso il fronte fino a 45 mm, mai dentro la mensola
+_kmax=max(vol(_key.copy().apply_translation([dx,0,0]),P) for dx in np.arange(0,45.1,1.5))
+# parete della mensola sopra la ruota oltre la cava (lato ruota) nella zona della costola
+_wall=[]
+for xx in np.arange(_kb[0][0],40.45,0.5):                  # fino all'invito (X 40.5)
+    for yy in (56.3,57.2,58.0):
+        z=_kb[1][2]+0.25                                    # bordo della cava = costola + 0.1
+        while P.contains([[xx,yy,z]])[0] and z<40: z+=0.05
+        _wall.append(z-(_kb[1][2]+0.1))
+rep(_kv<1e-3 and _kmax<1e-3 and min(_wall)>=0.8,"Chiavetta di centraggio: costola X %.1f-%.1f Z %.1f-%.1f alta %.1f nella cava (compenetrazione %.3f), gioco minimo %.2f mm, inserimento/estrazione 45 mm libero (%.3f), parete della cava lato ruota >= %.2f mm"%(_kb[0][0],_kb[1][0],_kb[0][2],_kb[1][2],_kb[1][1]-_kb[0][1],_kv,_side,_kmax,min(_wall)))
+# K) inserti a caldo M3 (31/10/2026): parete attorno al foro Ø4 >= 2.0 mm e punta del saldatore che arriva in asse dall'alto
+#    (montaggio: inserti PRIMA di coperchio, slitta e piastrina). Punta + inserto: cilindro r 3.5 libero per 40 mm sopra il foro.
+_intP=trimesh.ray.ray_triangle.RayMeshIntersector(P)
+for nome,(X,Z,ytop) in (("mensola (vite slitta)",(38.12,9.0,58.11)),):
+    w=[]
+    for yy in (ytop-0.4,ytop-3.0,ytop-5.5):
+        for a_ in np.linspace(0,2*np.pi,36,endpoint=False):
+            d_=np.array([np.cos(a_),0,np.sin(a_)]); p_=np.array([X,yy,Z])+d_*2.05; t_=0
+            while P.contains([p_+d_*t_])[0] and t_<20: t_+=0.05
+            w.append(t_)
+    acc=True
+    for r_ in (0,1.5,2.5,3.5):
+        for a_ in (np.linspace(0,2*np.pi,16,endpoint=False) if r_ else [0]):
+            loc,_,_=_intP.intersects_location(np.array([[X+r_*np.cos(a_),ytop+0.1,Z+r_*np.sin(a_)]]),np.array([[0,1,0]]))
+            if len(loc) and loc[:,1].min()-ytop<40: acc=False
+    rep(min(w)>=2.0 and acc,"Inserto M3 nel %s: parete minima %.2f mm attorno al foro Ø4, punta del saldatore in asse dall'alto %s (prima di coperchio/slitta/piastrina)"%(nome,min(w),"libera (r 3.5 per 40 mm)" if acc else "OSTACOLATA"))
+# K2) perno stampato della piastrina (05/11/2026): Ø4.0 alto 2.0 sopra il braccio, foro Ø1.7 per la vite M2, parete >= 1.0;
+#     gioco della piastrina (foro Ø4.3) e rondella Ø6 che la trattiene
+_w=[]
+for yy in (70.5,71.3,69.0,67.0):
+    for a_ in np.linspace(0,2*np.pi,36,endpoint=False):
+        d_=np.array([np.cos(a_),0,np.sin(a_)]); p_=np.array([13.5,yy,80.0])+d_*0.9; t_=0
+        while P.contains([p_+d_*t_])[0] and t_<10: t_+=0.02
+        _w.append(t_)
+_pv=vol(g["piastrina_ingresso"],P)
+rep(min(_w)>=1.0 and _pv<0.02,"Perno stampato della piastrina: parete minima %.2f mm attorno al foro Ø1.7 della vite M2, piastrina sul perno senza contatti (%.3f mm3), rondella Ø6 su foro Ø4.3 (appoggio 0.85 mm)"%(min(_w),_pv))
 print("\n".join(res))

@@ -1,0 +1,34 @@
+RazorGauge su FlylineProfiler V3 - VERIFICA SEDE ENCODER E RUOTE (03/11/2026, pezzo unico con raccordi R0.5)
+Asse encoder: Y 35.0, Z 49.55 (coordinate piastra). Encoder LPD3806: corpo Ø38.2 (X -34.3..0), codolo Ø20 (X 0..5.22), albero Ø6 (X 5.22..18.22).
+
+SEDE NEL PEZZO UNICO
+OK Fondo X 0-3 (spessore 3 come la piastra originale): foro centrale Ø22.0 per il codolo Ø20 -> gioco 1.0 per lato
+OK Faccia dell'encoder (corona r 10-19.1) in appoggio sul retro piano del pezzo: 715 di 832 mm2 (86%; il resto sono fori viti e finestre)
+OK Retro del pezzo nella zona encoder: spigoli vivi, nessun raccordo (appoggio sulla piastra in alluminio)
+OK 6 fori Ø3.3 per le viti M3x6 dell'encoder: 3 su Ø28 e 3 su Ø30 (vanno bene entrambe le serie di fori dell'encoder), testa in appoggio a X 3.0
+OK 4 finestre ad arco r 20-26 passanti (come l'originale)
+OK Tasca anteriore Ø37.6 (X 3.0-7.22) per teste viti e mozzo, invito 0.5 sul bordo; anello verso le finestre 1.2 mm
+OK Pareti del fondo: foro centrale -> fori viti 1.35 mm, fori viti -> finestre >= 3.35 mm
+OK Encoder dentro il pezzo: nessuna compenetrazione (0.000 mm3)
+OK Corpo encoder nel foro Ø42 della piastra in alluminio: gioco radiale 1.90 mm
+
+RUOTA CNC (RG_ruota_encoder.step) - giochi calcolati sull'inviluppo di rotazione (validi a qualunque angolo)
+   X 10.44-27.22, mozzo Ø18 (X 10.44-17.22), battistrada Ø63.66 X 17.22-27.22 centrato su X 22.22 = asse della coda di topo
+OK Albero nel mozzo per 7.8 mm, grani M3 a X 13.83 raggiungibili radialmente (16 direzioni su 24)
+OK Mozzo a 5.22 mm dal codolo dell'encoder
+OK Giochi minimi: pezzo unico 0.78 (guida a J, radiale), slitta 1.63, scheda 2.70, sportellino 3.26, cavo sensore 3.76, forcella 4.34
+OK Montaggio in asse dal davanti libero
+   Cima della ruota a Y 66.83: 0.08 sotto la linea nominale (Y 66.91), 0.22 sopra il fondo delle guide a J -> la coda di topo appoggia sulla ruota
+
+RUOTA ORIGINALE (Decoder+Ruota.stl)
+   X 6.85-29.84, mozzo Ø29 (X 6.85-16.84), battistrada Ø63.82 X 17.84-27.84 (centro X 22.84: 0.62 verso il fronte rispetto alla linea,
+   la coda di topo Ø2 resta tutta sul battistrada), flangia anteriore Ø44.5 fino a X 29.84
+OK Albero nel mozzo per 11.4 mm; mozzo a 1.63 mm dal codolo (come nel FlylineProfiler originale)
+OK Mozzo Ø29 nella tasca Ø37.6: gioco radiale 4.3 mm
+OK Giochi minimi: pezzo unico 0.70 (guida a J, radiale), slitta 1.55, scheda 2.61, sportellino 2.65, cavo sensore 3.68, forcella 4.02
+OK Montaggio in asse dal davanti libero
+   Cima della ruota a Y 66.91 = linea nominale
+
+RULLO SUPERIORE (premilinea sulla ruota): X 17.22-27.22, copre la coda di topo su entrambe le ruote.
+
+RISULTATO: la sede encoder e' corretta e ENTRAMBE le ruote montano e girano libere (gioco minimo 0.70 mm, ruota originale sulla guida a J).

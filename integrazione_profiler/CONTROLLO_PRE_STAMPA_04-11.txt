@@ -1,0 +1,73 @@
+RazorGauge su FlylineProfiler V3 - CONTROLLO APPROFONDITO PRIMA DELLA STAMPA MJF (PolyD, HP MJF PA12 nero) - 04/11/2026
+
+1) FILE DA CARICARE: integrazione_profiler/kit_stampa_stl/ (8 file) oppure FlylineProfiler_RazorGauge_kit_stampa.3mf (8 oggetti)
+   File                                           Vol. cm3   Ingombro mm
+   FlylineProfiler_RazorGauge_pezzo_unico.stl     121.84     42.5 x 202.6 x 101.4   (aggiornato oggi, vedi punto 5)
+   FlylineProfiler_RazorGauge_coperchio.stl         8.20     126.2 x 35.0 x 7.6
+   FlylineProfiler_RazorGauge_sportello_luce.stl    6.87     80.1 x 37.5 x 17.7
+   FlylineProfiler_RazorGauge_carrello.stl          3.25     23.6 x 23.6 x 12.0
+   FlylineProfiler_RazorGauge_slitta_sensore.stl    2.72     37.7 x 23.5 x 4.9
+   FlylineProfiler_RazorGauge_piastrina_ingresso.stl 0.16    17.6 x 3.1 x 7.0
+   FlylineProfiler_RazorGauge_tappo_guida_1/_2.stl  2.83 x2  28.8 x 7.5 x 16.3   (facoltativi: li hai gia' stampati in grigio)
+   Totale 143.0 cm3 senza tappi, 148.7 con i tappi. Tutti dentro il volume di stampa PolyD (380 x 284 x 380).
+OK Ogni file del kit e' identico a quello rigenerato oggi dai sorgenti (scostamento max 0.0005 mm)
+OK Kit .stl e .3mf sul PC identici a quelli generati; il .3mf contiene gli 8 oggetti separati, tutti chiusi
+
+2) QUALITA' DEGLI STL (stesso controllo dei software dei service)
+OK Tutti e 8: chiusi, normali coerenti, 0 autointersezioni, 0 spigoli/vertici non-manifold, 0 buchi, 1 solo corpo,
+   0 spigoli < 0.001 mm, 0 triangoli di area nulla, nessuna cavita' chiusa all'interno (polvere intrappolata)
+
+3) LINEE GUIDA PolyD
+OK Pareti >= 1 mm: pezzo unico (0.01 mm2 sotto 0.98 mm, solo puntini), slitta, piastrina, tappi: 0
+   Note: coperchio 9-30 mm2 e sportellino 57 mm2 di creste sottili TRA LE LETTERE INCISE (solo grafica, gia' viste);
+         carrello 0.95 mm su 2 mm2 accanto al foro M3 frontale (pezzo interno, accettato)
+OK Pareti <= 10 mm: massimo 10.5 mm in un solo punto del pezzo unico (4 mm3 in tutto)
+OK Scritte incise 1.0 mm (coperchio, sportellino)
+OK Nessuna fessura d'aria < 0.5 mm in nessun pezzo (dopo le correzioni del punto 5)
+OK Giochi tra pezzi stampati >= 0.2 per lato: linguetta slitta 0.2 lat. / 0.25-0.3 vert., chiavetta 0.20, sportellino 0.25,
+   carrello nel canale 0.2, dente dei tappi 0.2, forcelle originali 0.3 + linguette anti-gioco (fessure 0.6)
+
+4) MONTAGGIO E LASTRE CNC (sul pezzo unico finale)
+OK Verifica montaggio: 44 OK (slitta, chiavetta, inserti, sportellino, piastrina, ruote, encoder, linee Ø0.5/2/3, fascio laser...)
+OK Lastre CNC: TUTTO OK (8 viti, foro Ø42 encoder coperto, nessuna compenetrazione)
+OK Sede encoder ed entrambe le ruote: vedi verifica_sede_encoder_03-11.txt (gioco minimo 0.71 mm)
+
+5) CORREZIONI FATTE OGGI NEL PEZZO UNICO
+ - Spigoli verticali anteriori dei due blocchi guida, lato guida dello sportellino: lo smusso a 45 gradi tagliava la radice
+   della guida e lasciava una tacca di 0.35 mm sotto la guida (tratto basso e tratto alto). Ora smusso 0.65 che finisce a filo.
+ - Sede della linguetta della slitta: il vecchio foro di fissaggio spostato (Y 57.97, Z 18.67) lasciava una tasca cieca di 1.5 mm
+   dietro la sede e un rialzo di 0.19 sul fondo (non toccava la linguetta). Foro richiuso tutto e sede ritagliata.
+
+6) ATTENZIONE AL MONTAGGIO (tolleranza MJF +/-0.3 mm)
+ - Sede laser Ø9.03 per laser Ø8.97 (0.03 per lato): se esce stretta ripassare con alesatore/punta Ø9.0 a mano; il laser
+   si blocca comunque con l'epossidica dopo l'allineamento.
+ - Sedi lenti L1 e L2: 0.15 per lato; se stretta, carta abrasiva fine sul bordo della sede.
+ - Pulire bene dalla polvere: fessure 0.6 delle linguette anti-gioco, fori Ø1.7 per le viti M2 della scheda, fori Ø2.5.
+ - Inserti a caldo PRIMA di montare coperchio, slitta e piastrina.
+ - Faccia posteriore del pezzo unico in appoggio sulla piastra in alluminio: utile chiedere a PolyD di orientarlo per la
+   massima planarita' di quella faccia.
+
+7) PRIMA DI ORDINARE
+ - Vite del perno della piastrina: la piastrina (1.8 mm) e' fatta per una vite a spalla M3 con spalla Ø4 x 2 mm, oppure
+   vite M3 x 6 + boccola Ø4/Ø3.2 lunga 2. Se hai una vite a spalla diversa, dammi le misure prima di caricare la piastrina.
+ - Sul PC ci sono ancora file vecchi da NON caricare: FlylineProfiler_RazorGauge_piastrina_uscita.stl/.3mf (anche dentro
+   kit_stampa_stl!), FlylineProfiler_RazorGauge_tappo_laser.stl/.3mf, FlylineProfiler_RazorGauge_tappo_uscita.stl/.3mf,
+   strumenti/build_piastrina_uscita.py.
+
+8) AGGIORNAMENTO 05/11/2026 (stampa anche presso JLC3DP: tolleranza +/-0.3 fino a 100 mm, +/-0.4% oltre)
+ - Gli 8 fori delle viti M3 x 12 pezzo unico -> piastra in alluminio portati a Ø3.6 (prima 3.3-3.4): recuperano lo scostamento
+   sull'interasse (fino a 166 mm tra i fori estremi). Pareti >= 1.19 mm, teste M3 ancora ben appoggiate (sede Ø5.8, niente rondelle).
+ - Pezzo unico 121.76 cm3. STL pulito, 44 OK, piastre CNC TUTTO OK, pareti sotto 0.98 mm 0.01 mm2.
+ - JLC3DP: MJF PA12 solo grigio naturale; inserti a caldo da mettere a mano (le loro regole per l'inserimento non si applicano a questi pezzi).
+
+9) AGGIORNAMENTO 05/11/2026 - perno della piastrina d'ingresso
+ - Niente vite a spalla (non disponibile) e niente inserto nel braccio: perno STAMPATO Ø4.0 alto 2.0 tutt'uno con la borchia,
+   foro Ø1.7 per una vite M2 x 5 autofilettante + rondella M2 larga Ø6, stretta a fondo sulla testa del perno.
+   Piastrina: foro Ø4.3 (gioco 0.15 per lato), smusso 0.4 sotto; gioco 0.2 sotto la rondella.
+ - Verifiche: 44 OK (rotazione 0-90 gradi libera, scatti, gola libera, perno con parete 1.10 attorno al foro della vite),
+   piastre CNC TUTTO OK, pareti sotto 0.98 mm 0.01 mm2. Pezzo unico 121.85 cm3, piastrina 0.16 cm3.
+ - Valutato e scartato: rivetto filettato M4 sotto la slitta (lo sportellino passa subito sopra la vite: serve una testa svasata,
+   e una svasata M4 non entra nella slitta, a 4.4 mm dal bordo; dal basso la vite sarebbe da svitare sotto la mensola a ogni
+   estrazione della slitta). Resta l'inserto M3 + vite svasata M3 x 8.
+
+RISULTATO: il kit e' pronto per la stampa (PolyD o JLC3DP).

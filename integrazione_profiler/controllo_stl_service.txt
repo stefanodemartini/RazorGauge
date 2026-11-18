@@ -1,0 +1,18 @@
+CONTROLLO STL PER IL SERVICE DI STAMPA (02/11/2026)
+Problema: i booleani lasciavano nel pezzo unico 581 spigoli lunghi meno di 1 micron e 519 triangoli di area quasi nulla
+(anche coperchio: 24 spigoli < 1 micron). Il file era chiuso, ma i software dei service (che fondono i vertici a ~0.001 mm)
+li vedono come triangoli degeneri / bordi aperti da riparare.
+Riparazione (strumenti/ripara_stl.py): fusione dei triangoli complanari (manifold3d, tolleranza 0.001 mm), fusione dei vertici
+a 0.0012 mm, rimozione facce nulle. Scostamento massimo dalla geometria: 0.001 mm. Ricontrollati anche con admesh: 0 correzioni.
+Dopo la riparazione: verifica montaggio 44 OK, lastre CNC TUTTO OK.
+
+FlylineProfiler_RazorGauge_carrello.stl: chiuso=True, normali=True, vol_cm3=3.251, facce=1458, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_coperchio.stl: chiuso=True, normali=True, vol_cm3=8.205, facce=16466, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_pezzo_unico.stl: chiuso=True, normali=True, vol_cm3=122.121, facce=56192, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_slitta_sensore.stl: chiuso=True, normali=True, vol_cm3=2.723, facce=1736, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_tappo_guida_1.stl: chiuso=True, normali=True, vol_cm3=2.834, facce=644, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_tappo_guida_2.stl: chiuso=True, normali=True, vol_cm3=2.834, facce=644, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_sportello_luce.stl: chiuso=True, normali=True, vol_cm3=6.93, facce=2118, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+FlylineProfiler_RazorGauge_piastrina_uscita.stl: chiuso=True, normali=True, vol_cm3=0.159, facce=2326, autointersezioni=0, nonmanif_spigoli=0, nonmanif_vertici=0, buchi=0, corpi=1, spigoli_sotto_1um=0, facce_area_nulla=0
+
+Kit: 149.06 cm3

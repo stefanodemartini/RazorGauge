@@ -27,7 +27,7 @@ def edge(pts):
 edge([(0, 0), (W, 0), (W, H), (0, H)])
 P = {
     "U1": (12.0, 12.0, 180),            # pin 1-4 verso il lato rullo, pin 1 verso il fronte (pixel 1 verso il fronte)
-    "J1": (20.95, 6.1, 90),             # ingresso cavo sul bordo anteriore: fronte del connettore a X 23.4, piazzole MP entro 23.65; pin 1 = 3V3 (Y 9.2)
+    "J1": (22.6, 9.6, 180),             # 31/10/2026: 5 piazzole passanti per saldare il cavo (pin 1 = 3V3 a Y 9.6 ... pin 5 = AO a Y 1.6), 0.75 dal bordo
     # tutto sul lato rullo: lato ruota libero per i fori di fissaggio (da definire)
     # sotto la guida J lato rullo (X <= 15.5, Y <= 3.5) solo 0603 (0.5 mm); U2 (1.45 mm) ruotato: corpo a Y 4.05-5.65, 0.55 fuori dalla zona J
     "C2": (5.9, 8.2, 90), "C1": (8.1, 8.2, 90), "R3": (9.7, 8.2, 90), "R2": (13.0, 8.2, 90), "R1": (15.8, 8.2, 90),
@@ -47,8 +47,8 @@ for c in BD.C:
         if n: pad.SetNet(nets[n])
     t = fp.Reference(); t.SetTextSize(pcbnew.VECTOR2I(MM(0.6), MM(0.6))); t.SetTextThickness(MM(0.1)); t.SetVisible(False)
     fps[c["ref"]] = fp
-# --- aree vietate (rame e via) dove andranno i fori di fissaggio: POSIZIONI PROVVISORIE, DA CONFERMARE
-HOLES_TBD = [(1.5, 14.0), (1.5, 6.0), (22.5, 14.5)]     # = S_HOLES dello SCAD (x torre -10.5/-10.5/+10.5, y -2/+6/-2.5)
+# --- aree vietate (rame e via) attorno ai fori di fissaggio M2 (posizioni definitive 31/10/2026)
+HOLES_TBD = [(2.0, 14.0), (2.0, 6.0), (22.0, 14.5)]     # fori M2 definitivi (31/10/2026) = S_HOLES dello SCAD (x torre -10/-10/+10, y -2/+6/-2.5); i fori li aggiunge add_holes_s.py
 def rule_circle(x, y, r, name):
     z = pcbnew.ZONE(board); z.SetIsRuleArea(True); z.SetDoNotAllowCopperPour(True); z.SetDoNotAllowTracks(True)
     z.SetDoNotAllowVias(True); z.SetDoNotAllowPads(True); z.SetDoNotAllowFootprints(True)
@@ -81,12 +81,13 @@ def silk(txt, x, y, size=0.8, rot=0, layer=pcbnew.F_SilkS, mirror=False):
     t.SetPosition(pcbnew.VECTOR2I(MM(x), MM(y))); t.SetTextSize(pcbnew.VECTOR2I(MM(size), MM(size)))
     t.SetTextThickness(MM(size * 0.15)); t.SetTextAngleDegrees(rot); board.Add(t)
 for pad in fps["J1"].Pads():
-    if pad.GetNumber() in "123456" and len(pad.GetNumber()) == 1:
-        p = pad.GetPosition(); silk(["3V3", "GND", "SI", "CLK", "AO", "SH"][int(pad.GetNumber()) - 1], ToMM(p.x) + 1.6, ToMM(p.y), 0.8, 0, pcbnew.B_SilkS, True)
+    if pad.GetNumber() in "12345" and len(pad.GetNumber()) == 1:
+        p = pad.GetPosition(); silk(["3V3", "GND", "SI", "CLK", "AO"][int(pad.GetNumber()) - 1], ToMM(p.x) - 2.3, ToMM(p.y), 0.8, 0, pcbnew.F_SilkS, False)   # sopra: si salda dall alto
 silk("RazorGauge TSL1401CL v1", 10.5, 17.1, 0.8, 0, pcbnew.B_SilkS, True)
 silk("RazorBlade 2026", 10.5, 15.9, 0.8, 0, pcbnew.B_SilkS, True)
-silk("LATO RULLO", 9.0, 1.1, 0.8, 0, pcbnew.B_SilkS, True)
-silk("FRONTE ->", 13.0, 13.8, 0.8, 0, pcbnew.B_SilkS, True)
+silk("ROLLER SIDE", 9.0, 1.1, 0.8, 0, pcbnew.B_SilkS, True)
+silk("<- FRONT", 13.0, 13.8, 0.8, 0, pcbnew.B_SilkS, True)
+silk("JLCJLCJLCJLC", 12.0, 10.0, 0.8, 0, pcbnew.B_SilkS, True)   # posizione del numero d ordine JLCPCB ("Specify a location")
 board.Save(OUT)
 pcbnew.ExportSpecctraDSN(board, OUT.replace(".kicad_pcb", ".dsn"))
 print("DSN esportato")

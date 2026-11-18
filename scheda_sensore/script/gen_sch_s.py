@@ -94,7 +94,7 @@ byref = {c["ref"]: c for c in BD.C}
 text("Sensore TSL1401CL", 20.32, 25.4)
 place(byref["U1"], 1, 50.8, 50.8, 0)
 place(byref["J1"], 1, 50.8, 101.6, 0)
-text("Connettore verso RazorBoard J5 (cavo schermato, calza su pin 6)", 20.32, 83.82, 1.8)
+text("Cavo saldato verso RazorBoard J5 (calza SOLO su J5-8, isolata lato sensore)", 20.32, 83.82, 1.8)
 text("Buffer AO con offset: Vout = 0.958*AO + 0.154 V", 139.7, 25.4)
 place(byref["U2"], 1, 165.1, 50.8, 0)
 grid = ["C1", "C2", "R1", "R2", "R3", "C4", "R4", "R5", "R6", "C3", "R7", "R8", "R9", "R10"]
@@ -106,13 +106,13 @@ notes = ["NOTE:",
  "- U2 sposta lo zero di +0.15 V: l ADC dell ESP32 non vede sotto ~70 mV; l offset lo toglie il frame di buio.",
  "- Origine del footprint U1 = centro della linea di pixel (0.305 mm dal centro del package). Pixel 1 = lato pin 1 = verso il fronte.",
  "- TSL1401CL: MSL 5a (datasheet) -> cottura prima del reflow, niente solventi aggressivi sulla finestra.",
- "- Fori di fissaggio della scheda: DA DEFINIRE (verifiche in corso)."]
+ "- Fori di fissaggio: 3 x NPTH 2.2 per viti M2 x 5 (H1-H3). J1 = piazzole per il cavo, NON montato."]
 for i, s in enumerate(notes): text(s, 20.32, 140 + i * 5.08, size=1.6, bold=(i == 0))
 lib_syms = "\n".join(raw_symbol(l, n) for (l, n) in libs_used.values())
 sch = f"""(kicad_sch (version 20230121) (generator eeschema)
   (uuid {SHEET})
   (paper "A4")
-  (title_block (title "RazorGauge - scheda sensore TSL1401CL") (date "2026-10-29") (rev "1.0 bozza") (company "RazorBlade")
+  (title_block (title "RazorGauge - scheda sensore TSL1401CL") (date "2026-10-29") (rev "1.1") (company "RazorBlade")
     (comment 1 "24 x 18 mm, 2 strati, SMD lato TOP, montaggio JLCPCB"))
   (lib_symbols
 {lib_syms}

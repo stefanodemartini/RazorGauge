@@ -36,19 +36,27 @@ function lid_windows() = [[18, 34], [46, 69], [81, Z_TOP - 11]];   // alleggerim
 // ---- SCHEDA SENSORE v2 (TSL1401CL SMD, scheda propria) + SLITTA RIGIDA SU MENSOLA PIENA (28/10/2026)
 // Prima: slitta da 2 mm su una colonnina retta da una trave 2.5 x 5 mm lunga ~28 mm (cedeva ~1 mm con 6 N: segnalato
 // dall'utente). Ora: MENSOLA PIENA fusa con la piastra sotto tutta la scheda; la slitta (3.5 mm) appoggia a piano sulla
-// mensola (riferimento di quota del chip), linguetta posteriore nella piastra, 2 viti M3 verticali davanti.
+// mensola (riferimento di quota del chip), linguetta posteriore nella piastra, chiavetta + 1 vite M3 verticale davanti (31/10/2026).
 S_CHIP_H = 1.2;                // TSL1401CL (datasheet fig. 10): package 9.4 x 3.0 x 1.2 ±0.2; pixel 0.22 sotto la faccia superiore (resina n 1.56)
 S_PCB_T  = 1.6;
 S_PCB_TOP = Z_CHIP - S_CHIP_H; // faccia superiore della scheda (chip a Z_CHIP = 0)
 S_PCB = [[-12, 12], [-6, 12]]; // sagoma scheda (coordinate torre): x attraverso il cavo, y lungo il cavo (lato ruota = y negativo)
-S_HOLES = [[-10.5, -2], [-10.5, 6], [10.5, -2.5]];     // M2 autofilettanti nella slitta (teste fuori dal fascio e dalle guide J)
-S_CONN = [[7.75, 12], [1.5, 11.5], 4.3];             // connettore 6 poli a ingresso laterale sul bordo anteriore (x, y, altezza)
+S_HOLES = [[-10.0, -2], [-10.0, 6], [10.0, -2.5]];     // M2 autofilettanti nella slitta (teste fuori dal fascio e dalle guide J). 31/10/2026: x ±10 (era ±10.5): foro della scheda a 0.9 mm dal bordo (era 0.4)
+S_CONN = [[7.75, 12], [1.5, 11.5], 4.3];             // (superato 31/10/2026: connettore tolto, cavo saldato su S_PADS)
+S_PADS = [[9.6, 11.6], [1.4, 11.4]];                 // 5 piazzole passanti del cavo (x, y torre): sotto, nella slitta, scarico per le saldature
 TR_T  = 3.5;                   // spessore slitta
 TR_Z0 = S_PCB_TOP - S_PCB_T - TR_T;   // -6.3: faccia inferiore slitta = faccia superiore mensola (Y piastra 58.11)
 TR_X  = [-14.8, 20.3];         // slitta: 0.2 dalla faccia della piastra (tx -15.0) fino a 1 mm oltre il fronte della mensola (31/10/2026: bordo attorno alla svasatura 1.36)
 TR_Y  = [-3.8, 17.5];          // lungo il cavo (sotto); lato ruota smussato fino a y -6 in alto
 TR_TONGUE = [[-17.4, -14.8], [-2, 10], 2.0];         // linguetta posteriore nella piastra (x, y, spessore)
-TR_SCREWS = [[15.9, 9.0, 1], [16.0, 14.3, 0]];       // viti M3 verticali [x, y, svasata] nella mensola.
+TR_SCREWS = [[15.9, 12.55, 1]];                      // 31/10/2026 (Stefano): UNA sola vite M3 x 8 svasata (Z 9.0) + chiavetta di centraggio TR_KEY.
+                                                     // Prima 2 viti a 5.3 mm (y 9.0 svasata e y 14.3 cilindrica: teste quasi a contatto).
+// Chiavetta di centraggio (31/10/2026): costola 6 x 3 x 1.8 sotto la slitta, lato ruota (Z 21.0, X 34-40), in una cava 3.2 x 2.0
+// aperta verso il fronte nella mensola: la slitta si infila in orizzontale (linguetta nella piastra) e la costola entra nella cava.
+// Vincoli: linguetta (dietro) + chiavetta (davanti, lato ruota) = posizione lungo la coda di topo e rotazione; vite = serraggio e X.
+TR_KEY = [[11.78, 17.78], [-0.95, 2.05], 1.4];        // 02/11: alta 1.4 (era 1.8)       // costola [x, y, altezza] (coordinate torre); y 0.55 = Z piastra 21.0
+TR_KEY_SLOT = [[11.38, 20.31], [-1.15, 2.25], 1.6];  // 02/11: profonda 1.6 (era 2.0): sotto la cava, verso lo scarico ruota, restavano 0.86 mm ->  // cava nella mensola (gioco 0.2 per lato, 0.2 sotto; 02/11/2026 era 0.1: linee guida PolyD +/-0.2 per pezzo), aperta sul fronte (X 41.5)
+// (prima: viti M3 verticali [x, y, svasata] nella mensola.)
                                                      // 30/10/2026: quella a y -2.5 era sul percorso di montaggio della ruota encoder -> y 9 (Z 12.55, fuori
                                                      // dalla ruota e dal canale Ø6.5 del cacciavite), M3x12 a testa SVASATA a filo della slitta: sopra passa la
                                                      // spina del connettore (staccarla per svitare). x 15.9: cacciavite Ø3.2 fuori dal coperchio (X 36.2) di 0.3.
@@ -99,13 +107,25 @@ module column_v3() {
             translate([-CI, -CI, Z_TOP - 2]) cube([2*CI, 2*CI, 2]);
             // --- mensola piena sotto la slitta del sensore (sostituisce sede + trave 2.5 x 5 + colonnina, 28/10/2026)
             pedestal();
+            // 31/10/2026: borchia attorno all'inserto della vite della slitta: verso il fronte restavano 1.35 mm di parete
+            // (poco per un inserto a caldo, il godronato spinge il materiale). Cilindro r 4.4 -> parete >= 2.4 mm, a filo
+            // del fronte della slitta (X 42.52), sotto il piano della mensola.
+            for (s = TR_SCREWS) translate([s[0], s[1], TR_Z0 - INS_L - 2.5]) cylinder(r = 4.4, h = INS_L + 2.5, $fn = 64);
         }
         lens_seat(Z_L1, L1_T, 9, L1_D, clear_h = 8.2);
         front_groove(Z_L1 - 4.1, Z_L1 + 4.1);
         laser_cuts();
         for (p = lid_screws()) translate([CI - 10, p[0], p[1]]) rotate([0,90,0]) cylinder(d = M3_TAP, h = 10.01);
-        // fori M3 autofilettanti per le 2 viti della slitta (10 mm in presa nella mensola)
-        for (s = TR_SCREWS) translate([s[0], s[1], TR_Z0 - 10]) cylinder(d = M3_TAP, h = 10.01);
+        // 31/10/2026: INSERTI A CALDO M3 in ottone per le 2 viti della slitta (foro Ø4 x 6 + 2 mm Ø2.6 sotto): il filetto non si
+        // consuma togliendo e rimettendo la slitta (prima: viti autofilettanti nel PA12). Viti M3 x 8 (slitta 3.5 + 4.5 nell'inserto)
+        for (s = TR_SCREWS) translate([s[0], s[1], TR_Z0 - INS_L]) cylinder(d = INS_D, h = INS_L + 0.01);
+        for (s = TR_SCREWS) translate([s[0], s[1], TR_Z0 - INS_L - 2]) cylinder(d = 2.6, h = 2.01);
+        // cava della chiavetta di centraggio, aperta verso il fronte con invito 45° all'imbocco
+        translate([TR_KEY_SLOT[0][0], TR_KEY_SLOT[1][0], TR_Z0 - TR_KEY_SLOT[2]]) cube([TR_KEY_SLOT[0][1] - TR_KEY_SLOT[0][0], TR_KEY_SLOT[1][1] - TR_KEY_SLOT[1][0], TR_KEY_SLOT[2] + 0.01]);
+        hull() {
+            translate([PED_X[1] - 1.0, TR_KEY_SLOT[1][0], TR_Z0 - TR_KEY_SLOT[2]]) cube([0.01, TR_KEY_SLOT[1][1] - TR_KEY_SLOT[1][0], TR_KEY_SLOT[2] + 0.01]);
+            translate([PED_X[1] + 0.5, TR_KEY_SLOT[1][0] - 0.8, TR_Z0 - TR_KEY_SLOT[2]]) cube([0.01, TR_KEY_SLOT[1][1] - TR_KEY_SLOT[1][0] + 1.6, TR_KEY_SLOT[2] + 0.01]);
+        }
     }
 }
 
@@ -115,7 +135,7 @@ module pedestal() {              // coordinate torre
         // gioco con la ruota encoder (1.5 mm radiali) nel tratto X 12 ... 34
         translate([WHEEL_CUT_X[0], WHEEL_AX[0], WHEEL_AX[1]]) rotate([0, 90, 0]) cylinder(r = WHEEL_CLR_R, h = WHEEL_CUT_X[1] - WHEEL_CUT_X[0], $fn = 180);
         // 30/10/2026: dove lo scarico della ruota esce dal piano della mensola restava un filo di 0.4 mm: gradino a 1.0 mm
-        translate([WHEEL_CUT_X[0], PED_Y[0] - 1, TR_Z0 - 1.01]) cube([WHEEL_CUT_X[1] - WHEEL_CUT_X[0], (21.55 - 24.6) - (PED_Y[0] - 1), 1.2]);
+        translate([WHEEL_CUT_X[0], PED_Y[0] - 1, TR_Z0 - 1.01]) cube([WHEEL_CUT_X[1] - WHEEL_CUT_X[0], (21.55 - 24.7) - (PED_Y[0] - 1), 1.2]);   // 02/11: 24.7 (era 24.6: faccia a spessore zero)
         // spigoli verticali anteriori smussati 1 mm
         for (yy = PED_Y) translate([PED_X[1], yy, (PED_Z[0] + PED_Z[1])/2]) rotate([0, 0, 45]) cube([1.42, 1.42, PED_Z[1] - PED_Z[0] + 2], center = true);
     }
@@ -129,19 +149,25 @@ module sensor_tray() {          // coordinate torre; si stampa a parte
                 translate([TR_X[0], S_PCB[1][0], TR_Z0 + TR_T - 0.01]) cube([TR_X[1] - TR_X[0], TR_Y[1] - S_PCB[1][0], 0.01]);
             }
             translate([TR_TONGUE[0][0], TR_TONGUE[1][0], TR_Z0]) cube([TR_TONGUE[0][1] - TR_TONGUE[0][0] + 0.01, TR_TONGUE[1][1] - TR_TONGUE[1][0], TR_TONGUE[2]]);
+            // chiavetta di centraggio sotto la slitta (spigoli inferiori smussati 0.4 per l'invito nella cava)
+            hull() {
+                translate([TR_KEY[0][0], TR_KEY[1][0], TR_Z0 - 0.01]) cube([TR_KEY[0][1] - TR_KEY[0][0], TR_KEY[1][1] - TR_KEY[1][0], 0.02]);
+                translate([TR_KEY[0][0] + 0.4, TR_KEY[1][0] + 0.4, TR_Z0 - TR_KEY[2]]) cube([TR_KEY[0][1] - TR_KEY[0][0] - 0.8, TR_KEY[1][1] - TR_KEY[1][0] - 0.8, 0.01]);
+            }
         }
         for (h = S_HOLES) translate([h[0], h[1], TR_Z0 - 1]) cylinder(d = 1.7, h = TR_T + 2);        // M2 autofilettanti
         for (s = TR_SCREWS) translate([s[0], s[1], TR_Z0 - 1]) cylinder(d = TR_SCR_D, h = TR_T + 2);  // viti M3 nella mensola
         for (s = TR_SCREWS) if (s[2] == 1) translate([s[0], s[1], TR_Z0 + TR_T - 1.40]) cylinder(d1 = TR_SCR_D, d2 = 6.2, h = 1.41, $fn = 48);   // svasatura 90° (testa ISO 10642 M3, Ø6 reale)
         translate([-6, -2.5, TR_Z0 + TR_T - 0.6]) cube([12, 5, 1]);   // scarico 0.6 sotto il chip (niente appoggio sotto il package)
+        translate([S_PADS[0][0], S_PADS[1][0], TR_Z0 + TR_T - 0.8]) cube([S_PADS[0][1] - S_PADS[0][0], S_PADS[1][1] - S_PADS[1][0], 1]);   // scarico 0.8 sotto le saldature del cavo (31/10/2026)
     }
 }
 
 module sensor_pcb() {           // ingombro della scheda v2 (coordinate torre), solo per assieme e verifiche
     translate([S_PCB[0][0], S_PCB[1][0], S_PCB_TOP - S_PCB_T]) cube([S_PCB[0][1] - S_PCB[0][0], S_PCB[1][1] - S_PCB[1][0], S_PCB_T]);
     translate([-4.7, -1.5, S_PCB_TOP]) cube([9.4, 3.0, S_CHIP_H]);                                   // TSL1401CL
-    translate([S_CONN[0][0], S_CONN[1][0], S_PCB_TOP]) cube([S_CONN[0][1] - S_CONN[0][0], S_CONN[1][1] - S_CONN[1][0], S_CONN[2]]);
-    translate([S_CONN[0][1], S_CONN[1][0] + 1, S_PCB_TOP + 0.3]) cube([9, S_CONN[1][1] - S_CONN[1][0] - 2, 3.6]);   // spina + uscita cavo
+    // 31/10/2026: niente connettore: 5 fili saldati sulle piazzole S_PADS (il cavo e' in make_assembly_profiler.py)
+    for (k = [0:4]) translate([10.6, 10.4 - 2*k, S_PCB_TOP]) cylinder(d = 1.6, h = 1.0, $fn = 16);   // saldature/fili sopra le piazzole
     for (h = S_HOLES) translate([h[0], h[1], S_PCB_TOP]) cylinder(d = 3.8, h = 1.6);                  // teste M2
 }
 

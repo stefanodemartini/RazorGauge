@@ -1,0 +1,20 @@
+RazorGauge - scheda sensore TSL1401CL rev 1.1: VERIFICA PRIMA DELL'ORDINE PCBA (08/11/2026)
+Confronto tra i file di produzione (gerber 02/11, kicad_pcb) e i pezzi MJF ordinati (slitta, pezzo unico) / assieme con lastre CNC.
+Riferimento: KiCad -> piastra: X = kx + 10.22, Z = 9.55 + ky; faccia superiore della scheda Y 63.21.
+
+OK Contorno (Edge_Cuts del gerber): rettangolo 24.000 x 18.000 mm, spessore 1.6 -> piastra X 10.22-34.22, Z 9.55-27.55
+   = sagoma usata per slitta e verifiche; la slitta stampata copre tutta la scheda.
+OK Fori NPTH Ø2.2 x 3 (gerber) in KiCad (2,14) (2,6) (22,14.5) -> coassiali ai fori Ø1.7 per M2 della slitta MJF
+   (asse e anello r 0.75 liberi, materiale della slitta da r 1.0). Viti M2 x 5: 3.4 mm in presa nella slitta (spessa 3.5).
+OK Fori PTH: 5 x Ø0.8 (piazzole del cavo J1) + 16 via Ø0.3. Sotto le piazzole J1 la slitta ha lo scarico 0.8 (Y 60.81).
+OK Chip U1: centro della linea di pixel in KiCad (12,12) -> piastra X 22.22, Z 21.55 = asse della coda di topo / del laser.
+   Linea di pixel lungo X (attraverso la coda di topo). Faccia del chip Y 64.41: 2.50 mm sotto il fondo della linea (Y 66.91).
+   Sotto il chip la slitta ha lo scarico 0.6 (Y 61.01).
+OK Componenti SMD (altezze massime: 0603 R 0.55, 0603 C 0.9, 0805 1.35, SOT-23-5 1.45, TSL1401CL 1.4; ingombro = courtyard):
+   nessuna interferenza con il pezzo unico e le altre parti, ne' da montata ne' durante l'estrazione della slitta (45 mm verso il fronte,
+   sportellino aperto). Gioco minimo verso l'alto: U2 (LMV321) 0.44 mm sotto il fondo della guida J lato rullo; 0603 da 0.99 mm.
+OK Lato ruota della scheda (KiCad Y 12-18) senza componenti, come previsto.
+OK BOM 9 righe / CPL 16 componenti invariati; U1 C2802316 dalla parts library (15 pz arrivati).
+OK Le lastre CNC non toccano la scheda (la scheda e' solo sulla slitta, nel pezzo unico); il cavo va al RazorBoard J5 come da note.
+
+RISULTATO: la scheda e' coerente con i pezzi MJF ordinati e con l'assieme: si puo' ordinare.

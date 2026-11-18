@@ -1,15 +1,17 @@
 # Smussi di stampa su coperchio e carrello (dopo l'esportazione da OpenSCAD, nei loro sistemi di riferimento):
-#  coperchio: perimetro della faccia esterna 0.6 (la faccia interna appoggia sulla colonna: viva)
+#  coperchio: perimetro della faccia esterna raccordato R0.5 (03/11/2026; prima smusso 0.6 a gradini) (la faccia interna appoggia sulla colonna: viva)
 #  carrello: 4 spigoli paralleli allo scorrimento 0.5 (aiutano nel canale 24 x 24 dagli angoli interni non vivi in MJF),
 #            perimetro delle due facce di estremita' 0.3 (invito nel canale)
 import trimesh, numpy as np, io, sys
 sys.path.insert(0, "/home/claude/fp/v3")
 from build_tappo import wedge
 def fix(t):
-    for dig in (5, 4, 6, 3):
-        q = t.copy(); q.merge_vertices(digits_vertex=dig); q.update_faces(q.nondegenerate_faces()); q.remove_unreferenced_vertices()
+    for dig in (None, 5, 4, 6, 3):                    # None: mesh gia' chiusa cosi' com'e' (03/11: il raccordo da minkowski non va fuso)
+        q = t.copy()
+        if dig is not None: q.merge_vertices(digits_vertex=dig); q.update_faces(q.nondegenerate_faces()); q.remove_unreferenced_vertices()
         b = io.BytesIO(); q.export(b, file_type="stl"); b.seek(0); r = trimesh.load(b, file_type="stl")
         if r.is_watertight and r.is_volume and len(r.split(only_watertight=False)) == 1: return q
+    if t.is_watertight and t.is_volume: print("  (mesh chiusa ma da ripulire: passare ripara_stl.py)"); return t
     raise SystemExit("mesh non chiusa")
 def lid(src, dst):
     import shapely.geometry as sg, shapely.ops as so
@@ -22,14 +24,20 @@ def lid(src, dst):
     keep = so.unary_union([g.buffer(0.3, 16) for g in getattr(narrow, "geoms", [narrow]) if g.area > 0.02]) if not narrow.is_empty else sg.Polygon()
     OUT = E.buffer(0.6, 16)
     holes = so.unary_union([sg.Polygon(r).buffer(1.9, 32) for g in getattr(S, 'geoms', [S]) for r in g.interiors if sg.Polygon(r).area < 15])   # fori viti: parete 1.05 al bordo -> niente smusso attorno
-    cuts = []
-    for i in range(int(round(L / H))):
-        d = (i + 0.5) * H                       # dall'alto: fascia larga ~L sulla faccia, 0 a profondita' L
-        band = OUT.difference(E.buffer(-(L - d), 32)).difference(holes)
-        for g in getattr(band, "geoms", [band]):
-            if g.geom_type != "Polygon" or g.area < 1e-3: continue
-            za = z1 - (i + 1) * H; zb = (z1 + 0.2) if i == 0 else (z1 - i * H + 0.013)
-            w = trimesh.creation.extrude_polygon(g, zb - za); w.apply_translation([0, 0, za]); cuts.append(w)
+    # 03/11/2026 (Stefano): niente smussi a gradini -> RACCORDO TONDO R0.5 sul perimetro della faccia esterna (sfera fatta scorrere
+    # sul contorno, minkowski con manifold3d), stesse esclusioni (fori viti).
+    import manifold3d as mf
+    R = 0.5
+    def ext(poly, za, zb):
+        ms = []
+        for g in getattr(poly, "geoms", [poly]):
+            if g.geom_type == "Polygon" and g.area > 1e-3:
+                w = trimesh.creation.extrude_polygon(g, zb - za); w.apply_translation([0, 0, za]); ms.append(w)
+        return trimesh.boolean.union(ms) if len(ms) > 1 else ms[0]
+    core = ext(E.buffer(-R + 0.02, 32), z1 - 3.0, z1 - R + 0.003)
+    rnd = mf.Manifold(mf.Mesh(vert_properties=np.asarray(core.vertices, np.float32), tri_verts=np.asarray(core.faces, np.uint32))).minkowski_sum(mf.Manifold.sphere(R, 48)).to_mesh()
+    rnd = trimesh.Trimesh(np.asarray(rnd.vert_properties)[:, :3], np.asarray(rnd.tri_verts), process=False)
+    cuts = [trimesh.boolean.difference([ext(OUT.difference(holes), z1 - R - 0.05, z1 + 0.2), rnd])]
     r = fix(trimesh.boolean.difference([m, trimesh.boolean.union(cuts)])); r.export(dst); return m, r
 def carriage(src, dst):
     m = trimesh.load(src); (x0, y0, z0), (x1, y1, z1) = m.bounds

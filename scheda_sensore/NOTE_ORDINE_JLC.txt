@@ -1,12 +1,36 @@
-RazorGauge - scheda sensore TSL1401CL v1 - NOTE PER L'ORDINE JLCPCB (29/10/2026)
+RazorGauge - scheda sensore TSL1401CL rev 1.1 - NOTE PER L'ORDINE JLCPCB (29/10/2026, fori 31/10/2026, serigrafie in inglese 30/10/2026)
 
-STATO: BOZZA - NON ORDINARE ANCORA
-  I fori di fissaggio della scheda sono DA DEFINIRE (verifiche in corso). Nel PCB ci sono solo 3 aree vietate
-  al rame nelle posizioni provvisorie (FORO_TBD_1..3: X 1.5 Y 14 / X 1.5 Y 6 / X 22.5 Y 14.5, coordinate KiCad);
-  quando le posizioni sono confermate si aggiungono i fori e si rigenerano gerber e CPL (script/run_all.sh).
+ORDINE PASSO PASSO (jlcpcb.com)
+  0. Sensore: 15 pezzi di C2802316 gia' comprati (pre-ordine JLCPCB, 76 EUR, 03/11/2026). Prima di caricare la BOM
+     controlla in Parts Manager -> My Parts Lib che siano ARRIVATI (stato "in stock", quantita' 15).
+  1. "Add gerber file" -> produzione/RazorSensor_gerber.zip (deve riconoscere 2 strati, 24 x 18 mm).
+  2. Opzioni PCB:
+       Base Material FR-4 | Layers 2 | Dimensions 24 x 18 mm | PCB Qty 5 | Product Type Industrial/Consumer
+       Different Design 1 | Delivery Format Single PCB | PCB Thickness 1.6 | PCB Color Black (nero opaco se proposto)
+       Silkscreen White | Surface Finish ENIG (1U") | Outer Copper Weight 1 oz | Via Covering Tented
+       Mark on PCB: "Specify a location" (c'e' gia' il testo JLCJLCJLCJLC sotto la scheda, al centro)
+       Remove Order Number: non serve (con "Specify a location" e' gratis) | Castellated holes No | Edge plating No
+  3. PCB Assembly: ON | Economic | Assembly Side Top | PCBA Qty 2 (o 3) | Tooling holes: Added by JLCPCB
+       Confirm Parts Placement: Yes | Photo confirmation: facoltativa
+  4. Next -> carica produzione/RazorSensor_BOM_JLCPCB.csv e produzione/RazorSensor_CPL_JLCPCB.csv
+       Tutte le 9 righe devono risultare trovate (U1 C2802316 dalla tua parts library). J1 non c'e': e' giusto.
+  5. Anteprima montaggio: controlla U1 e U2 (vedi PCBA qui sotto), poi incolla il Remark.
+  6. Prezzo: il sensore e' gia' pagato (dalla tua libreria); restano PCB + montaggio Economic + parti a magazzino LCSC.
+
+SERIGRAFIE (30/10/2026, in inglese)
+  Sopra: 3V3 / GND / SI / CLK / AO accanto alle 5 piazzole del cavo.
+  Sotto: "RazorGauge TSL1401CL v1", "RazorBlade 2026", "ROLLER SIDE" (lato rullo, bordo dei condensatori),
+         "<- FRONT" (la freccia ora punta davvero verso il fronte = bordo delle piazzole del cavo; prima "FRONTE ->"
+         puntava dalla parte opposta), "JLCJLCJLCJLC" (posto del numero d'ordine JLCPCB).
+
+STATO: PRONTA PER L'ORDINE (31/10/2026)
+  Fori di fissaggio definiti: 3 fori NPTH Ø2.2 per viti M2 x 5 autofilettanti nella slitta (x 3, testa <= Ø3.8; NON piu lunghe: la slitta e spessa 3.5 e sotto c e la mensola),
+  in X 2.0 Y 14.0 / X 2.0 Y 6.0 / X 22.0 Y 14.5 (coordinate KiCad), 0.9 mm dal bordo, area senza rame Ø4.4 attorno.
+  31/10/2026: NIENTE CONNETTORE: il cavo si salda su 5 piazzole passanti (J1, passo 2 mm, foro 0.8; J1 NON e' nella BOM
+  e nel CPL, JLCPCB non monta nulla li'). DRC: 0 errori, 0 collegamenti mancanti (solo avvisi di libreria non pertinenti).
 
 FILE (cartella produzione/)
-  RazorSensor_gerber.zip      -> "Add gerber file"
+  RazorSensor_gerber.zip      -> "Add gerber file" (rame, maschere, paste, serigrafie, contorno, forature PTH/NPTH separate)
   RazorSensor_BOM_JLCPCB.csv  -> BOM del montaggio
   RazorSensor_CPL_JLCPCB.csv  -> Pick & place (CPL)
 
@@ -16,26 +40,43 @@ PCB
   Solder mask: nero opaco consigliato (meno riflessi del laser), altrimenti verde
   Quantita PCB: 5 (minimo) - montaggio: 2 o 3 schede (una di scorta)
 
-PRE-ORDINE DEL SENSORE (prima dell'ordine PCBA)
-  jlcpcb.com/parts -> C2802316 (AMS TSL1401CL, Extended, SMD-8P 9.4 x 3) -> pre-order
-  Quantita = numero di schede da montare (+ eventuali scarti richiesti da JLCPCB). Restano nella "parts library".
-  Prezzo LCSC al 28/10/2026: ~21.82 $ cad., 100 pezzi disponibili.
+VERIFICA SUL DATASHEET DEL COMPONENTE ACQUISTATO (C2802316 = ams TSL1401CL, datasheet v1-01, 02/11/2026)
+  Pinout: 1 SI, 2 CLK, 3 AO, 4 VDD, 5 NC, 6 GND, 7 GND, 8 NC (vista dall'alto, pin 1 in basso a sinistra) -> uguale allo schema. OK
+  Package CL 9.4 x 3.0 x 1.2, contatti passo 2.5 (7.5 tra gli estremi), linea di pixel 8.064 mm a 0.305 dal centro
+  del package verso i pin 5-8, pixel a 0.22 sotto la faccia (resina n 1.56), pixel 1 dal lato del pin 1 -> come nel footprint. OK
+  Piazzole (fig. 18): 0.8 x 1.3, passo 2.5, 0.8 tra le file, pin 1 1.4 x 1.3. CORRETTO il 02/11: la piazzola del pin 1
+  era allungata verso l'esterno (oltre il bordo del package), il datasheet la allunga VERSO IL PIN 2 (copre la linguetta del
+  contatto 1). Spostata di 0.6 mm; spostato un tratto di pista GND vicino. DRC: 0 errori, 0 non collegati. CPL e BOM invariati.
+  Alimentazione: VDD 3 - 5.5 V (noi 3.3 V) OK; VIH min 2 V (logica ESP32 3.3 V) OK; clock 5 kHz - 8 MHz; tint min 33.75 us.
+  Uscita a 3 V: saturazione Vsat 2.5 - 2.8 V (RL 330) -> dopo il buffer max ~2.84 V. NOTA FIRMWARE: l'ADC dell'ESP32 a 11/12 dB
+  e' lineare fino a ~2.45 V: regolare impulso laser / tempo di integrazione perche' il bianco stia sotto ~2.3 V all'ADC.
+  Temperatura di esercizio 0 - 70 C. Finitura contatti oro morbido -> ENIG consigliata. MSL 5a: 24 h dopo l'apertura, rebake 60 C x 24 h.
+
+SENSORE C2802316 (TSL1401CL) - AGGIORNATO 05/11/2026
+  Il TSL1401CL e' FUORI PRODUZIONE (ams "Discontinued"; LCSC a magazzino 0). Primo pre-ordine da 2 annullato (MOQ 15 del
+  fornitore). Ripreso il pre-ordine da 15 pezzi: pagati 76 EUR (~5 EUR cad.). Restano nella tua "My Parts Lib" su JLCPCB:
+  2 per questo ordine (PCBA qty 2), 13 di scorta per ordini futuri, conservati da JLCPCB (MSL 5a gestito da loro).
+  Se fai montare 3 schede, ne usi 3 e ne restano 12.
 
 PCBA
-  Economic, solo lato TOP, 17 componenti / 10 righe BOM (tutti a magazzino LCSC; U1 da pre-ordine)
+  Economic, solo lato TOP, 16 componenti / 9 righe BOM (tutti a magazzino LCSC; U1 dalla tua parts library)
   Nell'anteprima del montaggio CONTROLLARE:
-   - U1 TSL1401CL: pallino del pin 1 verso il bordo ANTERIORE (lato connettore), fila dei pin 1-4 verso il lato
+   - U1 TSL1401CL: pallino del pin 1 verso il bordo ANTERIORE (lato piazzole del cavo), fila dei pin 1-4 verso il lato
      dei condensatori (lato rullo). Il CPL usa il centro del package (Y 11.695), non il centro dei pixel (Y 12.0).
    - U2 LMV321 (SOT-23-5): pin 1 (OUT) verso il chip; correzione di rotazione +180 gia applicata, verificare.
-   - J1 GH 6 poli: apertura verso il bordo anteriore (destra); correzione +180 applicata, verificare.
   Remark da incollare nell'ordine:
-   "U1 (TSL1401CL, C2802316) is an optical sensor with a clear molded window: please handle it as MSL 5a
-    (bake before reflow if exposed), do not clean the window with aggressive solvents, keep the top surface free
+   "U1 (TSL1401CL, C2802316) is an optical sensor with a clear molded package, MSL 5a (ams datasheet v1-01):
+    floor life 24 h after opening the moisture barrier bag. If baking is needed, bake at 60 C for 24 h ONLY
+    (as specified by ams; please do not use the standard 125 C bake, the clear plastic package may be damaged).
+    Max reflow peak 260 C, one pass. Do not clean the window with aggressive solvents, keep the top surface free
     of flux residues and scratches. Thank you."
 
-PINOUT CONNETTORE J1 (JST GH 1.25 mm, 6 poli) -> RazorBoard J5
-  1 3V3 (J5-1)  2 GND (J5-2)  3 SI (J5-3)  4 CLK (J5-4)  5 AO (J5-5)  6 calza/GND (J5-8)
-  Cavo: JST GH 6 poli precrimpato + cavo schermato fino ai morsetti di J5 (calza solo lato RazorBoard o su J1-6).
+CAVO SALDATO (J1, 5 piazzole sul bordo anteriore, nomi in serigrafia sopra) -> RazorBoard J5
+  1 3V3 -> J5-1   2 GND -> J5-2   3 SI -> J5-3   4 CLK -> J5-4   5 AO -> J5-5
+  Cavo schermato 5 conduttori + calza: la CALZA va SOLO a J5-8 (RazorBoard); dal lato sensore tagliata e isolata
+  (guaina termorestringente), niente collegamento a GND sulla scheda (eviterebbe un anello di massa sul segnale AO).
+  Fili infilati dall'alto e saldati sopra; sotto tagliare a filo (nella slitta c'e' uno scarico di 0.8 mm sotto le piazzole).
+  Fermacavo: fascetta sotto la mensola del pezzo unico; tra fascetta e scheda lasciare un'ansa di almeno 45 mm.
 
 CIRCUITO
   TSL1401CL a 3.3 V (dal master), 100 nF + 10 uF, R serie 100 su SI e CLK, carico 330 su AO (come nel datasheet).

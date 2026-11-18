@@ -20,7 +20,7 @@ body = [B(PX[0], PX[1], PY[0], PY[1], PZ[0], PZ[1])]
 body.append(B(25.3, PX[0] + 0.5, PY[0], 86.0, PZ[0], PZ[0] + 1.5))
 body.append(B(30.5, PX[0] + 0.5, PY[0], 86.0, PZ[1] - 1.5, PZ[1]))
 cuts = [B(PX[0] - 0.2, PX[1] + 0.2, PY[0] - 0.1, 67.7, 10.5, 19.6)]          # incavo per spina (Z 11.05-19.05, Y <= 67.1) e cavo
-cuts.append(B(PX[0] - 0.2, PX[1] + 0.2, PY[0] - 0.1, 65.0, 3.9, 10.6))          # incavo sopra la testa della vite M3 della slitta (Z 7.25 ±2.75, X <= 40.97, Y <= 64.6)
+# 31/10/2026: tolto l'incavo sopra la testa della vite M3 cilindrica della slitta (Z 3.9-10.6): ora c'e' una sola vite, svasata a filo
 for z in SH_Z:
     body.append(B(36.5, PX[0] + 0.5, CY[0], CY[1], z - 4.5, z + 4.5))        # graffa (fusa nella lastra)
     cuts.append(B(37.75, PX[0], CY[0] - 0.1, CY[1] + 0.1, z - 3.25, z + 3.25))   # tasca della testa (gioco 0.25)
@@ -44,7 +44,12 @@ import json, os, shapely.geometry as sg, shapely.ops as so
 LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logo", "logo_razorblade_76mm.json")
 if os.path.exists(LOGO):
     _d = json.load(open(LOGO)); _P = so.unary_union([sg.Polygon(e, h) for e, h in _d["polys"]]).buffer(0.0, join_style=1)
-    LOGO_YC, LOGO_D = 80.1, 0.6
+    # 05/11/2026 (Stefano: difetto nella gola sotto la R): nel PDF la linea curva sotto la scritta ha una fessura bianca di ~0.07 mm
+    #     dove si uniscono due tratti -> nella gola restava una lamella sottile di materiale. Chiusura morfologica 0.1 SOLO sulle
+    #     parti lunghe (linea curva e trattini, > 50 mm): riempie fessure < 0.2 mm, le lettere restano identiche.
+    _P = so.unary_union([(g.buffer(0.1, 16, join_style=1).buffer(-0.1, 16, join_style=1) if (g.bounds[2] - g.bounds[0]) > 50 else g)
+                         for g in (_P.geoms if hasattr(_P, "geoms") else [_P])])
+    LOGO_YC, LOGO_D = 80.1, 1.0                                   # 02/11/2026: inciso 1.0 (linee guida PolyD; era 0.6), sotto restano 1.0 mm
     _parts = []
     for g in (_P.geoms if hasattr(_P, "geoms") else [_P]):
         e = trimesh.creation.extrude_polygon(g, LOGO_D + 0.2)

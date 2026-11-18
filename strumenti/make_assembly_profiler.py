@@ -15,31 +15,32 @@ C=trimesh.load("carriage.stl"); C.apply_translation([0,0,24.5]); parts["carrello
 vs=[cylX(30.22,36.22,64.41+24.5+3.8,ZM-6.5,1.5,24), cylX(36.22,39.22,64.41+24.5+3.8,ZM-6.5,2.75,24)]   # vite M3x6 di blocco del carrello, dal davanti
 parts["vite_M3_carrello"]=col(trimesh.util.concatenate(vs),[60,60,60,255])
 L=trimesh.load("lid.stl"); Ml=T.rotation_matrix(math.radians(-90),[0,1,0]) @ T.translation_matrix([-14,0,0]); L.apply_transform(np.linalg.inv(Ml)); parts["coperchio"]=col(tp(L),[120,120,125,140])
-las=cylinder(radius=4.5,height=20,sections=64); las.apply_translation([0,0,114.2+10]); parts["laser"]=col(tp(las),[200,30,30,255])   # Picotronic Ø9 x 20 (29/10/2026)
-parts["tappo_laser"]=col(tp(trimesh.load("laser_cap.stl")),[150,150,160,255])
-vg=[]                                                       # 2 grani M3 x 8 (frontale +X, laterale +Y) a Z_LF + 14
-for d in ((1,0),(0,1)):
-    g_=cylinder(radius=1.5,height=8,sections=20); g_.apply_transform(T.rotation_matrix(np.pi/2,[-d[1],d[0],0])); g_.apply_translation([d[0]*(4.6+4),d[1]*(4.6+4),114.2+14]); vg.append(g_)
-parts["grani_laser"]=col(tp(trimesh.util.concatenate(vg)),[60,60,60,255])
+las=cylinder(radius=8.97/2,height=20,sections=64); las.apply_translation([0,0,114.2+10]); parts["laser"]=col(tp(las),[200,30,30,255])   # Picotronic Ø9 x 20, misurato Ø8.97 (02/11/2026)
+# 31/10/2026: tappo del laser eliminato (laser fissato con epossidica nello smusso in cima al foro)
+# 31/10/2026: grani di regolazione del laser tolti (sede precisa)
 l1=cylinder(radius=12.47/2,height=3.11,sections=64); l1.apply_translation([0,0,105.2]); parts["lente_L1"]=col(tp(l1),[150,200,255,200])
 l2=cylinder(radius=19.95/2,height=2.8,sections=64); l2.apply_translation([0,0,24.5]); parts["lente_L2"]=col(tp(l2),[150,200,255,200])
 _sp=trimesh.load("/home/claude/pu/run_sportello/sportello.stl"); _sp.apply_translation([0,13.0 if pull>0 else 0.0,0])   # sportellino (aperto quando la slitta e' estratta)
 parts["sportello_luce"]=col(_sp,[45,45,50,255])
-parts["tappo_uscita"]=col(trimesh.load("/home/claude/pu/run_tappo_uscita/tappo_uscita.stl"),[45,45,50,255])   # copertura removibile della gola di uscita (31/10/2026)
+parts["piastrina_ingresso"]=col(trimesh.load("/home/claude/pu/run_piastrina/piastrina_ingresso.stl"),[58,123,213,255])   # copertura girevole della gola d'ingresso (31/10/2026)
+_vs=trimesh.util.concatenate([cylinder(radius=3.0,height=0.5,sections=32).apply_translation([0,0,2.25]),     # rondella M2 larga Ø6 x 0.5 (DIN 9021) sul perno (Y 71.9)
+                              cylinder(radius=1.9,height=1.6,sections=24).apply_translation([0,0,3.3]),      # testa vite M2 Ø3.8 x 1.6
+                              cylinder(radius=0.85,height=5.0,sections=16).apply_translation([0,0,2.5-2.5])])  # gambo M2 x 5 (nel foro Ø1.7, autofilettante)
+_vs.apply_transform(T.rotation_matrix(-np.pi/2,[1,0,0])); _vs.apply_translation([13.5,69.9,80.0]); parts["vite_perno_piastrina"]=col(_vs,[60,60,60,255])   # 05/11/2026: perno stampato + vite M2
 tray=tp(trimesh.load("tray.stl")); tray.apply_translation([pull,0,0]); parts["slitta_sensore"]=col(tray,[230,160,40,255])
 # scheda sensore v2 (TSL1401CL, 28/10/2026): ingombro da cad/FlylineProfiler_RazorGauge.scad VIEW="pcb"
 S=tp(trimesh.load("pcb.stl")); S.apply_translation([pull,0,0]); parts["scheda_sensore"]=col(S,[20,130,40,255])
-vv=[]                                                       # 2 viti M3 x 12 verticali: slitta 3.5 + 8.5 nella mensola
-for (sx,sy) in ((15.9,9.0),(16.0,14.3)):
-    sh=cylinder(radius=1.5,height=12,sections=24); sh.apply_translation([sx,sy,-6.3+3.5-6]); vv.append(sh)
-    if sy < 12:                                              # svasata ISO 10642 a filo della slitta (sotto la spina del connettore)
+vv=[]                                                       # 31/10/2026: UNA vite M3 x 8 svasata (Z 9.0) + chiavetta di centraggio (nella slitta)
+for (sx,sy) in ((15.9,12.55),):
+    sh=cylinder(radius=1.5,height=8,sections=24); sh.apply_translation([sx,sy,-6.3+3.5-4]); vv.append(sh)   # M3 x 8 negli inserti (31/10/2026)
+    if True:                                                 # svasata ISO 10642 a filo della slitta
         hd=trimesh.creation.cone(radius=3.0,height=3.0,sections=32); hd.apply_transform(T.rotation_matrix(np.pi,[1,0,0])); hd.apply_translation([sx,sy,-6.3+3.5])
         hd=trimesh.boolean.intersection([hd,trimesh.creation.box(bounds=[[sx-4,sy-4,-6.3+3.5-1.6],[sx+4,sy+4,-6.3+3.5-0.02]])],engine="manifold"); vv.append(hd)
     else:
         hd=cylinder(radius=2.75,height=3,sections=24); hd.apply_translation([sx,sy,-6.3+3.5+1.5]); vv.append(hd)
 scr=tp(trimesh.util.concatenate(vv)); scr.apply_translation([pull,0,0]); parts["viti_M3_slitta"]=col(scr,[60,60,60,255])
 # cavo schermato Ø4 dalla spina (bordo anteriore della scheda) giu' davanti alla mensola, sotto di essa fino alla tacca della piastra
-pts=np.array([[43.2,63.5,15.05],[46.0,63.5,15.05],[46.0,44.5,15.05],[43.5,44.0,13.0],[3.5,43.5,13.0],[-25,43.5,13.0]])
+pts=np.array([[34.6,63.65,15.15],[46.0,63.65,15.15],[46.0,44.5,15.15],[43.5,44.0,13.0],[3.5,43.5,13.0],[-25,43.5,13.0]])   # 31/10/2026: cavo saldato sulle piazzole (bordo scheda X 34.22), appoggiato sulla slitta
 segs=[]
 for a_,b_ in zip(pts[:-1],pts[1:]):
     L_=np.linalg.norm(b_-a_); c=cylinder(radius=2.0,height=L_,sections=16)

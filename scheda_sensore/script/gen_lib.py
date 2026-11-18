@@ -23,7 +23,7 @@ open(OUT + "/RazorSensor.kicad_sym", "w").write('(kicad_symbol_lib (version 2022
 # --- footprint. ORIGINE = CENTRO DELLA LINEA DI PIXEL (fig. 10: linea 0.305 dal centro del package verso i pin 5-8;
 #     lungo il package la linea e' centrata entro ~0.05). Package 9.4 x 3.0 x 1.2. Contatti a passo 2.5 (7.5 tra i centri estremi),
 #     a filo dei lati lunghi. Piazzole da fig. 9: 0.8 (lungo il package) x 1.3, spazio 0.8 tra le file -> centri a +/-1.05 dal centro;
-#     pin 1 piu lunga (1.4) verso l'esterno. Vista dall'alto: pin 1 in basso a sinistra, 1-4 in basso, 5-8 in alto (da destra).
+#     pin 1 piu lunga (1.4) verso il pin 2 (02/11/2026: corretto da datasheet ams v1-01 fig. 18, prima era verso l esterno). Vista dall'alto: pin 1 in basso a sinistra, 1-4 in basso, 5-8 in alto (da destra).
 OFF = 0.305
 L = ['(footprint "TSL1401CL_ams_CL" (version 20221018) (generator gen_lib) (layer "F.Cu")',
      '  (descr "ams TSL1401CL, package CL 9.4 x 3.0 x 1.2 mm, 8 contatti passo 2.5. Origine = centro della linea di pixel (0.305 dal centro del package verso i pin 5-8). Pixel 1 dal lato del pin 1.")',
@@ -34,7 +34,7 @@ for k in range(1, 9):
     if k <= 4: x, y = -3.75 + (k - 1) * 2.5, 1.05 + OFF
     else: x, y = 3.75 - (k - 5) * 2.5, -1.05 + OFF
     if k == 1:
-        L.append(f'  (pad "1" smd rect (at {x - 0.3:.3f} {y:.3f}) (size 1.4 1.3) (layers "F.Cu" "F.Paste" "F.Mask"))')
+        L.append(f'  (pad "1" smd rect (at {x + 0.3:.3f} {y:.3f}) (size 1.4 1.3) (layers "F.Cu" "F.Paste" "F.Mask"))')
     else:
         L.append(f'  (pad "{k}" smd rect (at {x:.3f} {y:.3f}) (size 0.8 1.3) (layers "F.Cu" "F.Paste" "F.Mask"))')
 y0, y1 = -1.5 + OFF, 1.5 + OFF

@@ -1,0 +1,53 @@
+RazorGauge su FlylineProfiler V3 - ORDINE STAMPA MJF E MINUTERIA (31/10/2026; slitta con 1 vite + chiavetta)
+
+=== 1. STAMPA MJF (HP MJF PA12) - file in integrazione_profiler/kit_stampa_stl/ ===
+Tutti chiusi (watertight), un solo corpo ciascuno. Verifica montaggio e lastre CNC: OK (verifica_montaggio_31-10.txt).
+
+  File                                              Q.ta  Volume     Ingombro (mm)
+  FlylineProfiler_RazorGauge_pezzo_unico.stl          1   121.85 cm3  42.5 x 202.6 x 101.5
+  FlylineProfiler_RazorGauge_coperchio.stl            1     8.20 cm3  126.2 x 35.0 x 7.6
+  FlylineProfiler_RazorGauge_sportello_luce.stl       1     6.87 cm3  80.1 x 37.5 x 17.7
+  FlylineProfiler_RazorGauge_carrello.stl             1     3.25 cm3  23.6 x 23.6 x 12.0
+  FlylineProfiler_RazorGauge_slitta_sensore.stl       1     2.72 cm3  37.7 x 23.5 x 4.9 (con la chiavetta sotto)
+  FlylineProfiler_RazorGauge_piastrina_ingresso.stl   1     0.16 cm3  17.6 x 3.1 x 7.0   (piastrina girevole sulla gola d'ingresso)
+  FlylineProfiler_RazorGauge_tappo_guida_1.stl        1     2.83 cm3  28.8 x 7.5 x 16.3   (facoltativo)
+  FlylineProfiler_RazorGauge_tappo_guida_2.stl        1     2.83 cm3  (uguale al _1, facoltativo)
+  Totale: 143.0 cm3 senza tappi, 148.7 cm3 con i 2 tappi.
+
+  NON caricare (obsoleti, da cancellare a mano anche da integrazione_profiler/): FlylineProfiler_RazorGauge_tappo_laser.*,
+  FlylineProfiler_RazorGauge_tappo_uscita.*, FlylineProfiler_RazorGauge_piastrina_uscita.* (03/11: rinominata piastrina_ingresso).
+
+  Colore: NERO (tinto) consigliato per tutti: sportellino, coperchio e pezzo unico devono essere opachi alla luce
+  ambiente; il grigio naturale da 2 mm lascia passare un po' di luce. Finitura standard (niente lucidatura).
+  Sede laser Ø9.03 misurata sui piatti del poligono (laser misurato Ø8.97: gioco 0.03 per lato, 02/11/2026), nessuna lavorazione prevista.
+
+  Service: PolyD (polyd.com, HP MJF, Rimini) - colore NERO STANDARD. Pezzi adattati alle loro linee guida (02/11/2026):
+  giochi tra pezzi stampati >= 0.2 per lato dove serve, scritte incise 1.0 mm, pareti <= ~10 mm, STL riparati.
+  03/11/2026: tutti gli ex smussi a gradini (perimetro anteriore del pezzo unico, braccio d'ingresso, coperchio) ora raccordi tondi R0.5.
+
+=== 2. MINUTERIA PER I PEZZI STAMPATI (acciaio inox A2 dove possibile) ===
+  Inserto a caldo M3 in ottone, foro Ø4.0 x 6 (es. OD 4.6 x L 5.7) .............. 1 (+2 scorta)
+      nella mensola (vite della slitta). Si mette PRIMA della slitta, col saldatore dall'alto in verticale (punta M3, ~220 °C),
+      spinto fino a filo del piano della mensola.
+  Vite M3 x 8 testa svasata piana ISO 10642 / DIN 7991 ........................... 1  slitta (unica vite; la posizione la danno linguetta e chiavetta)
+  Rondella M2 larga Ø6 (DIN 9021) ............................................... 1  perno della piastrina girevole (05/11/2026: perno stampato
+      nel braccio Ø4; la vite e' una delle M2 x 5 sotto, stretta a fondo sulla testa del perno; niente vite a spalla, niente inserto)
+  Viti M2 x 5 autofilettanti per plastica, testa <= Ø3.8 ......................... 4  3 scheda sensore -> slitta (NON piu' lunghe) + 1 perno piastrina
+  Vite M3 x 6 testa cilindrica + rondella M3 ..................................... 1  blocco del carrello L2 (dal davanti)
+  Viti M3 autofilettanti del coperchio ........................................... 6  (come nella stampa precedente)
+  Viti M3 x 12 testa cilindrica .................................................. 4  solo se si stampano i 2 tappi guida
+  Viti M3 x 6 testa cilindrica ................................................... 3  encoder -> parete del pezzo unico
+  Viti M3 x 12 testa cilindrica ISO 4762 ......................................... 8  pezzo unico -> piastra in alluminio
+      (fori nel pezzo Ø3.6 dal 05/11/2026: recuperano la tolleranza MJF sull'interasse; NIENTE rondelle, la sede della testa e' Ø5.8)
+  Fascetta 2.5 mm (max 2.8 x 1.5) ................................................ 2  fermacavo sotto la mensola (+ scorta)
+  Resina epossidica bicomponente (anche rapida 5 min) ............................ 1  blocca il laser dopo l'allineamento
+
+=== 3. CAVO SENSORE ===
+  Cavo schermato 5 conduttori + calza, circa 0.14 mm2 (AWG 26), lunghezza <= 50 cm ... 1
+      saldato su J1 della scheda sensore; calza SOLO a J5-8 della RazorBoard, lato sensore tagliata e isolata
+  Guaina termorestringente Ø3-4 mm (sulla calza tagliata) + Ø6 mm (fine guaina) ...... qualche cm
+
+=== 4. ALTRO DA COMPRARE (dai punti aperti) ===
+  Spine calibrate 0.5 / 1.5 / 2.0 / 2.5 / 3.0 mm (calibrazione)
+  Filtro passabanda 650 nm, circa 12 x 6 x 1 mm (sopra il chip, contro la luce ambiente) - facoltativo
+  Viteria della struttura in alluminio: vedi piastra_alluminio/VITERIA_E_MONTAGGIO.txt
