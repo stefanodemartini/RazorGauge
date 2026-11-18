@@ -131,6 +131,8 @@ public static class SheetText
         ["linear density transition"]  = "线性密度过渡",
         ["the profile is drawn in the real line color only"] = "轮廓仅以线的实际颜色绘制",
         ["SINK SPEED MAP"] = "沉降速度图",
+        ["3 · SINK SPEED MAP — local sink speed along the line"] = "3 · 沉降速度图 — 沿线局部沉降速度",
+        ["SINK SPEED MAP — local sink speed along the line"] = "沉降速度图 — 沿线局部沉降速度",
         ["uniform"]  = "均匀",
         ["floating"] = "漂浮",
         ["Local sink speed of each section (isolated cylinder of its own diameter and density): the same everywhere, {0:0.000} in/s."]

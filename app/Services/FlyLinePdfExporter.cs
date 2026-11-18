@@ -591,28 +591,6 @@ public static class FlyLinePdfExporter
                         });
                     }
 
-                    // ── Sink speed map (when the app's Sink Map is on) ─────
-                    // Its own image under the profile: the materials chart above stays as it is —
-                    // the two colourings never share a drawing.
-                    if (sinkMap != null)
-                    {
-                        // Title and picture stay together: never the title at the foot of one page
-                        // and the map on the next.
-                        col.Item().ShowEntire().Column(sm => {
-                        sm.Item().PaddingTop(6).PaddingHorizontal(6).Row(hr =>
-                        {
-                            hr.AutoItem().AlignMiddle().Text(Ti("SINK SPEED MAP")).FontSize(8f).Bold().FontColor(ColText);
-                            hr.ConstantItem(10);
-                            hr.RelativeItem().AlignMiddle().Text(
-                                Math.Abs(sinkMap.MaxIns - sinkMap.MinIns) < 0.0005
-                                    ? T("Local sink speed of each section (isolated cylinder of its own diameter and density): the same everywhere, {0:0.000} in/s.", sinkMap.MaxIns)
-                                    : T("Local sink speed of each section (isolated cylinder of its own diameter and density): blue = slowest {0:0.000} in/s, red = fastest {1:0.000} in/s. The whole line, joined, sinks at one speed in between.", sinkMap.MinIns, sinkMap.MaxIns))
-                                .FontSize(7f).FontColor(ColText);
-                        });
-                        sm.Item().Image(sinkMap.Png).FitWidth();
-                        });
-                    }
-
                     // ── Materials legend (NC: nozzles with zones; C: comp materials) ──
                     bool hasNozzles = nozzleDefinitions != null && nozzleDefinitions.Count > 0;
                     bool hasZones   = nozzleZones       != null && nozzleZones.Count   > 0;
@@ -1242,6 +1220,24 @@ public static class FlyLinePdfExporter
                         TotCell($"{sumMassGr:0.0}", true);
                         TotCell(""); TotCell(""); TotCell("");
                     });
+
+                    // ── Sink speed map — its own section at the end, only when asked for ──
+                    // A separate picture, never painted over the materials chart: the two
+                    // colourings must not mix. Title and map stay together on one page.
+                    if (sinkMap != null)
+                    {
+                        col.Item().PaddingTop(12).ShowEntire().Column(sm =>
+                        {
+                            sm.Item().Text(Ti(schedule != null ? "3 · SINK SPEED MAP — local sink speed along the line" : "SINK SPEED MAP — local sink speed along the line"))
+                                .FontSize(8).Bold().FontColor(ColText);
+                            sm.Item().PaddingTop(2).PaddingBottom(2).Text(
+                                Math.Abs(sinkMap.MaxIns - sinkMap.MinIns) < 0.0005
+                                    ? T("Local sink speed of each section (isolated cylinder of its own diameter and density): the same everywhere, {0:0.000} in/s.", sinkMap.MaxIns)
+                                    : T("Local sink speed of each section (isolated cylinder of its own diameter and density): blue = slowest {0:0.000} in/s, red = fastest {1:0.000} in/s. The whole line, joined, sinks at one speed in between.", sinkMap.MinIns, sinkMap.MaxIns))
+                                .FontSize(7f).FontColor(ColText);
+                            sm.Item().Image(sinkMap.Png).FitWidth();
+                        });
+                    }
 
                 });
 

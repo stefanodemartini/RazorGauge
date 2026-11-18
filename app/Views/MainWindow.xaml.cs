@@ -5130,6 +5130,16 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         bool exportComp = (_inCompMode || _zoneDerivedComp)
                           && ProjectSegments.Any(s => s.HasCompensation);
 
+        // The sink speed map is never added implicitly (it used to follow the on-screen Sink Map
+        // toggle): it is asked, every time, and goes at the end as a section of its own.
+        var sinkAnswer = MessageBox.Show(
+            "Include the sink speed map in the PDF?\n\n" +
+            "It is added at the end of the document as a separate section: the profile coloured by the " +
+            "local sink speed of each section (blue = slowest, red = fastest), with its in/s scale.",
+            "Export PDF", MessageBoxButton.YesNoCancel, MessageBoxImage.Question, MessageBoxResult.No);
+        if (sinkAnswer == MessageBoxResult.Cancel) return;
+        bool includeSinkMap = sinkAnswer == MessageBoxResult.Yes;
+
         // The sheet's language is picked in the file-type list of the Save dialog — the app
         // itself stays in English. The last choice is remembered.
         var languages = new[] { SheetLanguage.English, SheetLanguage.Chinese, SheetLanguage.Bilingual };
@@ -5193,9 +5203,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                 _coreType,
                 _coreDiameterMm,
                 laserMarkText, exportComp, compNote, language,
-                // The Sink Map goes into the sheet when it is on in the app — same switch, same picture.
-                _showSinkSpeedMap ? SinkMapRenderer.Render(ProjectSegments, _waterIsSalt, _waterTempC, language) : null);
-            UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}" + (_showSinkSpeedMap ? " (with sink speed map)" : "");
+                includeSinkMap ? SinkMapRenderer.Render(ProjectSegments, _waterIsSalt, _waterTempC, language) : null);
+            UiStatus = $"PDF exported: {System.IO.Path.GetFileName(dlg.FileName)}" + (includeSinkMap ? " (with sink speed map)" : "");
         }
         catch (Exception ex)
         {
