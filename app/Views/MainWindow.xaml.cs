@@ -3910,7 +3910,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     private static List<double[]> QuantizeSliceDensities(List<CompSliceRun> runs, int nozzleCount,
         Func<double, string>? colorAt, string baseHex, out double[] materials, out CompCompound[] compounds)
     {
-        double[] qDens = Quantize1D(runs.SelectMany(r => r.Densities), Math.Clamp(nozzleCount, 1, 4));
+        // Nozzle densities are specified to the compounder at 2 decimals (g/cm³): round the k-means
+        // centres here, so the slices, the file, the legend and the dialog's error preview all use
+        // the density that will really be extruded. Two centres closer than 0.01 merge into one.
+        double[] qDens = Quantize1D(runs.SelectMany(r => r.Densities), Math.Clamp(nozzleCount, 1, 4))
+                         .Select(d => Math.Round(d, 2)).Distinct().ToArray();
         if (qDens.Length == 0)
         {
             materials = Array.Empty<double>(); compounds = Array.Empty<CompCompound>();
@@ -4116,9 +4120,9 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         for (int i = 0; i < qDens.Length && i < 4; i++)
         {
             Nozzles[i].ColorHex    = compounds[i].Hex;
-            // Full precision, never rounded: the slices carry these exact values, and an exact
-            // match is how a material is told from a transition ramp (ChartGeometry.TransitionTest).
-            // At 2 decimals two materials 0.005 g/cm³ apart even collapsed to one value.
+            // Never re-rounded here: the slices carry these exact values, and an exact match is how
+            // a material is told from a transition ramp (ChartGeometry.TransitionTest). They are
+            // already at 2 decimals — QuantizeSliceDensities rounds the k-means centres at the source.
             Nozzles[i].DensityGCm3 = qDens[i];
             if (string.IsNullOrWhiteSpace(Nozzles[i].Label) || Nozzles[i].Label.StartsWith("ρ ")
                 || Nozzles[i].Label == "N/A")

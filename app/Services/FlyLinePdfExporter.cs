@@ -320,7 +320,7 @@ public static class FlyLinePdfExporter
             var compSegsAll = segments.Where(s => s.HasCompensation).ToList();
             var allDens = compSegsAll.SelectMany(s => s.CompSliceDensities).Where(d => d > 0).ToList();
             densityRange = allDens.Count > 0
-                ? $"{allDens.Min():0.000} – {allDens.Max():0.000} g/cm³"
+                ? $"{allDens.Min():0.00} – {allDens.Max():0.00} g/cm³"
                 : "—";
             hasClampedSection = compSegsAll.Any(s => s.HasClampedSlices);
         }
@@ -741,7 +741,7 @@ public static class FlyLinePdfExporter
                                                 sCol.Item().Width(56).Height(14)
                                                     .Image(NozzlePattern.SwatchPng(origIdx, 224, 56, 10)).FitArea();
                                                 if (nd.DensityGCm3 > 0)
-                                                    sCol.Item().Width(56).Text($"ρ {nd.DensityGCm3:0.000} g/cm³")
+                                                    sCol.Item().Width(56).Text($"ρ {nd.DensityGCm3:0.00} g/cm³")
                                                         .FontSize(6.5f).Bold().FontColor(ColText).AlignCenter();
                                                 sCol.Item().PaddingTop(2).AlignCenter().Width(26).Height(6)
                                                     .Border(0.5f).BorderColor(ColText).Background(swatchColor);
