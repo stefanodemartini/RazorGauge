@@ -2679,13 +2679,34 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         // is a frustum between its two end diameters, which only holds within one taper.
         bool SameGroup(ProjectSegment a, ProjectSegment b) =>
             SameRow(a.SpecWeightGCm3, b.SpecWeightGCm3) && a.Name == b.Name && a.IsHead == b.IsHead;
-        int i = 0, zoneIdx = 0;
-        while (i < sorted.Count)
+        var groups = new List<(int I, int J)>();
+        for (int g = 0; g < sorted.Count; )
         {
-            int j = i;
-            while (j + 1 < sorted.Count && SameGroup(sorted[i], sorted[j + 1]))
-                j++;
+            int h = g;
+            while (h + 1 < sorted.Count && SameGroup(sorted[g], sorted[h + 1])) h++;
+            groups.Add((g, h));
+            g = h + 1;
+        }
+        // A sliver of pure material (< 2 cm) left between a nozzle ramp and a taper boundary is a
+        // row of no use to a producer (seen: "S8 1 cm" after a 30 cm ramp). It joins the ramp row
+        // next to it in the same taper — the row's mass still comes from its real slices.
+        const double SliverCm = 2.0;
+        bool IsRampGroup((int I, int J) gr) => isTransition(sorted[gr.I].SpecWeightGCm3);
+        bool SameTaper((int I, int J) a, (int I, int J) b) =>
+            sorted[a.I].Name == sorted[b.I].Name && sorted[a.I].IsHead == sorted[b.I].IsHead;
+        for (int g = 0; g < groups.Count; g++)
+        {
+            var gr = groups[g];
+            if (IsRampGroup(gr) || sorted[gr.J].EndCm - sorted[gr.I].StartCm >= SliverCm) continue;
+            if (g > 0 && IsRampGroup(groups[g - 1]) && SameTaper(groups[g - 1], gr))
+            { groups[g - 1] = (groups[g - 1].I, gr.J); groups.RemoveAt(g); g--; }
+            else if (g + 1 < groups.Count && IsRampGroup(groups[g + 1]) && SameTaper(groups[g + 1], gr))
+            { groups[g + 1] = (gr.I, groups[g + 1].J); groups.RemoveAt(g); g--; }
+        }
 
+        int zoneIdx = 0;
+        foreach (var (i, j) in groups)
+        {
             var first = sorted[i]; var last = sorted[j];
             var pieces = sorted.GetRange(i, j - i + 1);
             // Mass-weighted (ρ·d²·L) average — the one density that gives this row its real mass.
@@ -2719,7 +2740,6 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                     s.StartCm, s.EndCm, s.StartDiameterMm, s.EndDiameterMm, s.SpecWeightGCm3)).ToArray());
 
             DisplaySegments.Add(zone);
-            i = j + 1;
         }
     }
 

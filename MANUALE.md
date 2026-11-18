@@ -609,6 +609,9 @@ diametro intatto il taper resta continuo ovunque, confine tra materiali compreso
      linearmente da un materiale all'altro su 30 cm centrati sul confine tratteggiato. Masse e
      velocità per ugello restano calcolate dalle densità reali delle slice, rampa compresa
    - tabella Segments: una riga per transizione, con la densità media (pesata sulla massa)
+   - un pezzetto di materiale puro più corto di 2 cm rimasto fra una rampa e il confine di un taper
+     (es. "S8 1 cm") non fa riga a sé: viene unito alla riga della rampa accanto, nello stesso taper
+     (dal 18/11/2026). La massa della riga resta la somma delle sue fettine reali
 
 Risultato: **forma del taper perfettamente liscia**, e la velocità di affondamento diventa
 un'**approssimazione** del target invece che un valore esatto ovunque — assorbe interamente
