@@ -355,11 +355,11 @@ public class ProjectSegment : INotifyPropertyChanged
 
     /// <summary>Required density at start of compensated segment (first slice).</summary>
     public string CompStartDensityText => _compSliceDensities.Length > 0
-        ? $"{_compSliceDensities[0]:0.000}" : "—";
+        ? $"{_compSliceDensities[0]:0.00}" : "—";
 
     /// <summary>Required density at end of compensated segment (last slice).</summary>
     public string CompEndDensityText => _compSliceDensities.Length > 0
-        ? $"{_compSliceDensities[_compSliceDensities.Length - 1]:0.000}" : "—";
+        ? $"{_compSliceDensities[_compSliceDensities.Length - 1]:0.00}" : "—";
 
     // Legacy alias (used by CSV export)
     public double VolumeMm3 => VolumeCm3 * 1000.0;

@@ -659,7 +659,7 @@ public static class FlyLinePdfExporter
                                             sCol.Item().Width(44).Text($"#{hex.ToUpper()}")
                                                 .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
                                             if (nd.DensityGCm3 > 0)
-                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00#} g/cm³")
+                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00} g/cm³")
                                                     .FontSize(6f).Bold().FontColor(ColText).AlignCenter();
                                             if (!string.IsNullOrWhiteSpace(nd.Label) && !nd.Label.StartsWith("ρ ") && nd.Label != "N/A")
                                                 sCol.Item().Width(44).Text(nd.Label)
@@ -754,7 +754,7 @@ public static class FlyLinePdfExporter
                                             sCol.Item().Width(44).Text($"#{hex.ToUpper()}")
                                                 .FontSize(5.5f).FontColor(ColMuted).AlignCenter();
                                             if (nd.DensityGCm3 > 0)
-                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00#} g/cm³")
+                                                sCol.Item().Width(44).Text($"ρ {nd.DensityGCm3:0.00} g/cm³")
                                                     .FontSize(6f).Bold().FontColor(ColText).AlignCenter();
                                             if (!string.IsNullOrWhiteSpace(nd.Label) && !nd.Label.StartsWith("ρ ") && nd.Label != "N/A")
                                                 sCol.Item().Width(44).Text(nd.Label)
@@ -914,13 +914,13 @@ public static class FlyLinePdfExporter
                                         var a = RealMaterial(bands[bi - 1].Dens);
                                         var b = RealMaterial(bands[bi + 1].Dens);
                                         matLabel = $"{a.Label}→{b.Label}";
-                                        densText = $"{bands[bi - 1].Dens:0.00#}→{bands[bi + 1].Dens:0.00#}";
+                                        densText = $"{bands[bi - 1].Dens:0.00}→{bands[bi + 1].Dens:0.00}";
                                         (sr2, sg2, sb2) = ((byte)((a.R + b.R) / 2), (byte)((a.G + b.G) / 2), (byte)((a.B + b.B) / 2));
                                     }
                                     else
                                     {
                                         (matLabel, sr2, sg2, sb2) = RealMaterial(dens);
-                                        densText = $"{dens:0.00#}";
+                                        densText = $"{dens:0.00}";
                                     }
                                     var sw2 = PdfColor.FromRGB(sr2, sg2, sb2);
                                     dr.Item().Column(sc =>

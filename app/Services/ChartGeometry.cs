@@ -282,7 +282,7 @@ public static class ChartGeometry
                 Label($"M{r.Nozzle + 1}", mid, (nTop + nBot) / 2, true, fontSize, boxed: true);
             if (r.LengthCm > len * 0.025)
             {
-                Label($"ρ {r.StartRho:0.000}", mid, rhoY, false, fontSize * 0.9f);
+                Label($"ρ {r.StartRho:0.00}", mid, rhoY, false, fontSize * 0.9f);
                 Label($"{r.LengthCm:0}", mid, lenY, false, fontSize * 0.85f);
             }
         }

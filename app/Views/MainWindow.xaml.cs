@@ -85,7 +85,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// pinned caption above the zones grid so it isn't read as "missing".</summary>
     public string M1ZoneColorHex => Nozzles.Count > 0 ? Nozzles[0].ColorHex : "888888";
     public string M1ZoneSummaryText => Nozzles.Count > 0
-        ? $"M1 · ρ {Nozzles[0].DensityGCm3:0.00#} g/cm³ · default — fills the line wherever no zone below applies"
+        ? $"M1 · ρ {Nozzles[0].DensityGCm3:0.00} g/cm³ · default — fills the line wherever no zone below applies"
         : string.Empty;
 
     private void NotifyM1ZoneSummaryChanged()
@@ -4126,7 +4126,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             Nozzles[i].DensityGCm3 = qDens[i];
             if (string.IsNullOrWhiteSpace(Nozzles[i].Label) || Nozzles[i].Label.StartsWith("ρ ")
                 || Nozzles[i].Label == "N/A")
-                Nozzles[i].Label = $"ρ {qDens[i]:0.00#}";
+                Nozzles[i].Label = $"ρ {qDens[i]:0.00}";
         }
         // Clear unused nozzle slot densities (keep colours and custom labels)
         for (int i = qDens.Length; i < 4; i++)
