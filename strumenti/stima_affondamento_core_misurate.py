@@ -1,11 +1,14 @@
 # Stima 18/11/2026: file QC "(Real)" -> densita' = media della linea finita (core compreso).
+# Con --tutti: tutti i progetti NC con core e senza zone (densita' = linea finita, 18/11).
 # Conserva la massa totale, ricava la densita' del coating per ogni scenario di core, ricalcola.
 import json, glob, math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from stima_affondamento_core import cyl_speed, A, SCEN, ROOT
-for p in sorted({q.lower(): q for q in glob.glob(os.path.join(ROOT,'Razorblade','QC Extrahover','*eal*.flp'))}.values()):
+ALL = '--tutti' in sys.argv   # tutti i progetti NC con core da catalogo e senza zone
+pat = os.path.join(ROOT,'**','*.flp') if ALL else os.path.join(ROOT,'Razorblade','QC Extrahover','*eal*.flp')
+for p in sorted({q.lower(): q for q in glob.glob(pat, recursive=True)}.values()):
     d=json.load(open(p,encoding='utf-8-sig')); n=sorted(d['DesignNodes'],key=lambda q:q['X'])
-    if len(n)<2 or not d.get('CoreDiameterMm'): continue
+    if len(n)<2 or not d.get('CoreDiameterMm') or d.get('IsCompensatedDerivative') or d.get('NozzleZones') or not d.get('SharedDensityGCm3'): continue
     dc=d['CoreDiameterMm']; rho=d['SharedDensityGCm3']; t=d.get('WaterTempC') or 20
     # integrate area along x (1 cm steps)
     L=n[-1]['X']-n[0]['X']; SA=0
@@ -14,7 +17,7 @@ for p in sorted({q.lower(): q for q in glob.glob(os.path.join(ROOT,'Razorblade',
         for i in range(k):
             D=a['Y']+(b['Y']-a['Y'])*(i+0.5)/k; SA+=A(D)*(b['X']-a['X'])/k
     M=rho*SA
-    print(os.path.basename(p), f'rho_mean {rho:.4f}  L {L:.0f} cm  mass {M*0.01:.1f} g')
+    print(os.path.relpath(p,ROOT), f'rho_mean {rho:.4f}  L {L:.0f} cm  mass {M*0.01:.1f} g')
     tip=n[0]; thin=min(n,key=lambda q:q['Y']); fat=max(n,key=lambda q:q['Y'])
     for k,rc in SCEN.items():
         rcoat=(M-rc*A(dc)*L)/(SA-A(dc)*L)

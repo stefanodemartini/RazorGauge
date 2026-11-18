@@ -48,10 +48,20 @@ Risultati (in/s, acqua del file):
 Conclusione: finché non si conosce ρ_core le previsioni sulla punta non sono affidabili nemmeno
 nel segno. Misura proposta, fattibile subito: pesare ~10 m di core nudo (bilancia 0.01 g) e misurarne
 il Ø col RazorGauge ⇒ ρ_core. In alternativa si calibra all'inverso da una linea vera di cui si
-conosce il comportamento della punta. **Chiarito da Stefano:** le densità dei .flp progettati
-(valori tondi, ugelli) sono quelle del **compound dell'ugello** = ρ_coat. Vale quindi la prima
-lettura: oggi le velocità di quei progetti trascurano il core. I file QC "(Real)" (valori non tondi)
-restano da interpretare come medie misurate.
+conosce il comportamento della punta. **Chiarito da Stefano (corretto la stessa sera):** le densità
+dei .flp sono la **densità della linea finita**, core compreso, NON quella del compound. Prima
+aveva detto "compound" e si è corretto. Vale quindi la seconda lettura, quella a massa conservata
+(`stima_affondamento_core_misurate.py --tutti`, progetti NC con core e senza zone). La massa totale
+e la velocità media restano giuste. Cambia la **distribuzione**: se il core è più leggero della
+linea, le parti sottili (punta, running line) rallentano e il corpo accelera. Se è più pesante,
+succede il contrario. La densità del compound **non è nota** e va ricavata:
+`ρ_coat = (ρ_linea·A(D) − ρ_core·A(d_core)) / (A(D) − A(d_core))`.
+Esempi (core 0.90): Bellaria #8 Opt.2 punta +0.39 → −0.17, corpo +0.62 → +1.19, coat 1.12.
+Phantom Hover V.2 0.70: punta +0.53 → −0.07, corpo +0.97 → +1.37, coat 1.07. Con core 1.10 le punte
+accelerano leggermente (+0.5…+0.7) e il corpo di alcune linee da 1.02 arriva a galleggiare.
+**Aperto:** su quale pezzo è stata misurata la densità della linea finita (linea intera, testa,
+campione a un certo Ø)? Il conto a massa conservata assume la linea intera, running line compresa,
+che per la sua lunghezza pesa molto nel ricavare ρ_coat.
 
 **In attesa (18/11):** Stefano ha chiesto al fornitore il **peso in g/m di ogni size** di core.
 Procedura all'arrivo dei dati:
