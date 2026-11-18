@@ -59,9 +59,12 @@ succede il contrario. La densità del compound **non è nota** e va ricavata:
 Esempi (core 0.90): Bellaria #8 Opt.2 punta +0.39 → −0.17, corpo +0.62 → +1.19, coat 1.12.
 Phantom Hover V.2 0.70: punta +0.53 → −0.07, corpo +0.97 → +1.37, coat 1.07. Con core 1.10 le punte
 accelerano leggermente (+0.5…+0.7) e il corpo di alcune linee da 1.02 arriva a galleggiare.
-**Aperto:** su quale pezzo è stata misurata la densità della linea finita (linea intera, testa,
-campione a un certo Ø)? Il conto a massa conservata assume la linea intera, running line compresa,
-che per la sua lunghezza pesa molto nel ricavare ρ_coat.
+**Precisazione di Stefano:** finora la coda è stata trattata **come un corpo unico omogeneo**, non
+come core + coat. Il numero del .flp è quindi la densità di quel corpo, uguale in ogni sezione,
+non una misura fatta su un pezzo particolare. Nel modello nuovo diventa la **media** della linea a
+massa totale fissa, mentre la densità reale ρ_eff(x) varia con D. Il compound si ricava riferendo
+la massa alla linea intera (è quello che fa lo script). Per i progetti nuovi converrà progettare
+direttamente con compound + core e mostrare la densità media solo come dato derivato.
 
 **In attesa (18/11):** Stefano ha chiesto al fornitore il **peso in g/m di ogni size** di core.
 Procedura all'arrivo dei dati:
