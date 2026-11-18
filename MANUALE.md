@@ -802,6 +802,15 @@ L'opposto della generazione per peso linea (§10): stessa geometria (stesso tape
 ### File generati
 Ogni velocità produce un file `NomeProgetto X.XXips.flp` (o `NomeProgetto Floating.flp` per lo 0) accanto al progetto originale (che deve essere già stato salvato).
 
+**Nodi e ugelli dei file generati (dal 18/11/2026, vale per tutti e tre i generatori: peso, sink speed, densità)**:
+- la forma del file generato viene dai **nodi disegnati** del progetto: stessi nodi, stessi segmenti.
+  Le zone del progetto aperto servono solo a calcolare la massa di partenza (ogni pezzo alla sua
+  densità reale). Prima la linea veniva spezzata ai confini delle zone e quei tagli finivano nel
+  file come nodi: due segmenti da 5 cm in più dove una zona iniziava/finiva
+- nelle varianti a materiale unico (sink speed, densità) solo **M1** prende la nuova densità; gli
+  altri ugelli vengono svuotati. Prima tutti e quattro prendevano lo stesso valore, e la linea
+  sembrava a 4 ugelli
+
 ---
 
 ## 11b. Generazione Famiglia per Densità

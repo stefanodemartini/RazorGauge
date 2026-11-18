@@ -5230,7 +5230,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         var dlg = new GenerateLineFamilyDialog(currentLw) { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedWeights.Count == 0) return;
 
-        var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        // Mass from the effective segments (zones split in, each piece at its real density); shape
+        // from the drawn ones. Using the split pieces as geometry wrote every zone boundary into the
+        // new profile as a node — two stray 5 cm segments where a zone started/ended (18/11/2026).
+        var (_, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        var sorted = DrawnSegmentsForFamily();
         var variants = dlg.SelectedWeights.Select(lw =>
         {
             double targetGr = LineWeightFamilyCalc.Targets.First(t => t.Lw == lw).Gr;
@@ -5270,7 +5274,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         var dlg = new GenerateDensityFamilyDialog(Nozzles.Select(n => n.DensityGCm3)) { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedDensities.Count == 0) return;
 
-        var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        // Mass from the effective segments (zones split in, each piece at its real density); shape
+        // from the drawn ones. Using the split pieces as geometry wrote every zone boundary into the
+        // new profile as a node — two stray 5 cm segments where a zone started/ended (18/11/2026).
+        var (_, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        var sorted = DrawnSegmentsForFamily();
         double sourceGrains = sourceGrams * LineWeightFamilyCalc.GramsToGrains;
         bool keepClass = dlg.KeepClassMass;
 
@@ -5294,10 +5302,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         {
             project.IsSinking = !label.EndsWith("floating", StringComparison.Ordinal);
             // Each variant is one uniform material by construction, so the source's M1-M4 would be
-            // stale: point every nozzle at the density this variant actually uses, and drop the
+            // stale: give M1 the density this variant actually uses (other nozzles emptied), and drop the
             // source's zones, which described materials this line no longer has.
             double newDensity = result.Segments.Count > 0 ? result.Segments[0].SpecWeightGCm3 : 0;
-            foreach (var n in project.NozzleDefinitions) n.DensityGCm3 = newDensity;
+            SingleMaterialNozzles(project, newDensity);
             project.NozzleZones.Clear();
         });
     }
@@ -5326,7 +5334,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         var dlg = new GenerateSinkSpeedFamilyDialog { Owner = Window.GetWindow(this) };
         if (dlg.ShowDialog() != true || dlg.SelectedSpeedsIns.Count == 0) return;
 
-        var (sorted, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        // Mass from the effective segments (zones split in, each piece at its real density); shape
+        // from the drawn ones. Using the split pieces as geometry wrote every zone boundary into the
+        // new profile as a node — two stray 5 cm segments where a zone started/ended (18/11/2026).
+        var (_, sourceGrams) = LineWeightFamilyCalc.PrepareSource(BuildEffectiveSegmentsForFamilySource());
+        var sorted = DrawnSegmentsForFamily();
         double sourceGrains = sourceGrams * LineWeightFamilyCalc.GramsToGrains;
 
         var variants = dlg.SelectedSpeedsIns.Select(ips =>
@@ -5354,10 +5366,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             // variant gets a newly-solved uniform density, so the material panel must follow it
             // rather than keep showing the source's now-stale values.
             double newDensity = result.Segments.Count > 0 ? result.Segments[0].SpecWeightGCm3 : 0;
-            foreach (var n in project.NozzleDefinitions) n.DensityGCm3 = newDensity;
+            SingleMaterialNozzles(project, newDensity);
             // A source zone with its own material has no meaning any more: this variant is one
             // new uniform density by definition (see GenerateSinkSpeedFamilyMember's own comment),
-            // so every nozzle above just got set to that same number. Leaving the zone rows in
+            // so M1 just got that number and the other nozzles were emptied. Leaving the zone rows in
             // place would show a still-coloured "zone" pointing at a material that is now
             // identical to the rest of the line — a stale, confusing leftover, not a real one.
             project.NozzleZones.Clear();
@@ -5434,6 +5446,30 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     }
 
     /// <summary>Builds a standalone NC project for one generated family member.</summary>
+    /// <summary>The drawn taper, one segment per pair of design nodes, at the design's own density —
+    /// the shape a family member is scaled from (never the zone-split pieces, see the callers).</summary>
+    private List<ProjectSegment> DrawnSegmentsForFamily() => ProjectSegments
+        .OrderBy(s => s.StartCm)
+        .Select(seg => new ProjectSegment
+        {
+            Index = seg.Index, StartCm = seg.StartCm, EndCm = seg.EndCm,
+            StartDiameterMm = seg.StartDiameterMm, EndDiameterMm = seg.EndDiameterMm,
+            Name = seg.Name, SpecWeightGCm3 = seg.SpecWeightGCm3, IsHead = seg.IsHead,
+        }).ToList();
+
+    /// <summary>A one-material variant: M1 carries its density, the other nozzles are emptied —
+    /// four nozzles at the same density read as a 4-nozzle line that needs none of them.</summary>
+    private static void SingleMaterialNozzles(FlyLineProject project, double density)
+    {
+        for (int i = 0; i < project.NozzleDefinitions.Count; i++)
+        {
+            var n = project.NozzleDefinitions[i];
+            if (i == 0) { n.DensityGCm3 = density; continue; }
+            n.DensityGCm3 = 0;
+            n.Label = string.Empty;
+        }
+    }
+
     private FlyLineProject BuildFamilyMemberProject(LineWeightFamilyCalc.FamilyGenerationResult result, string name)
     {
         var segs   = result.Segments;
