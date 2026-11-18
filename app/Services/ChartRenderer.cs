@@ -69,6 +69,7 @@ public static class ChartRenderer
 
         double pdfLabelYMin = 0, pdfLabelYMax = 0;
         double? stripsBottom = null;
+        double? labelDataPerPxY = null; // the vertical scale the node labels were laid out at
 
         if (baseNodes.Count >= 2)
         {
@@ -140,6 +141,7 @@ public static class ChartRenderer
             double dataPerPxX = (xSpan * 1.15) / 3000.0;
             double yEstSpan   = maxDiam + 2 * rowGap * (1.6 + 3 * 1.2);
             double dataPerPxY = yEstSpan / 480.0;
+            labelDataPerPxY = dataPerPxY;
             // Comp mode: the taper (slope) changes only, not every fine ~1cm node — a loaded C
             // snapshot has hundreds of those. Nozzle changes have their own dashed boundaries and
             // length chain in the NOZZLE strip under the chart: the two must never be confused.
@@ -323,7 +325,20 @@ public static class ChartRenderer
             plot.Axes.SetLimitsX(xl.Left - (xl.Right - xl.Left) * 0.05, xl.Right);
         }
 
-        int height = (int)Math.Clamp(600 * finalRange / labelsRange, 600, 1150);
+        // The node labels were placed against each other assuming dataPerPxY data units per pixel.
+        // The image must really have that scale, or the boxes drawn are taller than the ones
+        // tested and labels on neighbouring rows overlap (seen: "Ø 1.44 1025 cm" over "Ø 1.09
+        // 1115 cm" — the strips under the chart widened the Y range while the image stayed 600 px,
+        // so every label came out ~60% taller than planned). So the height follows the range:
+        // plot area = range / scale, plus the fixed axes margins (~75 px of ticks and title).
+        int height;
+        if (labelDataPerPxY is double k && k > 0)
+        {
+            var yl = plot.Axes.GetLimits();
+            height = (int)Math.Clamp((yl.Top - yl.Bottom) / k + 75, 600, 1600);
+        }
+        else
+            height = (int)Math.Clamp(600 * finalRange / labelsRange, 600, 1150);
         return plot.GetImage(3200, height).GetImageBytes(ScottPlot.ImageFormat.Png);
     }
 }
