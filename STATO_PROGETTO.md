@@ -58,8 +58,23 @@ Fatto:
   li richiama, si usavano solo per le stime del 18-19/11). Segnati in testa al file; restano come
   documentazione. Leggono la densità del file come densità di linea, quindi sui file convertiti
   sbagliano: il calcolo ora lo fa l'app.
-- Anche `strumenti/verifica_massa_C.py` e `verifica_massa_zone.py` (verifiche del 16/11) calcolano la
-  massa senza core: sui progetti con core non corrispondono più all'app. Non toccati.
+- `strumenti/verifica_massa_C.py` e `verifica_massa_zone.py` (verifiche indipendenti del 16/11):
+  **tenuti e aggiornati al core** (19/11 sera), perché servono proprio a controllare l'app. Core dal
+  file o dal catalogo (copia di CoreCatalog nello script). Lanciare con `python -X utf8`.
+  - Zone (Bellaria #8 Opt.2, core 17 lb): dentro la zona massa conservata 0.00 %; scarto solo nel
+    segmento appena fuori, come accettato il 16/11. OK.
+  - **File C convertiti: NON validi.** Massa totale ok (≤ 0.3 %), ma localmente no. Peggior finestra
+    30 cm prima/dopo la conversione: ExtraHover V.2 2.40 C +3.5 % → **+32 %** (punta), Nautilus 0.5 C
+    0.50 −0.27 → −2.1 %, Phantom Hover V.2 C 0.70 +0.43 → −0.97 %, ST27-60 V.2 C 0.50 invariato.
+    Causa: un file C è la soluzione di Compensate col modello omogeneo; il materiale più denso sta
+    nelle parti sottili, dove il core occupa fino al 70 % della sezione. Per mantenerne la massa il
+    compound esplode: ExtraHover 2.40 C 1.53 → **3.57**, Bellaria 1.00 C 1.13 → 1.41, Nautilus 1.5 C
+    1.19 → 1.41. 3.57 non è producibile. I progetti NC convertiti invece sono plausibili (compound
+    0.85–1.47).
+  - **Da fare:** rigenerare i file C con Compensate nuovo (col core) partendo dagli NC, e dare a
+    Compensate un **limite massimo del compound** producibile (oggi c'è solo il minimo 0.94): serve
+    il valore massimo che il fornitore può estrudere. Fino ad allora i file C con core non vanno in
+    produzione.
 - I 4 QC "(Real)" con Ø core 0.575 e CoreType vuoto non hanno densità del core ⇒ niente core nei calcoli.
 - Nessun campo nell'interfaccia per scrivere a mano la densità del core (solo da catalogo o nel file).
 - Fase 3 (PDF con compound per ugello + ρ per sezione + avvisi) non fatta: il PDF usa già le

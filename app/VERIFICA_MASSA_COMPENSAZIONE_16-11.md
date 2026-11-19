@@ -7,6 +7,10 @@ più misure numeriche sui file veri, con script indipendenti dall'app:
 - `strumenti/verifica_massa_C.py <NC.flp> <C.flp>`: massa NC contro C (totale, 30 ft, peggiore finestra da 30 cm)
 - `strumenti/verifica_massa_zone.py <NC.flp>`: replica di `ApplyZoneDensities(adapt=Yes)` con zone di prova
 
+> **19/11/2026:** i due script tengono conto del core (densità = compound, core dentro). I numeri qui
+> sotto sono del 16/11, prima del modello core + coating; i file C convertiti non li rispettano più
+> localmente (vedi STATO_PROGETTO, 19/11).
+
 ## 1. File C (Compensate): massa conservata entro lo 0.1 %, diametro continuo
 
 La massa **non** è conservata esattamente per costruzione: il diametro resta quello della soluzione
