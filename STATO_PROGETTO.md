@@ -148,6 +148,8 @@ che appesantisce. Con una treccia lasca (ρ ~0.7) sarebbe il contrario. Servono 
 core **0.65–0.70 mm** (~21 %, classe 17 lb). Core in bobina non disponibili, solo questi.
 - Hover: con ρ_core qualunque fra 0.7 e 1.3 il compound è 1.079…1.053 ⇒ **ρ_coat ≈ 1.066 ± 0.013**,
   primo compound ricavato da misura, indipendente dal core. 0.45 mm è sotto tutto il catalogo (≈8–10 lb?).
+  **Decisione di Stefano:** per la hover si assume core **12 lb** (0.60 mm, 0.29 g/m stimati, ρ 1.03,
+  7.4 % della sezione) ⇒ **ρ_coat = 1.066**, invariato: il core qui non sposta il risultato.
 - Floating: stesso intervallo ⇒ compound 0.82…0.98, troppo largo. Prossimo: pesare il core estratto
   (zavorra, 10 ripetizioni; atteso 0.16–0.20 g; ogni 0.01 g sposta il compound di ~0.015).
 
