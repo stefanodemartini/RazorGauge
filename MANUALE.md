@@ -515,22 +515,31 @@ schermo che lo dicesse. Il dato arrivava già via WebSocket ma veniva scartato.
 ### Core (anima)
 
 Il selettore **Core** nel pannello materiali elenca i core realmente a magazzino, con materiale,
-carico di rottura e la gamma di diametro del fornitore:
+carico di rottura, Ø e, dove il fornitore l'ha dato, il **peso al metro** del core nudo:
 
-| Materiale | lb | Ø |
-|---|---|---|
-| Polyester | 12 | 0.55–0.60 |
-| Polyester | 17 | 0.65–0.72 |
-| Polyester | 20 | 0.82–0.87 |
-| Polyester | 25 | 0.90–0.95 |
-| Polyester | 30 | 1.00–1.05 |
-| Polyester | 35 | 1.15 |
-| Kevlar | 60 | ≥ 0.90 |
-| Kevlar | 80 | ≥ 0.90 |
+| Materiale | lb | Ø | g/m | densità apparente |
+|---|---|---|---|---|
+| Polyester | 12 | 0.55–0.60 | — | — |
+| Polyester | 17 | **0.72** | 0.43 | 1.06 |
+| Polyester | 20 | **0.82** | 0.57 | 1.08 |
+| Polyester | 25 | **0.90** | 0.61 | 0.96 |
+| Polyester | 30 | 1.00–1.05 | — | — |
+| Polyester | 35 | 1.15 | — | — |
+| Kevlar | 60 | ≥ 0.90 | — | — |
+| Kevlar | 80 | ≥ 0.90 | — | — |
 
-- Il fornitore dà una **gamma**, non un valore. Scegliendo una voce il campo **Ø** si riempie col
-  **punto medio**; la gamma resta scritta accanto, così la tolleranza non sparisce dietro un numero
-  solo. Il Ø è sovrascrivibile a mano per usare un altro punto della gamma
+- **19/11/2026:** per 17, 20 e 25 lb il fornitore ha mandato un Ø con il peso di 1 m, e quelle coppie
+  sono **la specifica**: sostituiscono le vecchie gamme (17 lb 0.65–0.72, 20 lb 0.82–0.87, 25 lb
+  0.90–0.95). Una gamma così larga spostava la densità del 17 lb da 1.06 a 1.30. La densità apparente
+  è g/m diviso la sezione del Ø (aria nella treccia compresa) e compare sotto il selettore. Una quarta
+  coppia, 0.95 mm / 0.80 g (densità 1.13), non è ancora attribuita a un carico, quindi il 30 lb
+  resta con la gamma vecchia
+- Dove il fornitore dà ancora una **gamma**, scegliendo la voce il campo **Ø** si riempie col
+  **punto medio**; la gamma resta scritta accanto. Il Ø è sempre sovrascrivibile a mano
+- Un progetto salvato con un'etichetta del catalogo vecchio ("Polyester 17 lb — 0.65–0.72 mm") viene
+  riconosciuto per materiale e carico e mostrato con l'etichetta nuova. I 21 progetti con 17/20 lb
+  sono stati migrati sul disco il 19/11 (Ø 0.685 → 0.72, 0.845 → 0.82; backup
+  `FlyLineProfiler/backup_core_2026-11-19.zip`)
 - Restano in lista anche le vecchie descrizioni generiche ("Braided multifilament nylon"…): non
   hanno diametro, quindi un progetto che ne usa una si apre e si stampa come prima, semplicemente
   non disegna il core
@@ -555,9 +564,8 @@ Nel `.flp`: `CoreType` (come prima) più **`CoreDiameterMm`** e **`ShowCore`**. 
 il diametro e lo recupera dalla voce che il suo `CoreType` nomina, se ne nomina una.
 
 > Il Ø del core **non entra ancora nel calcolo della massa**. `MassLinearCalculator` sa già
-> modellare anima + rivestimento, ma gli serve anche la **densità** del core, che il fornitore non
-> ha dato — e la densità di una treccia non è quella del materiale pieno, perché la treccia ha aria
-> dentro. Finché manca quel numero il calcolo resta a sezione piena, come prima.
+> modellare anima + rivestimento e ora la **densità** del core c'è per 17/20/25 lb (vedi tabella),
+> ma l'integrazione nel calcolo non è ancora fatta: il calcolo resta a sezione piena, come prima.
 
 ### Full Line vs Shooting Head
 - **Full Line**: attiva la colonna "Head" nella tabella segmenti

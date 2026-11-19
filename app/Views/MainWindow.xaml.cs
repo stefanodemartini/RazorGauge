@@ -163,9 +163,14 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         {
             var spec = CoreCatalog.Find(_coreType);
             if (spec != null)
+            {
+                var mass = spec.GramsPerMeter is double g
+                    ? $" · {g:0.00} g/m · ρ {spec.DensityGCm3:0.00}"
+                    : string.Empty;
                 return _coreDiameterMm is double d && Math.Abs(d - spec.NominalMm) > 1e-9
-                    ? $"{spec.RangeText} · using {d:0.000} mm"
-                    : $"{spec.RangeText} · using {spec.NominalMm:0.000} mm";
+                    ? $"{spec.RangeText}{mass} · using {d:0.000} mm"
+                    : $"{spec.RangeText}{mass} · using {spec.NominalMm:0.000} mm";
+            }
             return _coreDiameterMm is double dm ? $"Ø {dm:0.000} mm" : "no diameter — core not drawn";
         }
     }
@@ -1437,6 +1442,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         _colorNote = project.ColorNote ?? string.Empty;
         OnPropertyChanged(nameof(ColorNote));
         _coreType = project.CoreType ?? string.Empty;
+        // A label from an older catalogue is shown under the current one, so the picker selects it.
+        if (CoreCatalog.Find(_coreType) is CoreSpec current) _coreType = current.Label;
         // A file older than the catalogue has no diameter of its own; recover it from the entry its
         // CoreType names, if it names one.
         _coreDiameterMm = project.CoreDiameterMm ?? CoreCatalog.Find(_coreType)?.NominalMm;

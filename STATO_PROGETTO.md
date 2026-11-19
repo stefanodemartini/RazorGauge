@@ -94,6 +94,15 @@ Prossimo passo decisivo: **misurare il Ø del core 17 lb nudo col RazorGauge** (
 bilancia 0.01 g). Controllo di realtà: se il corpo delle linee da 0.5 in/s non galleggia in acqua,
 il core 17 lb è sul lato 0.72 mm.
 
+**Decisione di Stefano (19/11):** niente tolleranze così ampie sui core. Valgono le coppie Ø/peso del
+fornitore: **17 lb = 0.72 mm, 0.43 g/m (ρ 1.06) · 20 lb = 0.82 mm, 0.57 g/m (1.08) · 25 lb =
+0.90 mm, 0.61 g/m (0.96)**. Fatto: `CoreCatalog` con Ø singolo e g/m (densità mostrata sotto il
+selettore), etichette vecchie riconosciute per materiale + carico, 21 `.flp` migrati sul disco
+(backup `FlyLineProfiler/backup_core_2026-11-19.zip`). Il 0.95 mm / 0.80 g non è ancora abbinato a
+un carico (30 lb a catalogo è 1.00–1.05): 30 lb invariato. Il 12 lb (3 progetti) è senza dati.
+Con 17 lb a 1.06 il modello core + coating cambia poco rispetto alla linea omogenea (scenario
+"r1.06" sopra): la punta accelera e il corpo rallenta di 0.1–0.3 in/s, senza cambi di segno.
+
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
   alla geometria, interruttore per progetto.
