@@ -25,6 +25,16 @@ public static class SinkingSpeedCalc
     public  const double RhoFloor = 0.94; // g/cm³ — minimum practical material density (0.94 < ρ_water → will float)
 
     /// <summary>
+    /// Densest compound the supplier can extrude, g/cm³. PROVISIONAL (19/11/2026): the real figure
+    /// has been asked of the supplier. Needed since the core + coating model: to make a thin
+    /// section fast at constant mass Compensate shrinks it towards the core, and the little coating
+    /// left would have to be absurdly dense (59, 190, 408 g/cm³ seen on real files at 2.4 in/s).
+    /// Like the floor, a slice that reaches it keeps this compound, takes the diameter that holds
+    /// its mass, and sinks slower than the target — flagged, never silent.
+    /// </summary>
+    public  const double RhoCeiling = 2.0;
+
+    /// <summary>
     /// Fastest sink speed, in in/s, still called "neutral" rather than "sinking".
     ///
     /// A product convention, not a physical boundary: anything denser than water sinks, and this
@@ -129,14 +139,16 @@ public static class SinkingSpeedCalc
             // that gives it around the core.
             double rhoLineNew = massD2 / (dNew * dNew) / 1000.0; // g/cm³
             dens[i] = Models.LineCore.CompoundForLineDensity(diams[i], rhoLineNew, core);
-            // Clamp to floor: the compound cannot be lighter than RhoFloor
-            if (dens[i] < RhoFloor)
+            // Clamp to the manufacturable range: the compound can be neither lighter than RhoFloor
+            // nor denser than RhoCeiling. The slice then keeps its mass on the diameter that
+            // compound needs, and its speed departs from the target.
+            // (dNew at or inside the core gives an infinite compound: the ceiling catches it.)
+            if (dens[i] < RhoFloor || dens[i] > RhoCeiling || double.IsNaN(dens[i]) || dNew * 1000.0 <= (core?.DiameterMm ?? 0))
             {
-                dens[i]   = RhoFloor;
-                // diameter that carries the same mass with the floor compound (g/cm per length)
+                dens[i]   = dens[i] < RhoFloor ? RhoFloor : RhoCeiling;
                 double massPerCm = massD2 * Math.PI / 4.0 * 1000.0 / 100.0; // kg/m → g/cm: ×1000/100
-                double dFloor = Models.LineCore.DiameterForMassPerLength(massPerCm, RhoFloor);
-                if (!double.IsNaN(dFloor)) diams[i] = dFloor;
+                double dLim = Models.LineCore.DiameterForMassPerLength(massPerCm, dens[i]);
+                if (!double.IsNaN(dLim)) diams[i] = dLim;
                 clmpd[i]  = true;
             }
         }
@@ -179,7 +191,7 @@ public static class SinkingSpeedCalc
         // Lowest compound tried. Was 1.001 ("anything less floats"), true for a homogeneous line;
         // with a core denser than the compound a slow line's compound can sit below water.
         const double rhoMin = RhoFloor;
-        const double rhoMax = 2.5;
+        const double rhoMax = RhoCeiling;
 
         double sMin = LineSinkSpeedCore(isSalt, tempC, slices, rhoMin);
         double sMax = LineSinkSpeedCore(isSalt, tempC, slices, rhoMax);

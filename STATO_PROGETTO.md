@@ -47,6 +47,26 @@ Fatto:
 - Esempio: Bellaria #8 Opt.2 (17 lb, 1.06): compound 1.00, massa 493.2 gr invariata, punta
   0.39 → 0.48 in/s, corpo 0.62 → 0.36 in/s.
 
+**Verifica funzionale nell'app vera (19/11 notte, banco WPF via reflection, copie dei file in temp).**
+Stefano: i file C sono solo esperimenti, si rifanno tutti; verificare che il sistema nuovo funzioni.
+Provati Bellaria #8 Opt.2 (17 lb), Phantom Hover V.2 0.70 (17 lb), Nautilus 0.5 (20 lb), ExtraHover
+V.2 2.40 (17 lb), ST27-60 V.2 (12 lb):
+- File vecchio aperto → convertito, massa 31.960 g invariata; salva + riapri → nessuna seconda
+  conversione, massa identica.
+- Cambio core (12/20 lb/generico) → core, massa e velocità ricalcolati subito, segno giusto.
+- Famiglie per grammatura #5/#8/#11 → 140.0/210.0/330.0 gr esatti col core.
+- `flyline pdf` di un C nuovo → PDF creato (contenuto non controllato a vista).
+- Compensate 0.5–1.0 in/s → compound 0.95–1.38, massa totale ±0.3 %, finestra 30 cm ≤ 2 %, Ø continuo.
+- **Trovato e corretto: Compensate veloce chiedeva compound assurdi** (2.4 in/s: 8.75, 59, 190, 408).
+  Col core, stringere una sezione sottile a massa costante la porta verso il core e il poco coating
+  rimasto dovrebbe essere densissimo. Aggiunto **tetto del compound `RhoCeiling` = 2.0 PROVVISORIO**
+  (come il minimo 0.94: la fetta resta a 2.0, Ø a massa conservata, va più lenta del target, avviso).
+  Dopo: compound 1.21–2.00, massa totale ±0.5 %, finestra 30 cm fino a −4.7 % a 2.4 in/s.
+- **Aggiunto avviso spessore coating** sotto `MinCoatWallMm` = 0.10 mm per lato PROVVISORIO (solo
+  avviso). Esempio: Bellaria a 2.4 in/s scende a Ø 0.787 sul core da 0.72 ⇒ 0.03 mm per lato.
+- **Da chiedere al fornitore:** compound massimo estrudibile e spessore minimo del coating.
+- I file C in Projects sono ancora quelli convertiti (non validi): da rifare con Compensate nuovo.
+
 **Non ancora adeguati (da sapere):**
 - ~~`FlyLinePhysics`~~ **fatto (19/11 sera)**. Principio di Stefano: *FlyLinePhysics usa la massa
   finale, indipendentemente da come è composta.* L'analisi lavora solo su m(x) e D(x); la

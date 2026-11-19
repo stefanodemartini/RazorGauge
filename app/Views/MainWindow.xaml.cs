@@ -4142,7 +4142,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
 
             for (int i = 0; i < dens[k].Length; i++)
             {
-                clamped[i] = dens[k][i] <= SinkingSpeedCalc.RhoFloor + 1e-6;
+                clamped[i] = dens[k][i] <= SinkingSpeedCalc.RhoFloor + 1e-6
+                          || dens[k][i] >= SinkingSpeedCalc.RhoCeiling - 1e-6;
                 if (clamped[i]) anyAtFloor = true;
 
                 double achieved = SinkingSpeedCalc.CylinderSinkSpeed(_waterIsSalt, _waterTempC, diams[k][i], dens[k][i]);
@@ -6420,6 +6421,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         double worstSpeedErrIns;
         double[] usedDensities = Array.Empty<double>();
         int usedNozzles = 0;
+        double minWallMm = double.NaN, minWallAtCm = 0; // thinnest coating wall of the solved line
         try
         {
             _compTargetSpeedMs  = targetMs;
@@ -6445,6 +6447,13 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             (anyClamped, worstSpeedErrIns) = QuantizeCompensationToRealMaterials(targetMs, nozzleCount);
             usedDensities = _compMaterialDensities?.ToArray() ?? Array.Empty<double>();
             usedNozzles   = _compCompounds?.Length ?? usedDensities.Length;
+            if (LineCore.Current is CoreModel core)
+                foreach (var seg in ProjectSegments.Where(s => s.HasCompensation))
+                    for (int i = 0; i < seg.CompSliceDiamsMm.Length; i++)
+                    {
+                        double w = (seg.CompSliceDiamsMm[i] - core.DiameterMm) / 2.0;
+                        if (double.IsNaN(minWallMm) || w < minWallMm) { minWallMm = w; minWallAtCm = seg.StartCm + seg.CompSliceXsCm[i]; }
+                    }
 
             // The C file's material list is the quantized density gradient, not this design's
             // nozzles — sync it in so BuildProjectObject picks it up, then restore below.
@@ -6490,7 +6499,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         }
 
         string clampWarn = anyClamped
-            ? "\n\n⚠ One or more sections use the ρ = 0.94 g/cm³ floor material — their diameter (and so their actual speed) departs a bit further from the target than the rest."
+            ? $"\n\n⚠ One or more sections hit a compound limit (floor {SinkingSpeedCalc.RhoFloor:0.00} or ceiling {SinkingSpeedCalc.RhoCeiling:0.00} g/cm³) — their diameter, and so their actual speed, departs further from the target than the rest. At the ceiling the target is out of reach there: the core takes too much of the section."
             : string.Empty;
         // Two densities that coincide at 2 decimals were merged into one material: the line has
         // fewer densities than were chosen. Said, with the nozzles it leaves free for colours.
@@ -6503,6 +6512,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
                         $"the same density, so they were merged — this line is the same as with {usedDensities.Length} densities." +
                         (free > 0 ? $" {free} nozzle{(free > 1 ? "s are" : " is")} free and can be used to differentiate colors." : "");
         }
+        // Core + coating: a section squeezed onto its core leaves a coating too thin to extrude.
+        string wallWarn = !double.IsNaN(minWallMm) && minWallMm < LineCore.MinCoatWallMm
+            ? $"\n\n⚠ Thinnest coating wall {minWallMm:0.000} mm per side at {minWallAtCm:0} cm (core {LineCore.Current?.DiameterMm:0.00} mm) — " +
+              $"below {LineCore.MinCoatWallMm:0.00} mm it may not be buildable. Use a thinner core or a slower target."
+            : string.Empty;
         UiStatus = $"Compensated file saved: {Path.GetFileName(compPath)}  ({targetIns:0.000} in/s, worst deviation {worstSpeedErrIns:0.000} in/s)";
         var openIt = MessageBox.Show(
             $"Compensated file saved.\n\n" +
@@ -6513,10 +6527,10 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             $"Diameters stay close to the original taper (mass-conserving, same rule as a zone) — actual " +
             $"sink speed is an approximation, worst deviation {worstSpeedErrIns:0.000} in/s.\n" +
             "This design is unchanged — open the C file to see or print the compensated profile." +
-            clampWarn + mergeWarn +
+            clampWarn + mergeWarn + wallWarn +
             "\n\nOpen the C file now? (it opens in a new tab, this design stays open)",
             title, MessageBoxButton.YesNo,
-            anyClamped || mergeWarn.Length > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+            anyClamped || mergeWarn.Length > 0 || wallWarn.Length > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
         if (openIt == MessageBoxResult.Yes) OpenInNewTabRequested?.Invoke(this, compPath);
     }
 

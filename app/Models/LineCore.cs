@@ -29,6 +29,13 @@ public readonly record struct CoreModel(double DiameterMm, double DensityGCm3);
 /// </summary>
 public static class LineCore
 {
+    /// <summary>
+    /// Thinnest coating wall, per side, (D − d_core)/2, below which a section is reported as not
+    /// buildable. PROVISIONAL 0.10 mm (19/11/2026), to be replaced by the supplier's figure. Only a
+    /// warning: nothing is clamped to it.
+    /// </summary>
+    public const double MinCoatWallMm = 0.10;
+
     /// <summary>The core of the line currently being computed, or null.</summary>
     public static CoreModel? Current { get; set; }
 
