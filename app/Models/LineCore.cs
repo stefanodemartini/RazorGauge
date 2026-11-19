@@ -31,8 +31,8 @@ public static class LineCore
 {
     /// <summary>
     /// Thinnest coating wall, per side, (D − d_core)/2, below which a section is reported as not
-    /// buildable. PROVISIONAL 0.10 mm (19/11/2026), to be replaced by the supplier's figure. Only a
-    /// warning: nothing is clamped to it.
+    /// buildable. 0.10 mm confirmed by Stefano (19/11/2026) as the value to use. Only a warning:
+    /// nothing is clamped to it.
     /// </summary>
     public const double MinCoatWallMm = 0.10;
 

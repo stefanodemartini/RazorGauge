@@ -64,7 +64,8 @@ V.2 2.40 (17 lb), ST27-60 V.2 (12 lb):
   Dopo: compound 1.21–2.00, massa totale ±0.5 %, finestra 30 cm fino a −4.7 % a 2.4 in/s.
 - **Aggiunto avviso spessore coating** sotto `MinCoatWallMm` = 0.10 mm per lato PROVVISORIO (solo
   avviso). Esempio: Bellaria a 2.4 in/s scende a Ø 0.787 sul core da 0.72 ⇒ 0.03 mm per lato.
-- **Da chiedere al fornitore:** compound massimo estrudibile e spessore minimo del coating.
+- **Decisione di Stefano (19/11):** si tengono buoni **compound massimo 2.0 g/cm³** e **coating minimo
+  0.10 mm per lato**. Non più provvisori.
 - I file C in Projects sono ancora quelli convertiti (non validi): da rifare con Compensate nuovo.
 
 **Non ancora adeguati (da sapere):**

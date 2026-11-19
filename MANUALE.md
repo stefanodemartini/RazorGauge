@@ -602,9 +602,9 @@ dove la linea è grossa conta il compound.
   (scarto ≤ 0.24 % sui file C, 0.00 % sugli altri).
 - **Compensate col core:** per far andare veloce una sezione sottile a massa costante la si
   stringe verso il core, e il coating che resta deve essere sempre più denso. Il compound ha quindi
-  un **tetto, 2.0 g/cm³ (provvisorio, in attesa del dato del fornitore)**: la fetta che ci arriva
+  un **tetto, 2.0 g/cm³** (valore confermato da Stefano il 19/11): la fetta che ci arriva
   resta a 2.0 e va più lenta del target, con avviso a fine Compensate (insieme al minimo 0.94). Un
-  secondo avviso segnala un **coating più sottile di 0.10 mm per lato** (provvisorio): lì la linea
+  secondo avviso segnala un **coating più sottile di 0.10 mm per lato** (confermato da Stefano): lì la linea
   è stretta quasi sul core e può non essere costruibile — core più sottile o target più lento.
 - **Analisi di lancio (`flyline analyze`, FlyLinePhysics):** usa la **massa finale** della linea,
   qualunque sia la sua composizione: massa per metro m(x) e diametro D(x), con il core dentro. Il

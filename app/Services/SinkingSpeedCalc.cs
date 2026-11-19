@@ -25,8 +25,8 @@ public static class SinkingSpeedCalc
     public  const double RhoFloor = 0.94; // g/cm³ — minimum practical material density (0.94 < ρ_water → will float)
 
     /// <summary>
-    /// Densest compound the supplier can extrude, g/cm³. PROVISIONAL (19/11/2026): the real figure
-    /// has been asked of the supplier. Needed since the core + coating model: to make a thin
+    /// Densest compound the supplier can extrude, g/cm³. 2.0 confirmed by Stefano (19/11/2026) as
+    /// the value to use. Needed since the core + coating model: to make a thin
     /// section fast at constant mass Compensate shrinks it towards the core, and the little coating
     /// left would have to be absurdly dense (59, 190, 408 g/cm³ seen on real files at 2.4 in/s).
     /// Like the floor, a slice that reaches it keeps this compound, takes the diameter that holds
