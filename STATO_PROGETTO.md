@@ -75,11 +75,11 @@ Procedura all'arrivo dei dati:
 4. Aggiungere λ a ogni voce di `app/Models/CoreCatalog.cs` (e al gemello FlyLinePhysics).
 
 **19/11 — arrivati i dati del fornitore** (riportati così, Ø + peso di 1 m):
-`0.72 → 0.43 g · 0.82 → 0.57 g · 0.90 → 0.61 g · 0.95 → 0.89 g`.
-Densità apparente λ/A(d) col Ø dichiarato: **1.056 / 1.079 / 0.959 / 1.256**.
-Abbinamento al catalogo (da confermare col fornitore): 0.72 = 17 lb, 0.82 = 20 lb, 0.90 = 25 lb.
-La riga 0.95 / 0.89 g è anomala (1.26, impaccamento PET ~0.91): o è il 30 lb (catalogo
-1.00–1.05 ⇒ 1.03–1.13, coerente con gli altri) o c'è un refuso (0.69 g ⇒ 0.97). **Da chiarire.**
+`0.72 → 0.43 g · 0.82 → 0.57 g · 0.90 → 0.61 g · 0.95 → 0.80 g` (Stefano ha corretto l'ultima
+riga, prima riportata per errore come 0.89 g).
+Densità apparente λ/A(d) col Ø dichiarato: **1.056 / 1.079 / 0.959 / 1.129**.
+Abbinamento al catalogo (da confermare col fornitore): 0.72 = 17 lb, 0.82 = 20 lb, 0.90 = 25 lb;
+0.95 è probabilmente il 30 lb (a catalogo 1.00–1.05 ⇒ 0.92–1.02), ma non è detto.
 Peso della tolleranza sul Ø (densità con Ø max / nominale / min del catalogo):
 17 lb 1.06 / 1.17 / 1.30 · 20 lb 0.96 / 1.02 / 1.08 · 25 lb 0.86 / 0.91 / 0.96. Il 12 lb non è
 nella risposta (3 progetti lo usano).
