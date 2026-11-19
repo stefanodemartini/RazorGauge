@@ -106,8 +106,9 @@ Con 17 lb a 1.06 il modello core + coating cambia poco rispetto alla linea omoge
 **Dedotti (19/11), il fornitore non dà altro.** Stefano: "0.95 è il limite del 25 lb". Coerenza dei
 tre core noti: 35–41 lb per g/m (media 38.5), densità 0.96–1.08 (media 1.03). Il 0.80 g/m come 25 lb
 farebbe 31 lb per g/m (fuori serie), come 30 lb 37.5 (in serie); a densità 1.03 è Ø 0.99 ⇒
-**30 lb = 1.00 mm, 0.80 g/m, ρ 1.02**. **12 lb stimato = 0.60 mm, 0.31 g/m, ρ 1.10** (flag
-Estimated nell'app). 35 lb senza peso. Migrati i 3 progetti 12 lb (Buck, ST27-60 V.2 e il suo C;
+**30 lb = 1.00 mm, 0.80 g/m, ρ 1.02**. **12 lb stimato = 0.60 mm, 0.29 g/m, ρ 1.03** (flag
+Estimated nell'app). Prima stima 0.31 g/m (12/38.5) ⇒ ρ 1.10, più denso del 17 lb: Stefano l'ha
+scartata, giustamente; ora densità media dei noti e 41 lb per g/m, dentro la serie. 35 lb senza peso. Migrati i 3 progetti 12 lb (Buck, ST27-60 V.2 e il suo C;
 backup `backup_core12_2026-11-19.zip`). 4 progetti hanno Ø 0.575 con CoreType vuoto: non toccati.
 
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:

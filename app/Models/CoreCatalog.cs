@@ -63,8 +63,10 @@ public static class CoreCatalog
     ///     At density 1.03 it measures 0.99 mm, the bottom of the old 30 lb range, so 30 lb =
     ///     1.00 mm 0.80 g/m (density 1.02). The "0.95" the supplier paired with it is the top of
     ///     the 25 lb range, not a 30 lb figure.
-    ///   - 12 lb (no data): 12 / 38.5 = 0.31 g/m; at 0.60 mm, the top of its range, density 1.10.
-    ///     Marked Estimated.
+    ///   - 12 lb (no data): 0.60 mm, the top of its range, at the mean density 1.03 ⇒ 0.29 g/m,
+    ///     i.e. 41 lb per g/m, inside the 35–41 the others show. A first guess of 0.31 g/m (from
+    ///     12 / 38.5) gave density 1.10, denser than the 17 lb, which Stefano rightly rejected: a
+    ///     thinner braid of the same yarn has no reason to pack tighter. Marked Estimated.
     ///
     /// Kevlar was quoted only as "above 0.90" for both strains, so its diameter is a floor and not
     /// a range: NominalMm is that floor, which is the smallest it can be rather than the likeliest
@@ -72,7 +74,7 @@ public static class CoreCatalog
     /// </summary>
     public static readonly IReadOnlyList<CoreSpec> All = new[]
     {
-        new CoreSpec("Polyester", 12, 0.60, 0.60, 0.31, Estimated: true),
+        new CoreSpec("Polyester", 12, 0.60, 0.60, 0.29, Estimated: true),
         new CoreSpec("Polyester", 17, 0.72, 0.72, 0.43),
         new CoreSpec("Polyester", 20, 0.82, 0.82, 0.57),
         new CoreSpec("Polyester", 25, 0.90, 0.90, 0.61),

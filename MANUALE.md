@@ -519,7 +519,7 @@ carico di rottura, Ø e, dove il fornitore l'ha dato, il **peso al metro** del c
 
 | Materiale | lb | Ø | g/m | densità apparente |
 |---|---|---|---|---|
-| Polyester | 12 | **0.60** | 0.31 *(stima)* | 1.10 |
+| Polyester | 12 | **0.60** | 0.29 *(stima)* | 1.03 |
 | Polyester | 17 | **0.72** | 0.43 | 1.06 |
 | Polyester | 20 | **0.82** | 0.57 | 1.08 |
 | Polyester | 25 | **0.90** | 0.61 | 0.96 |
@@ -536,8 +536,10 @@ carico di rottura, Ø e, dove il fornitore l'ha dato, il **peso al metro** del c
   g/m (media 38.5) e hanno densità 0.96–1.08 (media 1.03). La quarta coppia mandata, "0.95 mm /
   0.80 g", è il **30 lb**: come 25 lb darebbe 31 lb per g/m, fuori serie; come 30 lb 37.5, in serie.
   A densità 1.03 misura 0.99 mm, cioè l'inizio della vecchia gamma 30 lb ⇒ **1.00 mm** (0.95 è il
-  limite alto del 25 lb, abbinato per errore). Il **12 lb** non ha dati: 12 / 38.5 = 0.31 g/m, a
-  0.60 mm (limite alto della sua gamma) densità 1.10 — segnato *(estimated)* sotto il selettore.
+  limite alto del 25 lb, abbinato per errore). Il **12 lb** non ha dati: 0.60 mm (limite alto della
+  sua gamma) alla densità media 1.03 ⇒ **0.29 g/m** (41 lb per g/m, dentro la serie) — segnato
+  *(estimated)* sotto il selettore. Una prima stima 0.31 g/m dava densità 1.10, più del 17 lb: scartata
+  (una treccia più sottile dello stesso filo non ha motivo di essere più compatta)
   Il 35 lb resta a 1.15 mm senza peso
 - Dove il fornitore dà ancora una **gamma**, scegliendo la voce il campo **Ø** si riempie col
   **punto medio**; la gamma resta scritta accanto. Il Ø è sempre sovrascrivibile a mano
