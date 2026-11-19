@@ -137,12 +137,13 @@ ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, p
 l'auto-zero sui carichi piccoli.
 - **Hover, Ø 2.20, 2.02 g** ⇒ ρ_linea **1.063 ± 0.012** (Ø ±0.01 mm pesa più della bilancia).
   Cilindro da 2.20: ~1.5 in/s in acqua dolce a 20 °C, ~1.1 in salata; alto per un'hover, ma è il
-  corpo, che è la parte più grossa. Compound: 1.064 con core 17 lb, 1.060 con 20 lb ⇒ ≈ linea,
-  perché il core è ≈ neutro.
-- **Floating, Ø 1.47, 0.78 g** ⇒ ρ_linea **0.919 ± 0.018** (−1.25 in/s, galleggia). Compound: 0.876
-  con core 17 lb (24 % della sezione), 0.898 con 12 lb: il core **appesantisce** la galleggiante; in
-  punta (core 50–60 % della sezione) la linea arriverebbe a ~0.95–0.97.
-Core dentro i due spezzoni non ancora identificato (da estrarre e misurare il Ø).
+  corpo, che è la parte più grossa.
+- **Floating, Ø 1.47, 0.78 g** ⇒ ρ_linea **0.919 ± 0.018** (−1.25 in/s, galleggia).
+Misurate solo le ρ delle linee finite. **Core dei due spezzoni ignoto (Ø e peso)** — osservazione di
+Stefano: senza quei dati il compound non si può ricavare. Solo come ipotesi, con un core del nostro
+fornitore (ρ ~1.03–1.06): hover compound ≈ 1.06 (= linea); floating compound 0.88–0.90, cioè core
+che appesantisce. Con una treccia lasca (ρ ~0.7) sarebbe il contrario. Servono Ø del core estratto
+(RazorGauge) e la sua densità (5–10 m dalla bobina, se è un core che abbiamo).
 
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
