@@ -119,6 +119,19 @@ Prossimo: Stefano pesa campioni da 50 cm dei vari core (17 lb da 50 cm ≈ 0.21 
 da 0.001 g, o più campioni insieme) e ne misura il Ø al RazorGauge con una tensione leggera e
 sempre uguale (la treccia tubolare si schiaccia e si allunga).
 
+**Protocollo misure concordato (19/11, da fare):**
+1. *Core nudi* (12/17/20/25/30 lb), 50 cm ciascuno: Ø medio su più punti + peso ⇒ ρ_core vera,
+   sostituisce stime/deduzioni nel CoreCatalog.
+2. *Spezzone di linea finita*, tratto cilindrico da 50 cm: Ø linea, peso intero, poi via il coating
+   (acetone + cappio), Ø e peso del core asciutto ⇒ ρ_core, ρ_coat e ρ_linea misurate. Su una linea
+   nostra con .flp: confronto col coat dello script a massa conservata. Su una linea di altri
+   produttori: frazione (d/D)².
+Taglio a caldo e a lunghezza esatta; più spezzoni insieme se la bilancia è da 0.01 g.
+Ragionamento collegato (19/11): altri produttori usano core relativamente più grossi in hover/slow
+sink. Spiegazioni: linee veloci più sottili (spazio), core come volume perso nelle affondanti,
+core ≈ neutro come riempitivo che stabilizza la densità delle hover; il rischio acqua nella
+treccia (coating che non penetra) si gestisce sigillando le estremità.
+
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
   alla geometria, interruttore per progetto.
