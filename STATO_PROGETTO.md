@@ -111,6 +111,14 @@ Estimated nell'app). Prima stima 0.31 g/m (12/38.5) ⇒ ρ 1.10, più denso del 
 scartata, giustamente; ora densità media dei noti e 41 lb per g/m, dentro la serie. 35 lb senza peso. Migrati i 3 progetti 12 lb (Buck, ST27-60 V.2 e il suo C;
 backup `backup_core12_2026-11-19.zip`). 4 progetti hanno Ø 0.575 con CoreType vuoto: non toccati.
 
+**Ricerca web (19/11) su trecce di poliestere:** nessun produttore di core per coda pubblica g/m.
+Ashaway (core nylon) dà solo Ø .012–.040". Dati di cordini in poliestere con g/m e Ø ⇒ densità
+apparente: Extremtextil 1.5 mm 1.2 g/m ⇒ 0.68; Teufelberger 3 mm 6.70 g/m ⇒ 0.95; Showtex Ribcord
+1 mm 0.872 g/m (Dyneema/Dacron) ⇒ 1.11. I nostri 0.96–1.08 cadono dentro questo intervallo.
+Prossimo: Stefano pesa campioni da 50 cm dei vari core (17 lb da 50 cm ≈ 0.21 g ⇒ serve bilancia
+da 0.001 g, o più campioni insieme) e ne misura il Ø al RazorGauge con una tensione leggera e
+sempre uguale (la treccia tubolare si schiaccia e si allunga).
+
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
   alla geometria, interruttore per progetto.
