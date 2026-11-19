@@ -144,6 +144,12 @@ Stefano: senza quei dati il compound non si può ricavare. Solo come ipotesi, co
 fornitore (ρ ~1.03–1.06): hover compound ≈ 1.06 (= linea); floating compound 0.88–0.90, cioè core
 che appesantisce. Con una treccia lasca (ρ ~0.7) sarebbe il contrario. Servono Ø del core estratto
 (RazorGauge) e la sua densità (5–10 m dalla bobina, se è un core che abbiamo).
+**Core estratti (19/11):** hover 2.20 ⇒ core **~0.45 mm** (4.2 % della sezione); floating 1.47 ⇒
+core **0.65–0.70 mm** (~21 %, classe 17 lb). Core in bobina non disponibili, solo questi.
+- Hover: con ρ_core qualunque fra 0.7 e 1.3 il compound è 1.079…1.053 ⇒ **ρ_coat ≈ 1.066 ± 0.013**,
+  primo compound ricavato da misura, indipendente dal core. 0.45 mm è sotto tutto il catalogo (≈8–10 lb?).
+- Floating: stesso intervallo ⇒ compound 0.82…0.98, troppo largo. Prossimo: pesare il core estratto
+  (zavorra, 10 ripetizioni; atteso 0.16–0.20 g; ogni 0.01 g sposta il compound di ~0.015).
 
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
