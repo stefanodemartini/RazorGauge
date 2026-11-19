@@ -1,3 +1,10 @@
+# ============================================================================================
+# SUPERATO (19/11/2026) — NON USARE.
+# Script delle stime core + coating del 18-19/11, fatte quando l'app trattava la linea come corpo
+# unico. Dal 19/11 l'app fa questo calcolo da sola (app/Models/LineCore.cs) e i .flp contengono la
+# densita' del COMPOUND, non della linea: questo script la legge come densita' di linea e sui file
+# convertiti da' risultati sbagliati. Tenuto solo come documentazione delle stime in STATO_PROGETTO.
+# ============================================================================================
 # Stima 18/11/2026: file QC "(Real)" -> densita' = media della linea finita (core compreso).
 # Con --tutti: tutti i progetti NC con core e senza zone (densita' = linea finita, 18/11).
 # Conserva la massa totale, ricava la densita' del coating per ogni scenario di core, ricalcola.

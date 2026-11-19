@@ -54,8 +54,12 @@ Fatto:
   compound. Riscalatura delle zone a massa finale conservata col core. `flyline analyze` carica il
   file passando dall'app (conversione + core da catalogo), poi lo dà al gemello. Verifica Bellaria #8
   Opt.2: 32.0 g e masse per segmento identiche all'app. Test FlyLinePhysics 45/45 (2 nuovi sul core).
-- Gli script `strumenti/stima_affondamento_core*.py` leggono ancora la densità del file come
-  densità di linea: sui file convertiti sbagliano (superati dall'app, da non usare più così).
+- Gli script `strumenti/stima_affondamento_core*.py` sono **SUPERATI** (19/11, controllato: nessuno
+  li richiama, si usavano solo per le stime del 18-19/11). Segnati in testa al file; restano come
+  documentazione. Leggono la densità del file come densità di linea, quindi sui file convertiti
+  sbagliano: il calcolo ora lo fa l'app.
+- Anche `strumenti/verifica_massa_C.py` e `verifica_massa_zone.py` (verifiche del 16/11) calcolano la
+  massa senza core: sui progetti con core non corrispondono più all'app. Non toccati.
 - I 4 QC "(Real)" con Ø core 0.575 e CoreType vuoto non hanno densità del core ⇒ niente core nei calcoli.
 - Nessun campo nell'interfaccia per scrivere a mano la densità del core (solo da catalogo o nel file).
 - Fase 3 (PDF con compound per ugello + ρ per sezione + avvisi) non fatta: il PDF usa già le

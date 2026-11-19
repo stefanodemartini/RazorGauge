@@ -1,3 +1,10 @@
+# ============================================================================================
+# SUPERATO (19/11/2026) — NON USARE.
+# Script delle stime core + coating del 18-19/11, fatte quando l'app trattava la linea come corpo
+# unico. Dal 19/11 l'app fa questo calcolo da sola (app/Models/LineCore.cs) e i .flp contengono la
+# densita' del COMPOUND, non della linea: questo script la legge come densita' di linea e sui file
+# convertiti da' risultati sbagliati. Tenuto solo come documentazione delle stime in STATO_PROGETTO.
+# ============================================================================================
 # Stima 18/11/2026: velocita' di affondamento dei profili esistenti con modello core + coating
 # (coating non penetra nella treccia). Densita' del file = densita' del COATING; core = densita'
 # apparente (aria compresa) in 3 scenari finche' non arriva il dtex dal fornitore. Vedi STATO_PROGETTO.md.
