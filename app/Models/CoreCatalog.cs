@@ -18,8 +18,11 @@ namespace DiametroLineaDesktop.Models;
 /// Linear mass of the bare core quoted by the supplier (g/m), null where none was given. With the
 /// diameter it gives the core's apparent density, air in the braid included.
 /// </param>
+/// <param name="Estimated">
+/// True when diameter and g/m were deduced from the other cores rather than quoted for this one.
+/// </param>
 public sealed record CoreSpec(string Material, int PoundTest, double MinMm, double? MaxMm,
-                              double? GramsPerMeter = null)
+                              double? GramsPerMeter = null, bool Estimated = false)
 {
     /// <summary>The figure used for drawing and for the file. Midpoint of the range, the quoted
     /// figure when there is one, or the floor when that is all there is.</summary>
@@ -52,7 +55,16 @@ public static class CoreCatalog
     /// (0.72 mm 0.43 g, 0.82 mm 0.57 g, 0.90 mm 0.61 g). Those pairs are taken as the spec and
     /// replace the old ranges (17 lb was 0.65–0.72, 20 lb 0.82–0.87, 25 lb 0.90–0.95): a range that
     /// wide moved the 17 lb core's density from 1.06 to 1.30. The fourth pair (0.95 mm 0.80 g)
-    /// is not yet matched to a strain, so 30 lb keeps its old range.
+    /// was first left unmatched.
+    ///
+    /// Deduced the same day, since the supplier cannot be asked again. The three known cores carry
+    /// 35–41 lb per g/m (mean 38.5) and have apparent density 0.96–1.08 (mean 1.03).
+    ///   - 0.80 g/m as 25 lb would be 31 lb per g/m, out of line; as 30 lb it is 37.5, in line.
+    ///     At density 1.03 it measures 0.99 mm, the bottom of the old 30 lb range, so 30 lb =
+    ///     1.00 mm 0.80 g/m (density 1.02). The "0.95" the supplier paired with it is the top of
+    ///     the 25 lb range, not a 30 lb figure.
+    ///   - 12 lb (no data): 12 / 38.5 = 0.31 g/m; at 0.60 mm, the top of its range, density 1.10.
+    ///     Marked Estimated.
     ///
     /// Kevlar was quoted only as "above 0.90" for both strains, so its diameter is a floor and not
     /// a range: NominalMm is that floor, which is the smallest it can be rather than the likeliest
@@ -60,11 +72,11 @@ public static class CoreCatalog
     /// </summary>
     public static readonly IReadOnlyList<CoreSpec> All = new[]
     {
-        new CoreSpec("Polyester", 12, 0.55, 0.60),
+        new CoreSpec("Polyester", 12, 0.60, 0.60, 0.31, Estimated: true),
         new CoreSpec("Polyester", 17, 0.72, 0.72, 0.43),
         new CoreSpec("Polyester", 20, 0.82, 0.82, 0.57),
         new CoreSpec("Polyester", 25, 0.90, 0.90, 0.61),
-        new CoreSpec("Polyester", 30, 1.00, 1.05),
+        new CoreSpec("Polyester", 30, 1.00, 1.00, 0.80),
         new CoreSpec("Polyester", 35, 1.15, 1.15),   // a single quoted figure, not a floor
         new CoreSpec("Kevlar",    60, 0.90, null),
         new CoreSpec("Kevlar",    80, 0.90, null),

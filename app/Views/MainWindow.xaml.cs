@@ -165,7 +165,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             if (spec != null)
             {
                 var mass = spec.GramsPerMeter is double g
-                    ? $" · {g:0.00} g/m · ρ {spec.DensityGCm3:0.00}"
+                    ? $" · {g:0.00} g/m · ρ {spec.DensityGCm3:0.00}{(spec.Estimated ? " (estimated)" : "")}"
                     : string.Empty;
                 return _coreDiameterMm is double d && Math.Abs(d - spec.NominalMm) > 1e-9
                     ? $"{spec.RangeText}{mass} · using {d:0.000} mm"

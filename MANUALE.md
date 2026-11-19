@@ -519,11 +519,11 @@ carico di rottura, Ø e, dove il fornitore l'ha dato, il **peso al metro** del c
 
 | Materiale | lb | Ø | g/m | densità apparente |
 |---|---|---|---|---|
-| Polyester | 12 | 0.55–0.60 | — | — |
+| Polyester | 12 | **0.60** | 0.31 *(stima)* | 1.10 |
 | Polyester | 17 | **0.72** | 0.43 | 1.06 |
 | Polyester | 20 | **0.82** | 0.57 | 1.08 |
 | Polyester | 25 | **0.90** | 0.61 | 0.96 |
-| Polyester | 30 | 1.00–1.05 | — | — |
+| Polyester | 30 | **1.00** | 0.80 | 1.02 |
 | Polyester | 35 | 1.15 | — | — |
 | Kevlar | 60 | ≥ 0.90 | — | — |
 | Kevlar | 80 | ≥ 0.90 | — | — |
@@ -531,15 +531,21 @@ carico di rottura, Ø e, dove il fornitore l'ha dato, il **peso al metro** del c
 - **19/11/2026:** per 17, 20 e 25 lb il fornitore ha mandato un Ø con il peso di 1 m, e quelle coppie
   sono **la specifica**: sostituiscono le vecchie gamme (17 lb 0.65–0.72, 20 lb 0.82–0.87, 25 lb
   0.90–0.95). Una gamma così larga spostava la densità del 17 lb da 1.06 a 1.30. La densità apparente
-  è g/m diviso la sezione del Ø (aria nella treccia compresa) e compare sotto il selettore. Una quarta
-  coppia, 0.95 mm / 0.80 g (densità 1.13), non è ancora attribuita a un carico, quindi il 30 lb
-  resta con la gamma vecchia
+  è g/m diviso la sezione del Ø (aria nella treccia compresa) e compare sotto il selettore
+- **Dedotti lo stesso giorno** (il fornitore non dà altri dati). I tre core noti portano 35–41 lb per
+  g/m (media 38.5) e hanno densità 0.96–1.08 (media 1.03). La quarta coppia mandata, "0.95 mm /
+  0.80 g", è il **30 lb**: come 25 lb darebbe 31 lb per g/m, fuori serie; come 30 lb 37.5, in serie.
+  A densità 1.03 misura 0.99 mm, cioè l'inizio della vecchia gamma 30 lb ⇒ **1.00 mm** (0.95 è il
+  limite alto del 25 lb, abbinato per errore). Il **12 lb** non ha dati: 12 / 38.5 = 0.31 g/m, a
+  0.60 mm (limite alto della sua gamma) densità 1.10 — segnato *(estimated)* sotto il selettore.
+  Il 35 lb resta a 1.15 mm senza peso
 - Dove il fornitore dà ancora una **gamma**, scegliendo la voce il campo **Ø** si riempie col
   **punto medio**; la gamma resta scritta accanto. Il Ø è sempre sovrascrivibile a mano
 - Un progetto salvato con un'etichetta del catalogo vecchio ("Polyester 17 lb — 0.65–0.72 mm") viene
-  riconosciuto per materiale e carico e mostrato con l'etichetta nuova. I 21 progetti con 17/20 lb
-  sono stati migrati sul disco il 19/11 (Ø 0.685 → 0.72, 0.845 → 0.82; backup
-  `FlyLineProfiler/backup_core_2026-11-19.zip`)
+  riconosciuto per materiale e carico e mostrato con l'etichetta nuova. I progetti sono stati
+  migrati sul disco il 19/11: 21 con 17/20 lb (Ø 0.685 → 0.72, 0.845 → 0.82; backup
+  `FlyLineProfiler/backup_core_2026-11-19.zip`) e 3 con 12 lb (0.575 → 0.60; backup
+  `backup_core12_2026-11-19.zip`)
 - Restano in lista anche le vecchie descrizioni generiche ("Braided multifilament nylon"…): non
   hanno diametro, quindi un progetto che ne usa una si apre e si stampa come prima, semplicemente
   non disegna il core
