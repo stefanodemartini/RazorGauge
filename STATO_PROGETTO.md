@@ -74,6 +74,26 @@ Procedura all'arrivo dei dati:
 3. Rilanciare `strumenti/stima_affondamento_core*.py` con i valori veri al posto degli scenari.
 4. Aggiungere λ a ogni voce di `app/Models/CoreCatalog.cs` (e al gemello FlyLinePhysics).
 
+**19/11 — arrivati i dati del fornitore** (riportati così, Ø + peso di 1 m):
+`0.72 → 0.43 g · 0.82 → 0.57 g · 0.90 → 0.61 g · 0.95 → 0.89 g`.
+Densità apparente λ/A(d) col Ø dichiarato: **1.056 / 1.079 / 0.959 / 1.256**.
+Abbinamento al catalogo (da confermare col fornitore): 0.72 = 17 lb, 0.82 = 20 lb, 0.90 = 25 lb.
+La riga 0.95 / 0.89 g è anomala (1.26, impaccamento PET ~0.91): o è il 30 lb (catalogo
+1.00–1.05 ⇒ 1.03–1.13, coerente con gli altri) o c'è un refuso (0.69 g ⇒ 0.97). **Da chiarire.**
+Peso della tolleranza sul Ø (densità con Ø max / nominale / min del catalogo):
+17 lb 1.06 / 1.17 / 1.30 · 20 lb 0.96 / 1.02 / 1.08 · 25 lb 0.86 / 0.91 / 0.96. Il 12 lb non è
+nella risposta (3 progetti lo usano).
+Conclusione: **il core è circa 1.0–1.1, cioè quasi uguale alla linea**, non leggero (gli scenari
+0.69/0.90 sono esclusi). Ma per il 17 lb (17 progetti su 28) basta la tolleranza 0.65–0.72 per
+spostarlo da 1.06 a 1.30, e lì il segno del corpo cambia:
+- con Ø 0.72 (1.06): modello quasi omogeneo, punta e corpo cambiano di ±0.1–0.3 in/s
+  (Bellaria Opt.2: punta +0.39 → +0.47, corpo +0.62 → +0.38, coat 1.00);
+- con Ø nominale 0.685 (1.17): coat ricavato < 1 (0.92) ⇒ punta più veloce, **corpo che galleggia**
+  (Bellaria Opt.2 corpo +0.62 → −0.69, Nautilus invariata perché core 20 lb).
+Prossimo passo decisivo: **misurare il Ø del core 17 lb nudo col RazorGauge** (e pesarne 10 m,
+bilancia 0.01 g). Controllo di realtà: se il corpo delle linee da 0.5 in/s non galleggia in acqua,
+il core 17 lb è sul lato 0.72 mm.
+
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
   alla geometria, interruttore per progetto.
