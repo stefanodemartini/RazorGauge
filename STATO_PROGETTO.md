@@ -942,3 +942,20 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Modello 3D della scheda (solo visualizzazione) corretto: linea di pixel sull'origine del footprint (asse laser), package centrato sulle piazzole. Produzione invariata.
 - Dettaglio di montaggio scheda/slitta: `integrazione_profiler/montaggio_scheda_slitta.png`.
 - PROSSIMO: arrivo pezzi MJF + schede -> montaggio -> FIRMWARE (note gia' presenti: bianco < ~2.3 V all'ADC, dark/ref dopo ogni estrazione della slitta, frame a laser spento alternati, ruota CNC Ø63.66 = 200 mm/giro).
+
+## 11-19/11/2026 - Hardware (sessione Cowork): scheda sensore in produzione, disegno di assieme
+- Ordine PCBA JLCPCB SMT026110862413 (2 schede): anteprima di posizionamento verificata sul .kicad_pcb e confermata a JLC.
+  U1 TSL1401CL (rot 180) pin 1 in alto a destra, fila 1-4 verso i condensatori; U2 LMV321 pin 1 in basso a sinistra.
+  Il contorno della libreria JLC di U1 sembra sovrapporsi a R1-R3/C1: e' solo grafica (corpo reale 3.0 mm, 0.78 mm dai pad).
+- Collegamenti: encoder LPD3806-600BM-G5-24C su J4 (rosso +5V, nero GND, verde A, bianco B, calza SH);
+  pulsanti con LED su J6 (SCAN/F_S/F_O + GND comune), LED da alimentare a parte secondo la tensione (da misurare).
+- Firmware (ipotesi da verificare): ~500 frame/s, laser alternato acceso/spento -> ~250 misure valide/s;
+  un punto ogni 1 cm (come i .flp) agganciato all'encoder (120 conteggi/cm), media di tutte le misure del cm;
+  velocita' standard proposta 50 mm/s (prove a 25/50/100/150). Taratura lunghezza con 2 segni di nastro a ~10 m
+  rilevati dal sensore stesso (fattore k su 0.08333 mm/conteggio, salvato in NVS).
+- Nuovo disegno: integrazione_profiler/RazorGauge_assieme_slitta_sensore_ruota.pdf/.png (A3, esploso, vista frontale
+  quotata, distinta, sequenza di montaggio). Il PDF e' versionato (eccezioni .gitignore del 19/11), il PNG no.
+- 19/11 incidente 99fa94b: la scrittura di STATO_PROGETTO dalla sessione Cowork (via ponte col PC) ha consegnato una copia
+  vecchia del file (08/11) invece di quella aggiornata -> cancellate le righe core + coating, ripristinate in 581491b.
+  Da ora la sessione Cowork: rilegge il file dal disco subito prima, aggiunge solo la sua parte, scrive con controllo
+  della data di modifica e RILEGGE il file dopo la scrittura confrontandolo (hash) con quello voluto.
