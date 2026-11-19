@@ -113,13 +113,18 @@ public class ProjectSegment : INotifyPropertyChanged
     /// </summary>
     public double MassG => _producedPieces is { Length: > 0 } pp
         ? pp.Sum(p => FrustumMassG(p.StartDiamMm, p.EndDiamMm, p.EndCm - p.StartCm, p.DensityGCm3))
-        : EffectiveSpecWeightGCm3 > 0 ? VolumeCm3 * EffectiveSpecWeightGCm3 : 0;
+        : EffectiveSpecWeightGCm3 > 0
+            ? VolumeCm3 * EffectiveSpecWeightGCm3
+              + LineCore.CoreMassCorrectionG(StartDiameterMm, EndDiameterMm, LengthCm, EffectiveSpecWeightGCm3)
+            : 0;
 
-    /// <summary>Mass in grams of a straight frustum: diameters in mm, length in cm, ρ in g/cm³.</summary>
+    /// <summary>Mass in grams of a straight frustum: diameters in mm, length in cm, ρ the
+    /// compound's in g/cm³, with the current core (LineCore.Current) inside.</summary>
     public static double FrustumMassG(double d0Mm, double d1Mm, double lengthCm, double rho)
     {
         double r1 = d0Mm / 20.0, r2 = d1Mm / 20.0; // radius in cm
-        return Math.PI * lengthCm / 3.0 * (r1 * r1 + r1 * r2 + r2 * r2) * rho;
+        return Math.PI * lengthCm / 3.0 * (r1 * r1 + r1 * r2 + r2 * r2) * rho
+             + LineCore.CoreMassCorrectionG(d0Mm, d1Mm, lengthCm, rho);
     }
 
     /// <summary>One straight piece of the line as really produced: absolute positions, its own two

@@ -22,6 +22,40 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 19 novembre 2026 — core + coating nell'app (fase 1: calcoli) e conversione dei file
+
+**Decisioni di Stefano:** "compound per tutti" (la densità di ogni ugello e di ogni file è il
+compound, i file vecchi convertiti a massa conservata) e, in questo giro, solo i calcoli.
+
+Fatto:
+- `app/Models/LineCore.cs`: ρ(D) = ρ_coat + (ρ_core − ρ_coat)(d_core/D)², correzione di massa, compound
+  da densità di linea, diametro a massa per lunghezza data, conversione dei file.
+  `LineCore.Current` = core della linea in calcolo (app: al caricamento e a ogni cambio core; CLI:
+  dopo il load). Senza core noto tutto torna identico a prima.
+- `SinkingSpeedCalc`: tutte le velocità (cilindro, corpo rigido, linea, segmento) usano ρ(D);
+  CompensateProfile conserva la massa col core dentro e restituisce il **compound**, limite 0.94 sul
+  compound; DensityForTargetSinkSpeed restituisce il compound (minimo ora 0.94, non 1.001).
+- Masse: `FrustumMassG`, `MassG`, 30 ft/AFTMA, PDF per ugello, Weight → Density (dà il compound).
+- Riscalature a massa costante col core: Generate by Density, zone dell'app e della CLI, famiglie
+  per grammatura (s iterato sulla massa vera).
+- `.flp`: nuovi campi `DensityIsCompound`, `CoreDensityGCm3`. `ProjectService.Load` converte i file
+  vecchi (un compound per materiale, massa del materiale conservata, materiali/zone/≤4 ugelli
+  preservati). CLI `flyline convert-compound <cartella>`: cartella Projects convertita
+  (backup `FlyLineProfiler/backup_prima_del_compound_2026-11-19.zip`, 140 file): 24 convertiti,
+  116 senza core solo segnati. Massa totale: scarto ≤ 0.24 % (file C ExtraHover V.2 2.40 C),
+  0.00–0.06 % altrove.
+- Esempio: Bellaria #8 Opt.2 (17 lb, 1.06): compound 1.00, massa 493.2 gr invariata, punta
+  0.39 → 0.48 in/s, corpo 0.62 → 0.36 in/s.
+
+**Non ancora adeguati (da sapere):**
+- `FlyLinePhysics` (Livello 2, gemello) e gli script `strumenti/stima_affondamento_core*.py` leggono
+  ancora la densità del file come densità di linea: sui file convertiti sbagliano.
+- I 4 QC "(Real)" con Ø core 0.575 e CoreType vuoto non hanno densità del core ⇒ niente core nei calcoli.
+- Nessun campo nell'interfaccia per scrivere a mano la densità del core (solo da catalogo o nel file).
+- Fase 3 (PDF con compound per ugello + ρ per sezione + avvisi) non fatta: il PDF usa già le
+  masse e velocità col core, ma le etichette dicono ancora "density".
+- Non provato a mano nell'interfaccia (solo build + CLI su tutti i progetti).
+
 ### 18 novembre 2026 — core + coating: stima sui profili esistenti (solo calcolo, app invariata)
 
 Finora la linea è trattata come materiale unico. Modello nuovo discusso con Stefano:

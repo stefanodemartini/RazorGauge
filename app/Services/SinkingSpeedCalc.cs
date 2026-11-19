@@ -13,6 +13,12 @@ namespace DiametroLineaDesktop.Services;
 /// </summary>
 public static class SinkingSpeedCalc
 {
+    // Core + coating (19/11/2026): every density passed in is the COMPOUND's. The section's real
+    // density is LineCore.Effective(d, ρ_coat) — the current core (LineCore.Current) mixed in by
+    // area. With no core it is ρ_coat itself and every formula below is the old homogeneous one.
+    private static double EffKgM3(double dMm, double rhoCoatGcm3)
+        => Models.LineCore.Effective(dMm, rhoCoatGcm3) * 1000.0;
+
     private const double G        = 9.80665;
     private const int    MaxIter  = 100;
     private const double Tol      = 1e-12;
@@ -47,6 +53,10 @@ public static class SinkingSpeedCalc
     /// is clamped and the diameter recomputed from mass conservation. The affected
     /// slice is flagged in the returned <c>clamped</c> array.
     ///
+    /// Core + coating: "mass" is the section's mass per length with the core inside, the returned
+    /// density is the compound that gives the new diameter that mass, and the floor applies to
+    /// the compound (what the nozzle extrudes).
+    ///
     /// Returns parallel arrays: slice-centre X (cm from segment start),
     /// compensated diameters (mm), required densities (g/cm³), clamped flags.
     /// </summary>
@@ -61,7 +71,7 @@ public static class SinkingSpeedCalc
             return (Array.Empty<double>(), Array.Empty<double>(), Array.Empty<double>(), Array.Empty<bool>());
 
         (double rhoW, double nu) = WaterProps(isSalt, tempC);
-        double rhoOrig = densityGcm3 * 1000.0; // kg/m³
+        var core = Models.LineCore.Current;
 
         int    n  = Math.Max(1, (int)Math.Ceiling(lengthCm / sliceLenCm));
         double dl = lengthCm / n; // slice length in cm
@@ -76,9 +86,12 @@ public static class SinkingSpeedCalc
             double t     = (i + 0.5) / n;
             double dOrig = (startDiamMm + t * (endDiamMm - startDiamMm)) / 1000.0; // m
             xs[i]        = (i + 0.5) * dl; // cm from segment start
+            double rhoOrig = EffKgM3(dOrig * 1000.0, densityGcm3); // whole-section, kg/m³
+            double massD2  = rhoOrig * dOrig * dOrig;               // ∝ mass per length
 
-            // Force balance per unit length with mass conservation (ρ_orig·dOrig² = ρ_new·d_new²):
-            //   Net gravity: (π/4)·g·(ρ_orig·dOrig² − ρ_W·d_new²)
+            // Force balance per unit length with mass conservation (M = ρ_eff,orig·dOrig², the
+            // section's real mass with its core, kept on the new diameter):
+            //   Net gravity: (π/4)·g·(M − ρ_W·d_new²)
             //   Drag:        0.5·Cd(d_new)·|V|·V·d_new·ρ_W
             double Residual(double d)
             {
@@ -86,7 +99,7 @@ public static class SinkingSpeedCalc
                 double re = Math.Abs(targetSpeedMs) * d / nu;
                 if (re < Tol) re = Tol;
                 double cd = 1.0 + 10.0 / Math.Pow(re, 2.0 / 3.0);
-                return (Math.PI / 4.0) * G * (rhoOrig * dOrig * dOrig - rhoW * d * d)
+                return (Math.PI / 4.0) * G * (massD2 - rhoW * d * d)
                        - 0.5 * cd * Math.Abs(targetSpeedMs) * targetSpeedMs * d * rhoW;
             }
 
@@ -112,14 +125,18 @@ public static class SinkingSpeedCalc
                 }
             }
             diams[i] = dNew * 1000.0; // m → mm
-            // Density from mass conservation: ρ_new = ρ_orig × (dOrig/dNew)²
-            dens[i] = (rhoOrig * (dOrig * dOrig) / (dNew * dNew)) / 1000.0; // g/cm³
-            // Clamp to floor: slice cannot be lighter than RhoFloor (would float)
+            // Mass conservation: whole-section density on the new diameter, then the compound
+            // that gives it around the core.
+            double rhoLineNew = massD2 / (dNew * dNew) / 1000.0; // g/cm³
+            dens[i] = Models.LineCore.CompoundForLineDensity(diams[i], rhoLineNew, core);
+            // Clamp to floor: the compound cannot be lighter than RhoFloor
             if (dens[i] < RhoFloor)
             {
                 dens[i]   = RhoFloor;
-                dNew      = dOrig * Math.Sqrt(rhoOrig / (RhoFloor * 1000.0)); // recompute d from mass conservation
-                diams[i]  = dNew * 1000.0;
+                // diameter that carries the same mass with the floor compound (g/cm per length)
+                double massPerCm = massD2 * Math.PI / 4.0 * 1000.0 / 100.0; // kg/m → g/cm: ×1000/100
+                double dFloor = Models.LineCore.DiameterForMassPerLength(massPerCm, RhoFloor);
+                if (!double.IsNaN(dFloor)) diams[i] = dFloor;
                 clmpd[i]  = true;
             }
         }
@@ -159,7 +176,9 @@ public static class SinkingSpeedCalc
         var slices = BuildSlices(segments, sliceLengthCm);
         if (slices.Count == 0) return (0, false);
 
-        const double rhoMin = 1.001;   // just above fresh water — anything less floats
+        // Lowest compound tried. Was 1.001 ("anything less floats"), true for a homogeneous line;
+        // with a core denser than the compound a slow line's compound can sit below water.
+        const double rhoMin = RhoFloor;
         const double rhoMax = 2.5;
 
         double sMin = LineSinkSpeedCore(isSalt, tempC, slices, rhoMin);
@@ -222,11 +241,10 @@ public static class SinkingSpeedCalc
         double densityGcm3)
     {
         (double rhoW, double nu) = WaterProps(isSalt, tempC);
-        double rhoL = densityGcm3 * 1000.0;
 
         double totalGrav = 0;
         foreach (var (dm, dl) in slices)
-            totalGrav += (Math.PI / 4.0) * dm * dm * dl * G * (rhoL - rhoW);
+            totalGrav += (Math.PI / 4.0) * dm * dm * dl * G * (EffKgM3(dm * 1000.0, densityGcm3) - rhoW);
 
         double lo, hi;
         if (totalGrav >= 0.0) { lo = 0.0; hi = 3.0; }
@@ -297,7 +315,7 @@ public static class SinkingSpeedCalc
         // Pre-compute the total net gravity/buoyancy force (independent of V)
         double totalGrav = 0.0;
         foreach (var d in dm)
-            totalGrav += (Math.PI / 4.0) * d * d * dl * G * (rhoL - rhoW);
+            totalGrav += (Math.PI / 4.0) * d * d * dl * G * (EffKgM3(d * 1000.0, densityGcm3) - rhoW);
 
         // Sign of velocity bracket depends on net gravity direction
         double lo, hi;
@@ -343,7 +361,7 @@ public static class SinkingSpeedCalc
         {
             dm[i] = sliceDiamsMm[i] / 1000.0;
             dl[i] = sliceLengthsCm[i] / 100.0;
-            double rho = sliceDensitiesGcm3[i] * 1000.0;
+            double rho = EffKgM3(sliceDiamsMm[i], sliceDensitiesGcm3[i]);
             totalGrav += (Math.PI / 4.0) * dm[i] * dm[i] * dl[i] * G * (rho - rhoW);
         }
 
@@ -386,7 +404,7 @@ public static class SinkingSpeedCalc
         bool isSalt, double tempC, double diameterMm, double densityGcm3)
     {
         if (densityGcm3 <= 0 || diameterMm <= 0) return double.NaN;
-        double rhoL = densityGcm3 * 1000.0;
+        double rhoL = EffKgM3(diameterMm, densityGcm3);
         double dm   = diameterMm  / 1000.0;
         (double rhoW, double nu) = WaterProps(isSalt, tempC);
 
@@ -443,22 +461,22 @@ public static class SinkingSpeedCalc
         bool isSalt, double tempC, double densityGcm3, double targetSpeedMs)
     {
         if (densityGcm3 <= 0 || targetSpeedMs <= 0) return double.NaN;
-        double rhoL = densityGcm3 * 1000.0;
         (double rhoW, double nu) = WaterProps(isSalt, tempC);
+        double R(double d) => Residual(targetSpeedMs, d, EffKgM3(d * 1000.0, densityGcm3), rhoW, nu);
 
         double lo = 1e-6, hi = 0.030; // m — 1 micron to 30mm, comfortably beyond any real fly line
-        double flo = Residual(targetSpeedMs, lo, rhoL, rhoW, nu);
-        double fhi = Residual(targetSpeedMs, hi, rhoL, rhoW, nu);
+        double flo = R(lo);
+        double fhi = R(hi);
         if (flo * fhi > 0.0) return double.NaN;
 
         double mid = 0.0;
         for (int i = 0; i < MaxIter; i++)
         {
             mid = (lo + hi) / 2.0;
-            double fmid = Residual(targetSpeedMs, mid, rhoL, rhoW, nu);
+            double fmid = R(mid);
             if (Math.Abs(fmid) < Tol) break;
             if (flo * fmid <= 0.0) { hi = mid; }
-            else                    { lo = mid; flo = Residual(targetSpeedMs, lo, rhoL, rhoW, nu); }
+            else                    { lo = mid; flo = R(lo); }
         }
         return mid * 1000.0; // mm
     }

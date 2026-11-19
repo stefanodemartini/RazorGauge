@@ -71,10 +71,28 @@ public partial class WeightToDensityDialog : Window
         bool canApply = weightOk && vol > 0;
 
         if (DensityDisplay is not null)
-            DensityDisplay.Text = canApply ? $"{weightG / vol:0.00}" : "—";
+            DensityDisplay.Text = canApply ? $"{CompoundFor(weightG, vol):0.00}" : "—";
 
         if (ApplyBtn is not null)
             ApplyBtn.IsEnabled = canApply;
+    }
+
+    /// <summary>
+    /// Core + coating: the weight is the finished line's, the density applied is the compound's —
+    /// (m − ρ_core·V_core) / (V − V_core). Without a known core it is m / V as before.
+    /// </summary>
+    private double CompoundFor(double weightG, double vol)
+    {
+        if (LineCore.Current is not CoreModel c) return weightG / vol;
+        double acoreCm2 = Math.PI / 4.0 * c.DiameterMm * c.DiameterMm / 100.0;
+        double vCore = SelectedSegments().Sum(s => Math.Min(acoreCm2 * s.LengthCm, s.VolumeCm3));
+        return vol - vCore > 1e-9 ? (weightG - c.DensityGCm3 * vCore) / (vol - vCore) : weightG / vol;
+    }
+
+    private IEnumerable<ProjectSegment> SelectedSegments()
+    {
+        var idx = GetSelectedIndices().ToHashSet();
+        return _segments.Where(s => idx.Contains(s.Index));
     }
 
     private double GetSelectedVolume()
@@ -118,7 +136,7 @@ public partial class WeightToDensityDialog : Window
         double vol = GetSelectedVolume();
         if (!TryParseWeight(WeightBox?.Text, out double weightG) || vol <= 0) return;
 
-        ResultDensity    = weightG / vol;
+        ResultDensity    = CompoundFor(weightG, vol);
         IsWholeLineScope = WholeLineRadio.IsChecked == true;
         AffectedIndices  = GetSelectedIndices().ToList();
         DialogResult     = true;

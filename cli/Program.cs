@@ -32,6 +32,7 @@ try
         "pdf"     => Pdf(args),
         "analyze" => Analyze(args),
         "assemble" => Assemble(args),
+        "convert-compound" => ConvertCompound(args),
         _         => Help(),
     };
 }
@@ -84,6 +85,7 @@ int Build(string[] a)
                ?? throw new InvalidDataException("The spec file is empty or not valid JSON.");
 
     var project = LineDesignBuilder.Build(spec, out var notes);
+    LineCore.Current = LineCore.FromProject(project);
 
     string outPath = Opt(a, "-o")
         ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(specPath)) ?? ".",
@@ -99,7 +101,7 @@ int Build(string[] a)
 int Inspect(string[] a)
 {
     string path = Arg(a, 1) ?? throw new ArgumentException("inspect needs a project file: flyline inspect <in.flp>");
-    var project = ProjectService.Load(path);
+    var project = LoadWithCore(path);
     string text = JsonSerializer.Serialize(LineDesignBuilder.ToSpec(project), json);
 
     string? outPath = Opt(a, "-o");
@@ -111,14 +113,14 @@ int Inspect(string[] a)
 int ReportOnly(string[] a)
 {
     string path = Arg(a, 1) ?? throw new ArgumentException("report needs a project file: flyline report <in.flp>");
-    PrintReport(LineDesignBuilder.Report(ProjectService.Load(path)));
+    PrintReport(LineDesignBuilder.Report(LoadWithCore(path)));
     return 0;
 }
 
 int Pdf(string[] a)
 {
     string path = Arg(a, 1) ?? throw new ArgumentException("pdf needs a project file: flyline pdf <in.flp>");
-    var project = ProjectService.Load(path);
+    var project = LoadWithCore(path);
     var segments = LineDesignBuilder.ToProjectSegments(project);
     if (segments.Count == 0)
         throw new InvalidDataException("This project has no design segments to export.");
@@ -308,6 +310,42 @@ int Assemble(string[] a)
         Console.WriteLine($"\nSaved: {outPath}");
     }
     return 0;
+}
+
+// convert-compound <file|folder>...: rewrites pre-19/11 .flp files with compound densities
+// (core + coating), at conserved mass per material — the same conversion the app and the other
+// commands apply on load. Files already marked DensityIsCompound are left untouched.
+int ConvertCompound(string[] a)
+{
+    var files = new List<string>();
+    foreach (var arg in a.Skip(1))
+    {
+        if (Directory.Exists(arg)) files.AddRange(Directory.GetFiles(arg, "*.flp", SearchOption.AllDirectories));
+        else if (File.Exists(arg)) files.Add(arg);
+        else { Console.Error.WriteLine($"Not found: {arg}"); return 1; }
+    }
+    int converted = 0, marked = 0, skipped = 0;
+    foreach (var f in files)
+    {
+        string raw = File.ReadAllText(f);
+        if (raw.Contains("\"DensityIsCompound\": true")) { skipped++; continue; }
+        var p = ProjectService.Load(f);              // converts in memory
+        bool changed = ProjectService.LastLoadConvertedDensities;
+        ProjectService.Save(p, f);
+        if (changed) converted++; else marked++;
+        Console.WriteLine($"{(changed ? "converted" : "marked   ")}  {f}");
+    }
+    Console.WriteLine($"{converted} converted, {marked} marked only (no core), {skipped} already compound.");
+    return 0;
+}
+
+// Core + coating (19/11/2026): the physics reads LineCore.Current, the core of the line being
+// computed. Loading also converts a pre-19/11 file's line densities to compound (ProjectService).
+FlyLineProject LoadWithCore(string path)
+{
+    var p = ProjectService.Load(path);
+    LineCore.Current = LineCore.FromProject(p);
+    return p;
 }
 
 void PrintReport(LineDesignBuilder.DesignReport r)

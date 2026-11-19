@@ -409,7 +409,8 @@ public static class FlyLinePdfExporter
             }
             foreach (var pc in pieces)
             {
-                nozzleRunMassG.Add(pc.Sum(q => Math.PI / 4.0 * (q.D / 10.0) * (q.D / 10.0) * q.L * q.Rho));
+                nozzleRunMassG.Add(pc.Sum(q => Math.PI / 4.0 * (q.D / 10.0) * (q.D / 10.0) * q.L
+                                               * Models.LineCore.Effective(q.D, q.Rho)));
                 double v = pc.Count == 0 ? double.NaN
                     : SinkingSpeedCalc.RigidBodySinkSpeed(isSalt, tempC,
                         pc.Select(q => q.D).ToArray(), pc.Select(q => q.L).ToArray(), pc.Select(q => q.Rho).ToArray());

@@ -571,9 +571,37 @@ il progetto che dice che lì non si può costruire — per questo non viene tagl
 Nel `.flp`: `CoreType` (come prima) più **`CoreDiameterMm`** e **`ShowCore`**. Un file più vecchio del catalogo non ha
 il diametro e lo recupera dalla voce che il suo `CoreType` nomina, se ne nomina una.
 
-> Il Ø del core **non entra ancora nel calcolo della massa**. `MassLinearCalculator` sa già
-> modellare anima + rivestimento e ora la **densità** del core c'è per 17/20/25 lb (vedi tabella),
-> ma l'integrazione nel calcolo non è ancora fatta: il calcolo resta a sezione piena, come prima.
+### Linea = core + coating (dal 19/11/2026)
+
+**Ogni densità dell'app è la densità del compound**, cioè di quello che esce dall'ugello: ugelli
+M1–M4, densità condivisa, colonna Sp. W., densità per fetta dei file C. La linea vera è core +
+coating, e la densità di una sezione di diametro D è
+
+ρ(D) = ρ_coat + (ρ_core − ρ_coat) · (d_core / D)²
+
+Il core è tutto il suo involucro (aria nella treccia compresa, il coating non entra nella treccia).
+Dove il core occupa molta sezione (punta, running line) la linea si avvicina alla densità del core;
+dove la linea è grossa conta il compound.
+
+- **Cosa usa il core:** massa e grani (totale, testa, 30 ft, AFTMA), velocità per sezione (colonna
+  Sink e Sink Map), velocità a corpo rigido delle zone e dei file C, Compensate (risolve il
+  compound per fetta e il limite 0.94 vale sul compound), riscalatura a massa costante quando cambi
+  densità o metti una zona (il fattore ora dipende dal diametro: le parti sottili, quasi tutte core,
+  cambiano meno), famiglie per grammatura, Weight → Density (dà il compound), PDF.
+- **Densità del core:** quella del catalogo (sotto il selettore). Il file può averne una sua
+  (`CoreDensityGCm3`). Un core senza densità nota (Ø scritto a mano, voce generica) **non entra
+  nei calcoli**: la linea è trattata come prima, a sezione piena.
+- **Cambiare core cambia la massa** della linea: il compound resta quello, cambia ciò che ci sta
+  dentro. Massa, velocità e grafici si ricalcolano subito.
+- **File vecchi:** fino al 18/11 il numero nel file era la densità della linea vista come corpo
+  unico. All'apertura (app e CLI) viene convertito **una volta** nel compound che dà la **stessa
+  massa totale** per ogni materiale, e il file è segnato `DensityIsCompound`. La barra di stato lo
+  dice; salvando la conversione resta. Il 19/11 tutta la cartella Projects è stata convertita con
+  `flyline convert-compound <cartella>` (backup `FlyLineProfiler/backup_prima_del_compound_2026-11-19.zip`):
+  24 progetti con core convertiti, 116 senza core solo segnati. Massa totale invariata
+  (scarto ≤ 0.24 % sui file C, 0.00 % sugli altri).
+- Effetto tipico: Bellaria #8 Opt.2 (core 17 lb, 1.06), compound 1.025 → 1.00; punta
+  0.39 → 0.48 in/s, corpo 0.62 → 0.36 in/s.
 
 ### Full Line vs Shooting Head
 - **Full Line**: attiva la colonna "Head" nella tabella segmenti

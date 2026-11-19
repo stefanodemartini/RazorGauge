@@ -59,6 +59,20 @@ public class FlyLineProject
     /// </summary>
     public double? CoreDiameterMm { get; set; }
 
+    /// <summary>
+    /// Apparent density of the core (g/cm³, air in the braid included). Null = take it from the
+    /// catalogue entry CoreType names; still null there = no core in the physics.
+    /// </summary>
+    public double? CoreDensityGCm3 { get; set; }
+
+    /// <summary>
+    /// True when every density in this file is the density of the compound (core + coating model,
+    /// since 19/11/2026). False — every older file — means they are the density of the finished
+    /// line as one homogeneous body; ProjectService.Load converts such a file at
+    /// conserved mass (see <see cref="LineCore.ConvertLineDensitiesToCompound"/>).
+    /// </summary>
+    public bool DensityIsCompound { get; set; }
+
     /// <summary>Whether the core is drawn in the design chart and printed on the PDF. Defaults to
     /// true, which costs nothing on a project that has no core diameter to show.</summary>
     public bool ShowCore { get; set; } = true;

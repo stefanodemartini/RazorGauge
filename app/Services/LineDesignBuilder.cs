@@ -127,10 +127,17 @@ public static class LineDesignBuilder
         var scaledBy = new Dictionary<int, double>();   // node index → factor already applied
         foreach (var z in spec.Zones.Where(z => z.PreserveMass))
         {
-            double factor = Math.Sqrt(spec.DensityGCm3 / z.DensityGCm3);
             for (int i = 0; i < nodes.Count; i++)
             {
                 if (nodes[i].X < z.StartCm - Eps || nodes[i].X > z.EndCm + Eps) continue;
+                // Core + coating: same mass per length with the core inside; √ with no core.
+                double factor = Math.Sqrt(spec.DensityGCm3 / z.DensityGCm3);
+                if (LineCore.Current is not null && nodes[i].Y > 0)
+                {
+                    double dn = LineCore.DiameterForMassPerLength(
+                        LineCore.MassPerLengthGPerCm(nodes[i].Y, spec.DensityGCm3), z.DensityGCm3);
+                    if (!double.IsNaN(dn)) factor = dn / nodes[i].Y;
+                }
                 if (scaledBy.TryGetValue(i, out double already) && Math.Abs(already - factor) > Eps)
                     throw new DesignSpecException(
                         $"Node at {nodes[i].X:0.#} cm sits on the edge between two mass-preserving zones of " +

@@ -115,9 +115,12 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             // Picking a catalogue entry fills the diameter in; picking a generic one clears it, so
             // a core with no known size draws nothing instead of keeping the previous one's.
             var spec = CoreCatalog.Find(value);
+            // A new catalogue entry brings its own density; a typed core keeps none until set.
+            _coreDensityGCm3 = null;
             CoreDiameterMm = spec?.NominalMm;
             OnPropertyChanged(nameof(CoreSpecText));
             MarkDirty();
+            RecomputeForCore();
             RefreshPlot();
         }
     }
@@ -151,8 +154,33 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             OnPropertyChanged(nameof(CoreDiameterMm));
             OnPropertyChanged(nameof(CoreSpecText));
             MarkDirty();
+            RecomputeForCore();
             RefreshPlot();
         }
+    }
+
+    /// <summary>The file's own core density, or null to take the catalogue's (see LineCore.FromProject).</summary>
+    private double? _coreDensityGCm3;
+
+    /// <summary>
+    /// Core + coating: points the physics at the current core and recomputes everything that
+    /// depends on it — speeds (zones, baked C slices, Sink column and map), masses, AFTMA. Every
+    /// stored density is the compound, so changing the core changes the line's real mass.
+    /// </summary>
+    private void RecomputeForCore()
+    {
+        LineCore.Current = CurrentCoreModel();
+        if (ProjectSegments.Count == 0) return;
+        OnWaterChanged();      // same recompute a water change needs: speeds, zones, C slices, map
+        RefreshTotals();
+        RefreshAfftaBadge();
+        RefreshAnalysisPlot();
+    }
+
+    private CoreModel? CurrentCoreModel()
+    {
+        double? rho = _coreDensityGCm3 ?? CoreCatalog.Find(_coreType)?.DensityGCm3;
+        return _coreDiameterMm is > 0 && rho is > 0 ? new CoreModel(_coreDiameterMm.Value, rho.Value) : null;
     }
 
     /// <summary>What the picker shows under the combo: the supplier's range when the core came from
@@ -990,7 +1018,9 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             double r2p    = r1 + (seg.EndDiameterMm / 2.0 - r1) * frac;
             double lenMm  = usedLen * 10.0;
             double volMm3 = Math.PI * lenMm / 3.0 * (r1*r1 + r1*r2p + r2p*r2p);
-            grAt30   += volMm3 / 1000.0 * seg.SpecWeightGCm3 * GramsToGrains;
+            grAt30   += (volMm3 / 1000.0 * seg.SpecWeightGCm3
+                         + LineCore.CoreMassCorrectionG(seg.StartDiameterMm, r2p * 2, usedLen, seg.SpecWeightGCm3))
+                        * GramsToGrains;
             covered30 += usedLen;
         }
         var lbl = ap.Add.Text($"30ft: {grAt30:0} gr", AfftaBoundCm, 0);
@@ -1063,6 +1093,11 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         OnPropertyChanged(nameof(ColorNote));
         _coreType = string.Empty;
         OnPropertyChanged(nameof(CoreType));
+        _coreDiameterMm = null;
+        _coreDensityGCm3 = null;
+        LineCore.Current = null;
+        OnPropertyChanged(nameof(CoreDiameterMm));
+        OnPropertyChanged(nameof(CoreSpecText));
         _laserMark = string.Empty;
         OnPropertyChanged(nameof(LaserMark));
         _laserMarkFromTip = string.Empty;
@@ -1118,6 +1153,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         return new FlyLineProject
         {
             Version            = 1,
+            DensityIsCompound  = true,
+            CoreDensityGCm3    = _coreDensityGCm3,
             Name               = nameOverride ?? _projectName,
             CreatedAt          = _projectCreatedAt,
             UseSharedDensity   = _useSharedDensity,
@@ -1353,8 +1390,12 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     private void LoadProjectFromFile(string path)
     {
         var project = ProjectService.Load(path);
+        bool densitiesConverted = ProjectService.LastLoadConvertedDensities;
 
         ClearProjectState();
+        // Core + coating: the physics of everything rebuilt below reads this core.
+        _coreDensityGCm3 = project.CoreDensityGCm3;
+        LineCore.Current = LineCore.FromProject(project);
 
         _vm.Points.CollectionChanged -= Points_CollectionChanged;
         foreach (var pt in project.ScanPoints)
@@ -1558,6 +1599,12 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         RefreshStatusBar();
         UpdateProjectTitle();
         UiStatus = $"Project loaded: {_projectName}  ({project.ScanPoints.Count} scan pts, {project.ImportedSeries.Count} series, {project.DesignNodes.Count} nodes)";
+        if (densitiesConverted)
+        {
+            // The numbers on screen are no longer the ones in the file: save to keep them.
+            MarkDirty();
+            UiStatus += " — densities converted to compound (core + coating), same total mass. Save to keep.";
+        }
         RunPendingRegenerate(path);
     }
 
@@ -3473,15 +3520,25 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             // differently-dense zones share an edge with no base-material gap between them — that
             // single shared node can't hold both exact values, and splitting the difference is
             // gentler for a live preview than LineDesignBuilder's hard refusal for the same case.
-            double FactorFor(NozzleZoneVm z) => Math.Sqrt(baseDensity / Math.Max(z.DensityGCm3, SinkingSpeedCalc.RhoFloor));
+            // Core + coating: the section keeps its mass with the core inside, so the factor
+            // depends on the drawn diameter (thin sections are mostly core and change less). With
+            // no core it reduces exactly to √(ρ_base/ρ_zone).
+            double FactorFor(NozzleZoneVm z, double dOrig)
+            {
+                double rhoZone = Math.Max(z.DensityGCm3, SinkingSpeedCalc.RhoFloor);
+                if (LineCore.Current is null || dOrig <= 0) return Math.Sqrt(baseDensity / rhoZone);
+                double dNew = LineCore.DiameterForMassPerLength(LineCore.MassPerLengthGPerCm(dOrig, baseDensity), rhoZone);
+                return double.IsNaN(dNew) ? Math.Sqrt(baseDensity / rhoZone) : dNew / dOrig;
+            }
             double FactorAt(double x)
             {
                 var claiming = realZones.Where(z => x >= z.StartCm - eps && x <= z.EndCm + eps).ToList();
                 if (claiming.Count == 0) return 1.0;
-                if (claiming.Count == 1) return FactorFor(claiming[0]);
+                double dOrig = OrigDiamAt(x);
+                if (claiming.Count == 1) return FactorFor(claiming[0], dOrig);
                 if (claiming.Max(z => z.DensityGCm3) - claiming.Min(z => z.DensityGCm3) > DensityMergeThreshold)
                     conflictAtEdge = true;
-                return claiming.Average(FactorFor);
+                return claiming.Average(z => FactorFor(z, dOrig));
             }
 
             // Drawn diameter at one exact X, interpolated within whichever segment contains it.
@@ -3695,14 +3752,25 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         if (_isCompensatedDerivative) return;             // baked C file: its geometry is the answer
         if (previousDensity <= 0 || newDensity <= 0) return;
         if (DesignNodes.Count == 0) return;
-        double factor = Math.Sqrt(previousDensity / newDensity);
-        if (Math.Abs(factor - 1.0) < 1e-6) return;
+        // Core + coating: each section keeps its mass with the core inside, so the factor depends
+        // on the diameter (thin sections are mostly core and move less). No core: √(ρ_old/ρ_new).
+        double NewDiam(double d)
+        {
+            if (LineCore.Current is null) return d * Math.Sqrt(previousDensity / newDensity);
+            double dn = LineCore.DiameterForMassPerLength(LineCore.MassPerLengthGPerCm(d, previousDensity), newDensity);
+            return double.IsNaN(dn) ? d * Math.Sqrt(previousDensity / newDensity) : dn;
+        }
+        var factors = DesignNodes.Where(n => n.DiameterMm > 0).Select(n => NewDiam(n.DiameterMm) / n.DiameterMm).ToList();
+        if (factors.Count == 0) return;
+        double fMin = factors.Min(), fMax = factors.Max();
+        if (Math.Abs(fMin - 1.0) < 1e-6 && Math.Abs(fMax - 1.0) < 1e-6) return;
+        string factorText = fMax - fMin < 5e-5 ? $"×{(fMin + fMax) / 2:0.0000}" : $"×{fMin:0.0000}–{fMax:0.0000}";
 
         double speedBefore = CurrentWholeLineSinkSpeedIns();
 
         var answer = MessageBox.Show(
             $"Material density {previousDensity:0.00} → {newDensity:0.00} g/cm³.\n\n" +
-            $"Adjust every diameter by ×{factor:0.0000} so the line keeps the mass it has now?\n\n" +
+            $"Adjust every diameter by {factorText} so the line keeps the mass it has now?\n\n" +
             "Yes — diameters change, weight stays (recommended)\n" +
             "No — keep the drawn diameters; the line's weight changes instead",
             "Material density change", MessageBoxButton.YesNo, MessageBoxImage.Question,
@@ -3713,7 +3781,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
 
         PushUndo();
         foreach (var node in DesignNodes)
-            node.DiameterMm = Math.Round(node.DiameterMm * factor, 4);
+            node.DiameterMm = Math.Round(NewDiam(node.DiameterMm), 4);
 
         SyncListFromDesignNodes();
         RefreshSegmentTable();
@@ -3724,7 +3792,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         Dispatcher.InvokeAsync(() =>
         {
             double speedAfter = CurrentWholeLineSinkSpeedIns();
-            UiStatus = $"ρ {previousDensity:0.00} → {newDensity:0.00} g/cm³ · diameters ×{factor:0.0000}" +
+            UiStatus = $"ρ {previousDensity:0.00} → {newDensity:0.00} g/cm³ · diameters {factorText}" +
                        $" · mass held · sink {FormatIns(speedBefore)} → {FormatIns(speedAfter)}";
         });
     }
@@ -5495,6 +5563,8 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         return new FlyLineProject
         {
             Version            = 1,
+            DensityIsCompound  = true,
+            CoreDensityGCm3    = _coreDensityGCm3,
             Name               = name,
             CreatedAt          = DateTime.UtcNow,
             UseSharedDensity   = _useSharedDensity,

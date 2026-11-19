@@ -37,7 +37,8 @@ public static class LineWeightFamilyCalc
             double r2pMm  = r1Mm + (r2Mm - r1Mm) * frac;
             double lenMm  = usedLen * 10.0;
             double volMm3 = Math.PI * lenMm / 3.0 * (r1Mm * r1Mm + r1Mm * r2pMm + r2pMm * r2pMm);
-            totalMassG   += volMm3 / 1000.0 * seg.SpecWeightGCm3;
+            totalMassG   += volMm3 / 1000.0 * seg.SpecWeightGCm3
+                          + Models.LineCore.CoreMassCorrectionG(r1Mm * 2, r2pMm * 2, usedLen, seg.SpecWeightGCm3);
             covered      += usedLen;
         }
         return totalMassG;
@@ -88,20 +89,30 @@ public static class LineWeightFamilyCalc
         if (sourceGrams <= 0 || targetGrams <= 0)
             return new FamilyGenerationResult { Achieved = false };
 
-        double s = Math.Sqrt(targetGrams / sourceGrams);
-        var scaled = sortedSourceSegs.Select(seg => new ProjectSegment
+        List<ProjectSegment> ScaleBy(double f) => sortedSourceSegs.Select(seg => new ProjectSegment
         {
             Index           = seg.Index,
             StartCm         = seg.StartCm,
             EndCm           = seg.EndCm,
-            StartDiameterMm = seg.StartDiameterMm * s,
-            EndDiameterMm   = seg.EndDiameterMm   * s,
+            StartDiameterMm = seg.StartDiameterMm * f,
+            EndDiameterMm   = seg.EndDiameterMm   * f,
             Name            = seg.Name,
             SpecWeightGCm3  = seg.SpecWeightGCm3,
             IsHead          = seg.IsHead
         }).ToList();
 
+        // Without a core the mass goes with s² exactly; with one the core's share does not scale,
+        // so s is refined a few times on the real mass (core + coating) until it hits the target.
+        double s = Math.Sqrt(targetGrams / sourceGrams);
+        var scaled = ScaleBy(s);
         double achievedGrams = MassInFirstCm(scaled, Target30FtCm);
+        for (int it = 0; it < 8 && Models.LineCore.Current is not null && achievedGrams > 0
+                                && Math.Abs(achievedGrams / targetGrams - 1) > 1e-5; it++)
+        {
+            s *= Math.Sqrt(targetGrams / achievedGrams);
+            scaled = ScaleBy(s);
+            achievedGrams = MassInFirstCm(scaled, Target30FtCm);
+        }
         return new FamilyGenerationResult
         {
             Segments       = scaled,

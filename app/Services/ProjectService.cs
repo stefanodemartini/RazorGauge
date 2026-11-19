@@ -34,10 +34,18 @@ public static class ProjectService
     public static FlyLineProject Load(string path)
     {
         var json = File.ReadAllText(path, Encoding.UTF8);
-        return JsonSerializer.Deserialize<FlyLineProject>(json, _opts)
+        var project = JsonSerializer.Deserialize<FlyLineProject>(json, _opts)
                ?? throw new InvalidDataException("Invalid or empty project file.");
+        // Files before 19/11/2026 store the density of the finished line as one body; from now on
+        // every density is the compound's. Converted here, once, at conserved mass, for the app
+        // and the CLI alike; the next save writes the compound values and the flag.
+        LastLoadConvertedDensities = LineCore.ConvertLineDensitiesToCompound(project);
+        return project;
     }
 
+    /// <summary>True when the last <see cref="Load"/> converted line densities to compound.</summary>
+    public static bool LastLoadConvertedDensities { get; private set; }
+
     public static FlyLineProject New(string name = "Untitled") =>
-        new() { Name = name, CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow };
+        new() { Name = name, CreatedAt = DateTime.UtcNow, ModifiedAt = DateTime.UtcNow, DensityIsCompound = true };
 }
