@@ -61,12 +61,19 @@ public static class ProfileAnalyzer
         // head simply stopped where a full line keeps going.
         report.HasDensityData = designDensity.Any(d => d > 0);
 
+        // Principle (Stefano, 19/11/2026): the analysis works on the FINAL line — its mass per
+        // length m(x) and diameter D(x) — whatever it is made of. Composition (compound + core)
+        // only serves to compute m(x) above; from here on every quantity reads m and D. In
+        // particular ρ·d uses the section's real density m/A, not the compound's.
+        double EffRho(double massKgM, double dMm) =>
+            dMm > 0 ? massKgM / (Math.PI / 4.0 * (dMm / 1000.0) * (dMm / 1000.0)) / 1000.0 : 0; // g/cm³
+
         var kind = ResolveKind(scenario, nodes);
         report.Kind = kind;
         report.DesignSliceCount = designSlices;
 
         double[] xsCm, outerDiamMm, linearMassKgM, inertialTaper;
-        var designTaper = designXs.Select((x, i) => designDensity[i] * designDiamMm[i]).ToArray();
+        var designTaper = designXs.Select((x, i) => EffRho(designMassKgM[i], designDiamMm[i]) * designDiamMm[i]).ToArray();
 
         if (kind == LineKind.ShootingHead && scenario.ShootingLine.LengthCm > 0)
         {
@@ -361,6 +368,21 @@ public static class ProfileAnalyzer
             .Where(z => z.Rho > 0 && Math.Abs(z.Rho - baseDensity) > DensityMergeThreshold)
             .ToList();
 
+        // Mass-preserving factor for a zone at drawn diameter d: the section keeps its final mass
+        // per length (core inside, when the file has one) with the zone's compound — the app's
+        // rule since 19/11/2026. With no core it is √(ρ_base/ρ_zone), as before.
+        double FactorFor(double rhoZone, double d)
+        {
+            rhoZone = Math.Max(rhoZone, RhoFloor);
+            double sqrt = Math.Sqrt(baseDensity / rhoZone);
+            if (project.CoreDiameterMm is not double dc || project.CoreDensityGCm3 is not double rc || d <= 0)
+                return sqrt;
+            double m  = MassLinearCalculator.LinearMass(d, baseDensity, dc, rc) * 1000.0;  // g/m
+            double ac = Math.PI / 4.0 * dc * dc;                                            // mm²
+            double a  = (m - (rc - rhoZone) * ac) / rhoZone;                                // mm²: m[g/m] = ρ·A[mm²]
+            return a > 0 ? Math.Sqrt(a * 4.0 / Math.PI) / d : sqrt;
+        }
+
         double FactorAt(double x)
         {
             if (!project.ZoneDensityAdaptDiameters || baseDensity <= 0) return 1.0;
@@ -368,9 +390,10 @@ public static class ProfileAnalyzer
             // diameter continuous. Two zones meeting on one node cannot both hold it, so they split
             // the difference — the app's choice, with a non-blocking warning.
             var claiming = realZones.Where(z => x >= z.StartCm - Eps && x <= z.EndCm + Eps).ToList();
+            double d = InterpolateY(nodes, x);
             return claiming.Count == 0
                 ? 1.0
-                : claiming.Average(z => Math.Sqrt(baseDensity / Math.Max(z.Rho, RhoFloor)));
+                : claiming.Average(z => FactorFor(z.Rho, d));
         }
 
         // Two deliberate divergences from MainWindow.ApplyZoneDensities, both about not inventing

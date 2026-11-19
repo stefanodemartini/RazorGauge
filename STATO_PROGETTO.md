@@ -48,8 +48,14 @@ Fatto:
   0.39 → 0.48 in/s, corpo 0.62 → 0.36 in/s.
 
 **Non ancora adeguati (da sapere):**
-- `FlyLinePhysics` (Livello 2, gemello) e gli script `strumenti/stima_affondamento_core*.py` leggono
-  ancora la densità del file come densità di linea: sui file convertiti sbagliano.
+- ~~`FlyLinePhysics`~~ **fatto (19/11 sera)**. Principio di Stefano: *FlyLinePhysics usa la massa
+  finale, indipendentemente da come è composta.* L'analisi lavora solo su m(x) e D(x); la
+  composizione serve solo a calcolare m(x). ρ·d = (m/A)·D, cioè densità vera della sezione, non del
+  compound. Riscalatura delle zone a massa finale conservata col core. `flyline analyze` carica il
+  file passando dall'app (conversione + core da catalogo), poi lo dà al gemello. Verifica Bellaria #8
+  Opt.2: 32.0 g e masse per segmento identiche all'app. Test FlyLinePhysics 45/45 (2 nuovi sul core).
+- Gli script `strumenti/stima_affondamento_core*.py` leggono ancora la densità del file come
+  densità di linea: sui file convertiti sbagliano (superati dall'app, da non usare più così).
 - I 4 QC "(Real)" con Ø core 0.575 e CoreType vuoto non hanno densità del core ⇒ niente core nei calcoli.
 - Nessun campo nell'interfaccia per scrivere a mano la densità del core (solo da catalogo o nel file).
 - Fase 3 (PDF con compound per ugello + ρ per sezione + avvisi) non fatta: il PDF usa già le

@@ -188,7 +188,13 @@ int Analyze(string[] a)
     // FlyLinePhysics reads the .flp file directly — it can't depend on DiametroLineaDesktop.Models
     // (that would be a reference cycle), so it carries its own twin model/serializer for the same
     // JSON format instead of going through ProjectService.
-    var project = FlpJsonSerializer.Load(path);
+    // Loaded through the app first: that converts a pre-19/11 file to compound densities and
+    // resolves the core (catalogue density included). The twin then reads exactly that, so the
+    // analysis sees the line's final mass per length, core included.
+    var appProject = LoadWithCore(path);
+    appProject.CoreDiameterMm  = LineCore.Current?.DiameterMm;
+    appProject.CoreDensityGCm3 = LineCore.Current?.DensityGCm3;
+    var project = FlpJsonSerializer.Deserialize(JsonSerializer.Serialize(appProject));
     var scenario = new CastScenario { AccelerationRefMs2 = accel };
 
     // The shooting line is a property of how the head is fished, not of the file, so it is a global

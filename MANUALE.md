@@ -600,6 +600,9 @@ dove la linea è grossa conta il compound.
   `flyline convert-compound <cartella>` (backup `FlyLineProfiler/backup_prima_del_compound_2026-11-19.zip`):
   24 progetti con core convertiti, 116 senza core solo segnati. Massa totale invariata
   (scarto ≤ 0.24 % sui file C, 0.00 % sugli altri).
+- **Analisi di lancio (`flyline analyze`, FlyLinePhysics):** usa la **massa finale** della linea,
+  qualunque sia la sua composizione: massa per metro m(x) e diametro D(x), con il core dentro. Il
+  ρ·d è la densità vera della sezione (m/A) per D, non quella del compound.
 - Effetto tipico: Bellaria #8 Opt.2 (core 17 lb, 1.06), compound 1.025 → 1.00; punta
   0.39 → 0.48 in/s, corpo 0.62 → 0.36 in/s.
 

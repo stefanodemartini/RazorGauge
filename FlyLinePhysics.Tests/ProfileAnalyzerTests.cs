@@ -277,6 +277,33 @@ public class ProfileAnalyzerTests
         return p;
     }
 
+    // ── Core + coating (19/11/2026): the analysis reads the final mass, whatever the make-up ──
+
+    [Fact]
+    public void WithCore_InertialTaper_UsesTheSectionsRealDensity()
+    {
+        // 1.0 mm line, compound 0.96, core 0.60 mm at 1.20: ρ_eff = 0.96 + 0.24·0.36 = 1.0464
+        var p = ZonedCylinder(false);
+        p.CoreDiameterMm = 0.60; p.CoreDensityGCm3 = 1.20;
+        var r = ProfileAnalyzer.Analyze(p, DefaultScenario());
+        double rhoEff = 0.96 + (1.20 - 0.96) * 0.36;
+        Assert.Equal(rhoEff * 1.00, r.InertialTaper[100], precision: 9);
+        Assert.Equal(rhoEff * 1000 * Math.PI / 4 * 1e-6, r.LinearMassKgM[100], precision: 12);
+    }
+
+    [Fact]
+    public void WithCore_Zone_PreservesTheFinalMassPerLength()
+    {
+        var plain = ZonedCylinder(false); plain.CoreDiameterMm = 0.60; plain.CoreDensityGCm3 = 1.20;
+        var zoned = ZonedCylinder(true);  zoned.CoreDiameterMm = 0.60; zoned.CoreDensityGCm3 = 1.20;
+        var rp = ProfileAnalyzer.Analyze(plain, DefaultScenario());
+        var rz = ProfileAnalyzer.Analyze(zoned, DefaultScenario());
+        Assert.Equal(rp.LinearMassKgM[100], rz.LinearMassKgM[100], precision: 12);
+        // Thins LESS than with no core: the core does not change, only the coating ring does.
+        Assert.True(rz.Diameter[100] > 1.00 * Math.Sqrt(0.96 / 1.10));
+        Assert.True(rz.Diameter[100] < 1.00);
+    }
+
     [Fact]
     public void Zone_PreservesMassInside_AndReshapesTheSegmentOutside()
     {
