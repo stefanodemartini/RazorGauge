@@ -57,3 +57,25 @@ immagini/
 
 # Output di compilazione del firmware (Arduino CLI)
 master_razorgauge/build/
+
+# ── Eccezioni (19/11/2026): file NON rigenerabili o CONGELATI perche' gia' inviati ai fornitori ──
+# Sorgenti esterni da cui partono gli script (senza questi strumenti/ non ricostruisce nulla)
+!Stl_esterrni/*.stl
+!cad/sensor.stl
+!integrazione_profiler/FlylineProfiler_V3_1_originale.stl
+!integrazione_profiler/FlylineProfiler_senza_comparatore.stl
+!integrazione_profiler/porta_rullo_spintore_originale.stl
+!integrazione_profiler/FlylineProfiler_porta_rullo_guidato.stl
+# Versione congelata inviata a JLC3DP (ordine MJF del 05/11/2026)
+!integrazione_profiler/kit_stampa_stl/*.stl
+# Disegni e file inviati per la lavorazione CNC (ruota encoder compresa)
+!piastra_alluminio/cnc/*.step
+!piastra_alluminio/cnc/*.pdf
+!piastra_alluminio/Piastre_fori.pdf
+# Disegni di assieme, schemi elettrici, collegamenti e datasheet
+!integrazione_profiler/RazorGauge_assieme_slitta_sensore_ruota.pdf
+!integrazione_profiler/LFD650-1-12_9x20_datasheet.pdf
+!scheda_sensore/*.pdf
+!scheda/*.pdf
+!scheda_smd/*.pdf
+!RazorGauge_documento_progetto.pdf
