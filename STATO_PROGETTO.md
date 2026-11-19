@@ -132,6 +132,18 @@ sink. Spiegazioni: linee veloci più sottili (spazio), core come volume perso ne
 core ≈ neutro come riempitivo che stabilizza la densità delle hover; il rischio acqua nella
 treccia (coating che non penetra) si gestisce sigillando le estremità.
 
+**Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
+ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
+l'auto-zero sui carichi piccoli.
+- **Hover, Ø 2.20, 2.02 g** ⇒ ρ_linea **1.063 ± 0.012** (Ø ±0.01 mm pesa più della bilancia).
+  Cilindro da 2.20: ~1.5 in/s in acqua dolce a 20 °C, ~1.1 in salata; alto per un'hover, ma è il
+  corpo, che è la parte più grossa. Compound: 1.064 con core 17 lb, 1.060 con 20 lb ⇒ ≈ linea,
+  perché il core è ≈ neutro.
+- **Floating, Ø 1.47, 0.78 g** ⇒ ρ_linea **0.919 ± 0.018** (−1.25 in/s, galleggia). Compound: 0.876
+  con core 17 lb (24 % della sezione), 0.898 con 12 lb: il core **appesantisce** la galleggiante; in
+  punta (core 50–60 % della sezione) la linea arriverebbe a ~0.95–0.97.
+Core dentro i due spezzoni non ancora identificato (da estrarre e misurare il Ø).
+
 Piano di integrazione nell'app, concordato in linea di principio e da fare dopo i dati:
 - **Fase 1, solo lettura:** ρ_eff e velocità con il core accanto a quelle attuali, nessuna modifica
   alla geometria, interruttore per progetto.
