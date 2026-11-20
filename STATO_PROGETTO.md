@@ -234,6 +234,7 @@ all'estrazione); ±0.01 g sulla pesata ⇒ ±0.015. **La linea galleggia grazie 
 (compound ≈ acqua, sopra il nostro RhoFloor 0.94). Risponde alla domanda sui core grossi delle floating: il core
 è il galleggiante. Se l'acqua riempie i vuoti la linea passa a ~1.03–1.06 e affonda ⇒ estremità sigillate
 indispensabili. Il nostro core (~1.05) non può fare questo lavoro: per una floating serve un core leggero.
+**Pesate ripetute (20/11, con zavorra) confermano 0.10 g / 50 cm.** Resta incognito solo il Ø del core in linea (0.60–0.70 ⇒ compound 0.96–1.04).
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
