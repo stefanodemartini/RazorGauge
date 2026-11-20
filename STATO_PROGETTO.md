@@ -235,6 +235,15 @@ all'estrazione); ±0.01 g sulla pesata ⇒ ±0.015. **La linea galleggia grazie 
 è il galleggiante. Se l'acqua riempie i vuoti la linea passa a ~1.03–1.06 e affonda ⇒ estremità sigillate
 indispensabili. Il nostro core (~1.05) non può fare questo lavoro: per una floating serve un core leggero.
 **Pesate ripetute (20/11, con zavorra) confermano 0.10 g / 50 cm.** Resta incognito solo il Ø del core in linea (0.60–0.70 ⇒ compound 0.96–1.04).
+**Floating col core leggero (20/11, analisi):** core 0.65 mm / 0.20 g/m (ρ 0.60, vuoti ~57 %, allagato ~1.17).
+Punta minima costruibile Ø 0.85 (coat 0.10). Densità linea asciutta / allagata:
+compound 0.94 — punta 0.90: 0.76 / 1.06, corpo 1.47: 0.87 / 0.98 · compound 1.00 — 0.79 / 1.09, 0.92 / 1.03 ·
+compound 1.03 — 0.81 / 1.10, 0.95 / 1.06. Asciutta galleggia con qualsiasi compound fino a ~1.07 (anche quello
+hover 1.066: corpo 0.97, punta 0.82) ⇒ niente compound galleggiante con microsfere. Allagata affonda sempre
+in punta; solo corpo + compound 0.94 resta a galla. Punti critici: tenuta delle estremità (punta e loop),
+il compound non deve entrare nella treccia lasca in estrusione (prova acetone + cappio sul primo pezzo),
+Ø del core sotto la tensione di linea, carico di rottura del core (non noto). Nell'app basta il core nel
+CoreCatalog (o CoreDensityGCm3 nel progetto): il modello è generico.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
