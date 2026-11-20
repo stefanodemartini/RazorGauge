@@ -244,6 +244,13 @@ in punta; solo corpo + compound 0.94 resta a galla. Punti critici: tenuta delle 
 il compound non deve entrare nella treccia lasca in estrusione (prova acetone + cappio sul primo pezzo),
 Ø del core sotto la tensione di linea, carico di rottura del core (non noto). Nell'app basta il core nel
 CoreCatalog (o CoreDensityGCm3 nel progetto): il modello è generico.
+**Verifica obiettivo peso + velocità (20/11, flyline report su cilindri 50 cm, vecchio omogeneo vs core+coat):**
+hover Ø 2.20: 2.020 g / 1.496 in/s in entrambi (misurato 2.02 g). Floating Ø 1.47: 0.780 / 0.783 g (misurato 0.78).
+Punta floating Ø 0.90 (core leggero): **0.292 g vecchio vs 0.252 g nuovo (−14 %)**. ⇒ peso: verificato sui campioni;
+la differenza fra i modelli c'è solo dove il core è una parte grande della sezione (punte, core leggeri).
+Velocità: calcolata in modo coerente ma **mai misurata in acqua** ⇒ obiettivo non ancora dimostrato.
+Prove semplici proposte: pesare 50 cm di punta della floating (0.25 nuovo vs 0.29 vecchio) e cronometrare
+il cilindro hover 50 cm in acqua dolce a 20 °C (previsto 1.50 in/s = 3.8 cm/s).
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
