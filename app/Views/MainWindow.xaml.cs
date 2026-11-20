@@ -596,6 +596,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
             RenderSegmentOverlay(plot);
             DrawCoreBand(plot);
         }
+        UpdateCoreWallWarning();
 
         // Scan + imported series (always on top in design mode so they're not buried).
         if (_showScanLayer && pts.Count > 0)
@@ -838,6 +839,42 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
     /// sticks out of the profile — that is not a drawing glitch but the design saying it cannot be
     /// built there, so it is left visible rather than clipped away.
     /// </summary>
+    /// <summary>
+    /// Shown under the core picker while designing: red when the core leaves less than
+    /// <see cref="LineCore.MinCoatWallMm"/> of coating per side at the thinnest point of the line.
+    /// Core max = thinnest Ø − 2 × wall (Stefano, 20/11/2026: the core follows the line, down to a
+    /// 0.60 mm finished line). Empty when there is no core diameter or no design.
+    /// </summary>
+    public string CoreWallWarning { get; private set; } = string.Empty;
+
+    private void UpdateCoreWallWarning()
+    {
+        string text = string.Empty;
+        if (_designMode && _coreDiameterMm is double core && core > 0)
+        {
+            double dMin = double.PositiveInfinity, atCm = double.NaN;
+            void Take(double d, double x) { if (d > 0 && d < dMin) { dMin = d; atCm = x; } }
+            foreach (var seg in ProjectSegments)
+            {
+                Take(seg.StartDiameterMm, seg.StartCm);
+                Take(seg.EndDiameterMm, seg.StartCm + seg.LengthCm);
+                var ds = seg.CompSliceDiamsMm; var xs = seg.CompSliceXsCm;
+                for (int i = 0; i < ds.Length && i < xs.Length; i++) Take(ds[i], xs[i]);
+            }
+            if (double.IsInfinity(dMin)) foreach (var n in _segmentNodes) Take(n.Y, n.X);
+
+            if (!double.IsInfinity(dMin))
+            {
+                double wall = (dMin - core) / 2.0;
+                double maxCore = dMin - 2.0 * LineCore.MinCoatWallMm;
+                if (wall < LineCore.MinCoatWallMm - 1e-9)
+                    text = $"⚠ Core too thick: thinnest Ø {dMin:0.000} mm at {atCm:0} cm leaves {wall:0.000} mm of coating per side " +
+                           $"(min {LineCore.MinCoatWallMm:0.00}). Core max here: {Math.Max(0, maxCore):0.00} mm.";
+            }
+        }
+        if (text != CoreWallWarning) { CoreWallWarning = text; OnPropertyChanged(nameof(CoreWallWarning)); }
+    }
+
     private void DrawCoreBand(ScottPlot.Plot plot)
     {
         if (!_showCore) return;

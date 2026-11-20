@@ -606,6 +606,11 @@ dove la linea è grossa conta il compound.
   resta a 2.0 e va più lenta del target, con avviso a fine Compensate (insieme al minimo 0.88). Un
   secondo avviso segnala un **coating più sottile di 0.10 mm per lato** (confermato da Stefano): lì la linea
   è stretta quasi sul core e può non essere costruibile — core più sottile o target più lento.
+- **Avviso core in fase di disegno (20/11):** sotto il selettore del core compare in rosso
+  "Core too thick" quando nel punto più sottile della linea (nodi, segmenti, fette dei file C) restano
+  meno di 0.10 mm di coating per lato, con il core massimo ammesso lì (**Ø minimo − 0.20 mm**). La linea
+  finita può scendere fino a **0.60 mm** (Stefano): il core si sceglie di conseguenza (punta 0.80 ⇒ 12 lb,
+  0.92 ⇒ 17 lb, 1.02 ⇒ 20 lb, 1.10 ⇒ 25 lb; sotto 0.80 nessun core a catalogo).
 - **Analisi di lancio (`flyline analyze`, FlyLinePhysics):** usa la **massa finale** della linea,
   qualunque sia la sua composizione: massa per metro m(x) e diametro D(x), con il core dentro. Il
   ρ·d è la densità vera della sezione (m/A) per D, non quella del compound.

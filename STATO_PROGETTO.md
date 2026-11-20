@@ -275,6 +275,8 @@ Punta 0.60 ⇒ core ≤ 0.40 (nessuno a catalogo: il più fine è 12 lb 0.60 sti
 1.02 ⇒ 20 lb; 1.10 ⇒ 25 lb. Un core poliestere 0.40 a ρ 1.03 pesa ~0.13 g/m e tiene ~5 lb (serie 38–41 lb per g/m):
 più debole di molti finali ⇒ per punte < 0.80 valutare core più resistenti a parità di Ø. Archivio attuale:
 punte ≥ 0.97, nessun progetto sotto la parete minima.
+Avviso "Core too thick" nel pannello core mentre si disegna (Ø minimo − 0.20), verificato nell'app vera con
+harness: Phantom Hover 0.75 (Ø min 0.969) con core 0.82 ⇒ avviso, 0.72 ⇒ nulla, 0.95 ⇒ avviso.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
