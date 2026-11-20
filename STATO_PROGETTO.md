@@ -251,6 +251,9 @@ la differenza fra i modelli c'è solo dove il core è una parte grande della sez
 Velocità: calcolata in modo coerente ma **mai misurata in acqua** ⇒ obiettivo non ancora dimostrato.
 Prove semplici proposte: pesare 50 cm di punta della floating (0.25 nuovo vs 0.29 vecchio) e cronometrare
 il cilindro hover 50 cm in acqua dolce a 20 °C (previsto 1.50 in/s = 3.8 cm/s).
+**Pesata 20/11:** spezzone Ø 1.02, 50 cm = **0.41 g** ⇒ ρ_linea **1.00 ± 0.04**. Se è della floating 1.47:
+previsto 0.375 g (omogeneo 0.919) e 0.343 g (core leggero + compound 1.00) ⇒ pesa più di entrambi; servirebbe
+compound 1.28 in quel tratto (zona densa in punta?) — da chiarire con Stefano da che linea/tratto viene.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
