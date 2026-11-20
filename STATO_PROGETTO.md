@@ -10,7 +10,7 @@
 >
 > Indici: `README.md` per la struttura, `FIRMWARE.md` per firmware/versioni, `MANUALE.md` per l'app.
 
-Aggiornato: 24 ottobre 2026, 22:42:16 +02:00.
+Aggiornato: 20 novembre 2026 (punto di ripresa core + coating).
 
 Verifica hardware completa del 19 ottobre: vedi VERIFICA.md.
 
@@ -21,6 +21,28 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
+
+### 20 novembre 2026 — PUNTO DI RIPRESA (chiusura sessione)
+
+**Stato:** peso e velocità di affondamento calcolati con core + coating in tutta l'app (NC, C/Compensate,
+zone, famiglie, mappa, PDF). Core unico dalla punta alla fine della linea; la velocità varia lungo la linea
+per il Ø (equilibrio peso/drag, Cd = 1 + 10/Re^(2/3)) e per la quota di sezione del core.
+Verificato: pesi dei campioni tornano (hover 2.02 g, floating 0.78 g); Phantom Hover 0.75 punta
+0.48 → 0.64 in/s con core 17 lb. **Velocità mai misurate in acqua.**
+
+**Decisioni del giorno (Stefano):**
+- compound minimo **0.88** (era 0.94), massimo 2.0; coating minimo 0.10 mm per lato;
+- linea finita fino a **Ø 0.60**: core massimo = Ø minimo − 0.20 (avviso "Core too thick" già in disegno);
+- assunti: floating di riferimento = core 17 lb (0.72 / 0.43 g/m) + compound 0.88; hover compound 1.066.
+  Ritirata l'ipotesi "floating galleggia per l'aria nel core"; pesata del core estratto (0.10 g) messa da parte.
+- Stefano: "keep it simple" — obiettivo = sapere quanto pesa e quanto veloce affonda la linea.
+
+**Da fare (ripresa 21/11):**
+1. Rigenerare i file C pre-19/11 con Compensate dagli NC.
+2. Prova in acqua: cilindro hover 50 cm, acqua dolce ~20 °C, previsto 3.8 cm/s (1.50 in/s).
+3. Fornitore: core ~0.40 mm (e carico di rottura) se servono punte < 0.80.
+
+Commit del giorno: 07bd39f … 01c7473 (dettagli nella sezione core + coating più sotto).
 
 ### 19 novembre 2026 — core + coating nell'app (fase 1: calcoli) e conversione dei file
 
