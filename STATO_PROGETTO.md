@@ -227,6 +227,13 @@ f = (d/D)². Il core non è una scelta "per la galleggiante": è un costo nelle 
 - Dato contrario da tenere presente: la nostra hover misurata ha core 0.45 (4 %), la floating 0.70 (21 %).
 Da verificare: densità del compound floating realizzabile dal fornitore (se < 0.94 abbassare RhoFloor), e
 controllo punta floating nell'app (core vs Ø punta) prima di scegliere il core.
+**Pesata core floating (20/11):** 50 cm del core estratto dalla floating 1.47 = **0.10 g** ⇒ 0.20 g/m (meno del
+nostro 12 lb, 0.29). Con Ø 0.65–0.70 ⇒ **ρ_core 0.52–0.60** (vuoti ~56–62 % su poliestere 1.38): treccia lasca.
+Compound ricavato (linea 1.56 g/m, Ø 1.47): **≈ 1.00–1.04** (0.96 se il core in linea fosse 0.60 e si è gonfiato
+all'estrazione); ±0.01 g sulla pesata ⇒ ±0.015. **La linea galleggia grazie all'aria nel core, non al compound**
+(compound ≈ acqua, sopra il nostro RhoFloor 0.94). Risponde alla domanda sui core grossi delle floating: il core
+è il galleggiante. Se l'acqua riempie i vuoti la linea passa a ~1.03–1.06 e affonda ⇒ estremità sigillate
+indispensabili. Il nostro core (~1.05) non può fare questo lavoro: per una floating serve un core leggero.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
