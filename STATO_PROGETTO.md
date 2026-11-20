@@ -211,6 +211,22 @@ Ragionamento collegato (19/11): altri produttori usano core relativamente più g
 sink. Spiegazioni: linee veloci più sottili (spazio), core come volume perso nelle affondanti,
 core ≈ neutro come riempitivo che stabilizza la densità delle hover; il rischio acqua nella
 treccia (coating che non penetra) si gestisce sigillando le estremità.
+**Approfondimento (20/11) — perché core più grossi in floating/hover.** ρ_linea = f·ρ_core + (1−f)·ρ_coat,
+f = (d/D)². Il core non è una scelta "per la galleggiante": è un costo nelle affondanti e quasi gratis nelle altre.
+- *Affondanti:* il core è volume morto. Con tetto compound 2.0, corpo Ø 1.00: core 0.45 ⇒ ρ 1.80, core 0.60 ⇒
+  1.65; punta 0.80 con core 0.60 ⇒ 1.45. In più sono sottili e MinCoatWall 0.10 limita il core. ⇒ core fini.
+- *Hover:* core ≈ 1.03–1.06 ≈ compound hover (1.066) ⇒ filler neutro: la scelta del core non sposta la densità,
+  solo meccanica (allungamento). Riduce la sensibilità all'errore di dosaggio: dρ_linea = (1−f)·dρ_coat; con
+  Δρ ≈ 0.03–0.06 dall'acqua, ±0.01 di compound vale 20–30 % della velocità.
+- *Floating:* con un core ~1.05 il core spessore è una piccola penalità nel corpo (Ø 1.47, core 0.70: con
+  compound 0.94 ⇒ 0.965) e grande in punta (Ø 0.90: core 17 lb ⇒ 1.017, **affonda**; 12 lb ⇒ 0.98; 0.45 ⇒ 0.96).
+  La floating misurata (0.919, core ~0.70) richiede compound ≈ 0.88, **sotto il nostro RhoFloor 0.94**, oppure
+  un core più leggero del nostro (treccia lasca con aria sigillata, ~0.7). Il vantaggio del core grosso nelle
+  floating è meccanico: meno allungamento ⇒ meno deformazione del coating caricato di microsfere (più fragile,
+  si crepa), più sensibilità/ferrata; e le floating sono più grosse, c'è spazio.
+- Dato contrario da tenere presente: la nostra hover misurata ha core 0.45 (4 %), la floating 0.70 (21 %).
+Da verificare: densità del compound floating realizzabile dal fornitore (se < 0.94 abbassare RhoFloor), e
+controllo punta floating nell'app (core vs Ø punta) prima di scegliere il core.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
