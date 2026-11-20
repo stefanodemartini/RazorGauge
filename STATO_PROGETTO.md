@@ -254,6 +254,10 @@ il cilindro hover 50 cm in acqua dolce a 20 °C (previsto 1.50 in/s = 3.8 cm/s).
 **Pesata 20/11:** spezzone Ø 1.02, 50 cm = **0.41 g** ⇒ ρ_linea **1.00 ± 0.04**. Se è della floating 1.47:
 previsto 0.375 g (omogeneo 0.919) e 0.343 g (core leggero + compound 1.00) ⇒ pesa più di entrambi; servirebbe
 compound 1.28 in quel tratto (zona densa in punta?) — da chiarire con Stefano da che linea/tratto viene.
+Stefano: viene da una floating con core ~uguale (0.65 mm). Se il core pesa come quello della 1.47 (0.10 g/50 cm)
+serve compound 1.28 (non da floating) ⇒ quasi certamente il core qui è più pesante. Compound in funzione del peso
+del core (50 cm): 0.10→1.28, 0.14→1.11, 0.16→1.03, 0.18→0.95, 0.20→0.87. Da fare: togliere il coating a questo
+spezzone e pesarne il core (atteso 0.16–0.18 g se il compound è da floating).
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
