@@ -258,6 +258,16 @@ Stefano: viene da una floating con core ~uguale (0.65 mm). Se il core pesa come 
 serve compound 1.28 (non da floating) ⇒ quasi certamente il core qui è più pesante. Compound in funzione del peso
 del core (50 cm): 0.10→1.28, 0.14→1.11, 0.16→1.03, 0.18→0.95, 0.20→0.87. Da fare: togliere il coating a questo
 spezzone e pesarne il core (atteso 0.16–0.18 g se il compound è da floating).
+**ASSUNTI DI LAVORO (20/11, Stefano: "facciamo assunti e andiamo avanti"):**
+- *Nostre linee:* core del catalogo fornitore (già nell'app), nessun assunto nuovo.
+- *Floating di riferimento (spezzoni 1.47 e 1.02, stessa famiglia):* risolvendo i due pesi insieme
+  (stesso compound, stesso core) ⇒ compound **0.84** (0.76–0.93 con gli errori) e core ~0.41–0.48 g/m, cioè un
+  core normale tipo 17 lb. Assunto: **core 0.72 mm / 0.43 g/m (ρ 1.06) + compound 0.88** ⇒ previsti 0.783 g e
+  0.395 g contro 0.78 e 0.41 misurati. La pesata 0.10 g del core estratto è messa da parte (probabile parte della
+  treccia rimasta nel tubo di coating, o impregnazione tolta dall'acetone).
+  ⇒ **Ritirata** la conclusione "galleggia per l'aria nel core": galleggia per il compound 0.88.
+- *Hover:* compound 1.066, core 12 lb (invariato).
+Conseguenza: compound 0.88 < RhoFloor 0.94 ⇒ per floating così serve sapere se il fornitore estrude ~0.88.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita
