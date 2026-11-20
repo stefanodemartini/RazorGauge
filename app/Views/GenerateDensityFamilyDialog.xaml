@@ -57,10 +57,10 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="0.94" FontSize="10"
+                <TextBlock Grid.Column="0" Text="0.88" FontSize="10"
                            Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
                 <Slider x:Name="DensitySlider" Grid.Column="1"
-                        Minimum="0.94" Maximum="2.50" Value="1.10"
+                        Minimum="0.88" Maximum="2.50" Value="1.10"
                         IsMoveToPointEnabled="True"
                         SmallChange="0.01" LargeChange="0.05"
                         ValueChanged="DensitySlider_ValueChanged"

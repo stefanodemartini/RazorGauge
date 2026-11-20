@@ -373,7 +373,7 @@ Each segment is a frustum (truncated cone) or cylinder. Key computed properties:
 | `CompSliceXsCm/DiamsMm/Densities/Clamped` | Per-1cm-slice compensated profile arrays, set by `SetCompensation()` |
 
 ### `SinkingSpeedCalc.cs` — physics engine
-Bisection solver for cylinder drag. Units: mm / cm / g/cm³ in, m/s out. `RhoFloor = 0.94 g/cm³` (min practical material density).
+Bisection solver for cylinder drag. Units: mm / cm / g/cm³ in, m/s out. `RhoFloor = 0.88 g/cm³` (lightest extrudable compound; 0.94 until 20/11/2026).
 
 | Method | Description |
 |---|---|
@@ -405,7 +405,7 @@ A project has exactly 4 `NozzleDefinition` slots (color + density g/cm³ + label
 - **Show C** toggles NC/C display; **Show NC ghost** overlays the original NC profile translucent-gray for comparison.
 - C profile rendered with Lambert-cylindrical shading, colored by density gradient (blue=light → red=heavy); adjacent slices overlap 18% to hide anti-alias seams between swatches.
 - Floating projects (`IsSinking == false`) hide compensation entirely — physically meaningless.
-- Density floor 0.94 g/cm³ (`RhoFloor`): slices that would need to go lighter are clamped and flagged (`HasClampedSlices`) with a UI warning.
+- Density floor 0.88 g/cm³ (`RhoFloor`): slices that would need to go lighter are clamped and flagged (`HasClampedSlices`) with a UI warning.
 - Segments table: NC and Comp are separate column groups; **Sink is always the rightmost column**.
 
 ### PDF export (`FlyLinePdfExporter.cs`, ~900 lines)

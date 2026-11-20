@@ -3620,7 +3620,7 @@ public partial class MainWindow : System.Windows.Controls.UserControl, INotifyPr
         RefreshPlot();
         MarkDirty();
         UiStatus = "Zone densities applied — each zone's own sink speed is shown in the segments table."
-            + (anyClampedSlice ? " ⚠ A zone's density was below the practical floor (0.94 g/cm³) and was clamped." : string.Empty)
+            + (anyClampedSlice ? " ⚠ A zone's density was below the practical floor (0.88 g/cm³) and was clamped." : string.Empty)
             + (conflictAtEdge ? " ⚠ Two adjacent zones of different density share an edge with no gap — that node was set to the average of both." : string.Empty);
     }
 

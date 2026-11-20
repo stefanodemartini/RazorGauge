@@ -533,7 +533,7 @@ public static class FlyLinePdfExporter
                             SpecBlock(T("Water"),        water,  ColText);
                             SpecBlock(T("Type"),         Ti(uniformCompSpeed ? "Compensated — uniform sink" : "Multi-material — per-zone sink"),  ColAccent);
                             if (hasClampedSection)
-                                SpecBlock(T("Warning"), Ti("⚠ sections at ρ min (0.94)"), ColRed);
+                                SpecBlock(T("Warning"), Ti("⚠ sections at ρ min (0.88)"), ColRed);
                         }
                     });
 

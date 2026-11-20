@@ -100,7 +100,7 @@ public static class SheetText
         ["(per zone)"] = "（分段）",
         ["Compensated — uniform sink"]     = "补偿 — 均匀下沉",
         ["Multi-material — per-zone sink"] = "多材料 — 分段下沉",
-        ["⚠ sections at ρ min (0.94)"]     = "⚠ 部分段处于最低密度 (0.94)",
+        ["⚠ sections at ρ min (0.88)"]     = "⚠ 部分段处于最低密度 (0.88)",
         ["Front-loaded · power"]   = "前重 · 力量型",
         ["Semi front-loaded"]      = "偏前重",
         ["Neutral · all-round"]    = "中性 · 全能型",

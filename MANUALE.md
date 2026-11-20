@@ -294,7 +294,7 @@ e il segmento appena fuori dalla zona viene *rimodellato* fino al suo nodo lonta
 transizione:
 
 - **Dentro la zona**: densità piena, nominale, per tutta la sua estensione — nessuna sfumatura.
-  Il diametro al bordo della zona = disegnato × √(ρ_base/ρ_zona) (con floor a 0.94 g/cm³), la stessa
+  Il diametro al bordo della zona = disegnato × √(ρ_base/ρ_zona) (con floor a 0.88 g/cm³), la stessa
   identità usata ovunque per la massa costante.
 - **Il segmento appena fuori dalla zona** (quello che la tocca) prende quello stesso valore esatto
   come proprio estremo vicino; il suo estremo lontano resta **esattamente quello disegnato**
@@ -585,7 +585,7 @@ dove la linea è grossa conta il compound.
 
 - **Cosa usa il core:** massa e grani (totale, testa, 30 ft, AFTMA), velocità per sezione (colonna
   Sink e Sink Map), velocità a corpo rigido delle zone e dei file C, Compensate (risolve il
-  compound per fetta e il limite 0.94 vale sul compound), riscalatura a massa costante quando cambi
+  compound per fetta e il limite 0.88 vale sul compound), riscalatura a massa costante quando cambi
   densità o metti una zona (il fattore ora dipende dal diametro: le parti sottili, quasi tutte core,
   cambiano meno), famiglie per grammatura, Weight → Density (dà il compound), PDF.
 - **Densità del core:** quella del catalogo (sotto il selettore). Il file può averne una sua
@@ -603,7 +603,7 @@ dove la linea è grossa conta il compound.
 - **Compensate col core:** per far andare veloce una sezione sottile a massa costante la si
   stringe verso il core, e il coating che resta deve essere sempre più denso. Il compound ha quindi
   un **tetto, 2.0 g/cm³** (valore confermato da Stefano il 19/11): la fetta che ci arriva
-  resta a 2.0 e va più lenta del target, con avviso a fine Compensate (insieme al minimo 0.94). Un
+  resta a 2.0 e va più lenta del target, con avviso a fine Compensate (insieme al minimo 0.88). Un
   secondo avviso segnala un **coating più sottile di 0.10 mm per lato** (confermato da Stefano): lì la linea
   è stretta quasi sul core e può non essere costruibile — core più sottile o target più lento.
 - **Analisi di lancio (`flyline analyze`, FlyLinePhysics):** usa la **massa finale** della linea,
@@ -859,7 +859,7 @@ L'opposto della generazione per peso linea (§10): stessa geometria (stesso tape
 - Si trascina lo slider sulla velocità desiderata e si preme **+ Add to list**; si ripete per ogni variante voluta, poi **Generate**
 - Dal 16/11/2026 lo slider scatta a **passi di 0.05 in/s**: prima era continuo e su 0–10 in/s ogni pixel valeva circa 0.03, quindi un valore tondo come 0.70 non si centrava. Sotto lo slider c'è una **casella** dove scrivere la velocità esatta (es. 0.72, accetta anche la virgola, 0 = Floating); con Invio la velocità viene aggiunta alla lista
 - Per ogni velocità, densità (uniforme) e diametro (fattore di scala uniforme su tutta la linea) vengono risolti **insieme**: la densità si ricava con lo stesso metodo del pulsante "⏬ From sink speed…" (`SinkingSpeedCalc.DensityForTargetSinkSpeed`), il diametro si scala per compensarla in modo che la **massa nei primi 30 ft resti identica a quella della linea sorgente** — nessuna compensazione per-slice, ma nemmeno densità libera di far variare il peso
-- Risultato: tutte le varianti generate restano nella **stessa classe AFFTA** della sorgente, esattamente come nelle linee reali in famiglia (es. WF6F / WF6I / WF6S3 / WF6S5 sono tutte "WF6"). Per andare più veloci a parità di peso, il diametro si riduce (materiale più denso, meno volume); per la variante Floating (densità fissata a `RhoFloor` = 0.94 g/cm³, che galleggia), il diametro invece aumenta
+- Risultato: tutte le varianti generate restano nella **stessa classe AFFTA** della sorgente, esattamente come nelle linee reali in famiglia (es. WF6F / WF6I / WF6S3 / WF6S5 sono tutte "WF6"). Per andare più veloci a parità di peso, il diametro si riduce (materiale più denso, meno volume); per la variante Floating (densità fissata a `RhoFloor` = 0.88 g/cm³, che galleggia), il diametro invece aumenta
 - Se una velocità richiesta supera quella raggiungibile a ρ = 2.5 g/cm³ (limite pratico) a parità di massa, il file viene generato comunque alla densità limite e segnalato nel riepilogo come "non esattamente raggiungibile"
 
 ### File generati
@@ -881,7 +881,7 @@ Ogni velocità produce un file `NomeProgetto X.XXips.flp` (o `NomeProgetto Float
 Lo specchio della §11: lì la **velocità** è l'ingresso e la densità viene risolta; qui le **densità sono l'ingresso** — i materiali che hai davvero in magazzino — e la velocità di affondamento è il risultato.
 
 ### Come funziona
-- Il pulsante **Generate by Density…** (toolbar Design Tools) apre un dialogo con uno slider da **0.94** a **2.50 g/cm³**
+- Il pulsante **Generate by Density…** (toolbar Design Tools) apre un dialogo con uno slider da **0.88** a **2.50 g/cm³**
 - **+ Add to list** aggiunge la densità corrente; **+ Add my M1–M4** aggiunge in un colpo le densità degli ugelli già definiti nel progetto
 - Si sceglie **cosa resta fisso**:
   - **la classe di peso** (default) — tutti i diametri vengono riscalati di `√(ρ_vecchia/ρ_nuova)` perché la massa dei primi 30 ft resti identica. Materiale più denso ⇒ linea più sottile, stesso peso. È la logica di famiglia: una WF6 resta WF6

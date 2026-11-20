@@ -35,7 +35,7 @@ across a hard material boundary. Only three ways out:
 
 ## Constants and models
 
-- `RhoFloor = 0.94 g/cm³` — practical minimum manufacturable density; slices clamped to it are flagged.
+- `RhoFloor = 0.88 g/cm³` (was 0.94 until 20/11/2026) — lightest compound the supplier can extrude; slices clamped to it are flagged.
 - Fresh water ≈ 998.2 kg/m³ @ 20 °C (polynomial), salt = `1027 − 0.2·t`, ν salt = 1.07·ν fresh.
 - Drag: `Cd = 1 + 10/Re^(2/3)`; terminal speed solved by bisection.
 - A section denser than water always yields a **positive** sink speed — `SinkSpeedText` shows

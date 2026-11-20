@@ -268,6 +268,13 @@ spezzone e pesarne il core (atteso 0.16–0.18 g se il compound è da floating).
   ⇒ **Ritirata** la conclusione "galleggia per l'aria nel core": galleggia per il compound 0.88.
 - *Hover:* compound 1.066, core 12 lb (invariato).
 Conseguenza: compound 0.88 < RhoFloor 0.94 ⇒ per floating così serve sapere se il fornitore estrude ~0.88.
+**Decisione Stefano (20/11): il fornitore estrude ~0.88 ⇒ RhoFloor 0.94 → 0.88** (app, FlyLinePhysics, PDF,
+dialogo Generate by Density, doc). Cambia anche la variante Floating delle famiglie (densità = RhoFloor).
+**Ø minimo linea finita: 0.60 mm (Stefano).** Il core si sceglie di conseguenza: core max = D_min − 2·0.10.
+Punta 0.60 ⇒ core ≤ 0.40 (nessuno a catalogo: il più fine è 12 lb 0.60 stimato); 0.80 ⇒ 12 lb; 0.92 ⇒ 17 lb;
+1.02 ⇒ 20 lb; 1.10 ⇒ 25 lb. Un core poliestere 0.40 a ρ 1.03 pesa ~0.13 g/m e tiene ~5 lb (serie 38–41 lb per g/m):
+più debole di molti finali ⇒ per punte < 0.80 valutare core più resistenti a parità di Ø. Archivio attuale:
+punte ≥ 0.97, nessun progetto sotto la parete minima.
 
 **Prime misure (19/11), spezzoni cilindrici da 50 cm di due linee finite.** Bilancia da 0.01 g con
 ripetibilità pessima a vuoto: risolto con una **zavorra** (moneta sul piatto, poi tara), che evita

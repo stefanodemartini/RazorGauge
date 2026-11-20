@@ -22,7 +22,7 @@ public static class ProfileAnalyzer
     // Both mirror MainWindow/SinkingSpeedCalc — a zone this close to the base is the same material,
     // and no real material is thinner than RhoFloor.
     private const double DensityMergeThreshold = 0.02;
-    private const double RhoFloor = 0.94;
+    private const double RhoFloor = 0.88; // = app SinkingSpeedCalc.RhoFloor (20/11/2026)
 
     // Score weights and scales — first pass, not yet calibrated against real designs. Revisit once
     // ProfileAnalyzer has been run on a range of Stefano's real .flp files.

@@ -22,7 +22,7 @@ public static class SinkingSpeedCalc
     private const double G        = 9.80665;
     private const int    MaxIter  = 100;
     private const double Tol      = 1e-12;
-    public  const double RhoFloor = 0.94; // g/cm³ — minimum practical material density (0.94 < ρ_water → will float)
+    public  const double RhoFloor = 0.88; // g/cm³ — lightest compound the supplier can extrude (0.88, confirmed by Stefano 20/11/2026; was 0.94)
 
     /// <summary>
     /// Densest compound the supplier can extrude, g/cm³. 2.0 confirmed by Stefano (19/11/2026) as
@@ -59,7 +59,7 @@ public static class SinkingSpeedCalc
     ///   1. Slice mass is preserved: ρ_new · d_new² = ρ_orig · d_orig²
     ///   2. The slice sinks at exactly targetSpeedMs
     ///
-    /// When the required density would drop below RhoFloor (0.94 g/cm³), the density
+    /// When the required density would drop below RhoFloor (0.88 g/cm³), the density
     /// is clamped and the diameter recomputed from mass conservation. The affected
     /// slice is flagged in the returned <c>clamped</c> array.
     ///
