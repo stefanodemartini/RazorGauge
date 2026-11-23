@@ -94,6 +94,14 @@ public static class LineDesignBuilder
         notes = new List<string>();
         Validate(spec, notes);
 
+        // The zone scaling below keeps each section's mass WITH the core inside, so the spec's core
+        // must be the one in force while it runs. The CLI used to set it only after Build returned,
+        // so a mass-preserving zone was scaled as if the line had no core (found 23/11/2026).
+        var spec0 = CoreCatalog.Find(spec.CoreType);
+        LineCore.Current = spec0?.DensityGCm3 is double rhoCore
+            ? new CoreModel(spec0.NominalMm, rhoCore)
+            : null;
+
         // 1. Chain the sections into nodes. Each gap between consecutive nodes remembers which
         //    spec section it came from, so a node inserted later at a zone edge splits a section
         //    without losing its name or head flag.

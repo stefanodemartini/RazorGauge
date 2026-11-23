@@ -54,9 +54,27 @@ public partial class MainWindow
     {
         if (!s_openViews.Contains(this)) s_openViews.Add(this);
         if (!_compactHooked) { _compactHooked = true; SizeChanged += (_, e) => ApplyCompactHeader(e.NewSize.Width); }
+        if (!_coreHooked)
+        {
+            _coreHooked = true;
+            // LineCore.Current is one value for the whole process, but every tab has its own core.
+            // Before anything in this tab computes (a click, a key, the wheel scrolling the table,
+            // the tab coming into view) its own core is put back: without this, side by side or
+            // after switching tab, masses and sink speeds were computed with the core of the last
+            // tab loaded or edited (found 23/11/2026).
+            PreviewMouseDown  += (_, _) => UseOwnCore();
+            PreviewMouseWheel += (_, _) => UseOwnCore();
+            PreviewKeyDown    += (_, _) => UseOwnCore();
+            IsVisibleChanged  += (_, e) => { if (e.NewValue is true) UseOwnCore(); };
+        }
     }
 
     private bool _compactHooked;
+    private bool _coreHooked;
+
+    /// <summary>Points the physics at this tab's core. Loading a file is synchronous on the UI
+    /// thread, so none of the events above can fire half-way through it.</summary>
+    private void UseOwnCore() => Models.LineCore.Current = CurrentCoreModel();
 
     /// <summary>
     /// Side by side the header's centre buttons (New/Open/…) would slide under the app title.

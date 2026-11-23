@@ -42,6 +42,9 @@ public class LibraryPiece
     public double[] Xs            { get; init; } = Array.Empty<double>();
     public double[] Ds            { get; init; } = Array.Empty<double>();
     public double   DensityGCm3   { get; init; }
+    /// <summary>The source project's core: <see cref="DensityGCm3"/> is the compound around it.</summary>
+    public string     CoreType    { get; init; } = string.Empty;
+    public CoreModel? Core        { get; init; }
 
     public double LengthCm => Xs.Length > 0 ? Xs[^1] : 0;
     public double MinD     => Ds.Length > 0 ? Ds.Min() : 0;
@@ -108,8 +111,18 @@ public static class PieceLibrary
             Xs          = xs,
             Ds          = ds,
             DensityGCm3 = density,
+            CoreType    = project.CoreType ?? string.Empty,
+            Core        = LineCore.FromProject(project),
             Thumbnail   = BuildThumbnail(xs, ds),
         };
+    }
+
+    /// <summary>Copies a library piece's core onto a prototype piece.</summary>
+    internal static void SetCore(PrototypePiece piece, LibraryPiece lib)
+    {
+        piece.CoreType        = lib.CoreType;
+        piece.CoreDiameterMm  = lib.Core?.DiameterMm;
+        piece.CoreDensityGCm3 = lib.Core?.DensityGCm3;
     }
 
     /// <summary>
@@ -243,6 +256,17 @@ public static class PrototypeAssembler
             if (string.IsNullOrEmpty(piece.Name)) piece.Name = lib.Name;
             if (piece.DensityGCm3 <= 0) piece.DensityGCm3 = lib.DensityGCm3;
         }
+        // Pieces saved before the core was carried (23/11/2026): read it back from the source scan,
+        // when it can still be read. A piece that cannot be read keeps no core, as before.
+        foreach (var piece in project.Pieces.Where(p => p.Core is null && string.IsNullOrEmpty(p.CoreType)))
+        {
+            try
+            {
+                string src = Path.IsPathRooted(piece.SourcePath) ? piece.SourcePath : Path.Combine(baseDir, piece.SourcePath);
+                if (File.Exists(src) && PieceLibrary.LoadPiece(src) is LibraryPiece lib) PieceLibrary.SetCore(piece, lib);
+            }
+            catch { /* source moved or unreadable: the piece stays without a core */ }
+        }
         return project;
     }
 
@@ -250,7 +274,7 @@ public static class PrototypeAssembler
     public static PrototypePiece CreatePiece(LibraryPiece lib, PrototypeProject project)
     {
         double end = project.Pieces.Count == 0 ? 0 : project.Pieces.Max(p => p.VisibleEnd);
-        return new PrototypePiece
+        var piece = new PrototypePiece
         {
             Name        = lib.Name,
             SourcePath  = lib.Path,
@@ -260,6 +284,8 @@ public static class PrototypeAssembler
             ColorHex    = Palette[project.Pieces.Count % Palette.Length],
             OffsetCm    = end,
         };
+        PieceLibrary.SetCore(piece, lib);
+        return piece;
     }
 
     /// <summary>
@@ -281,6 +307,9 @@ public static class PrototypeAssembler
             PartNumber  = 1,
             SourcePath  = piece.SourcePath,
             DensityGCm3 = piece.DensityGCm3,
+            CoreType        = piece.CoreType,
+            CoreDiameterMm  = piece.CoreDiameterMm,
+            CoreDensityGCm3 = piece.CoreDensityGCm3,
             Xs          = piece.Xs,
             Ds          = piece.Ds,
             ColorHex    = Palette[project.Pieces.Count % Palette.Length],
@@ -426,20 +455,24 @@ public static class PrototypeAssembler
         return result;
     }
 
-    /// <summary>Mass (g) of the kept part: ρ·π/4·D²·dx, trapezoidal over the scan points.</summary>
+    /// <summary>Mass (g) of the kept part: ρ_eff(D)·π/4·D²·dx, trapezoidal over the scan points.
+    /// ρ_eff is the piece's compound around its own core (LineCore.Effective); with no core it is
+    /// the compound itself, as before 23/11/2026.</summary>
     public static double PieceMass(PrototypePiece p)
     {
         double a = Math.Min(p.ToSourceX(p.VisibleStart), p.ToSourceX(p.VisibleEnd));
         double b = Math.Max(p.ToSourceX(p.VisibleStart), p.ToSourceX(p.VisibleEnd));
-        double volCm3 = 0;
-        double prevX = a, prevArea = AreaCm2(p.DiameterAtSource(a));
+        var core = p.Core;
+        double LinMass(double dMm) => AreaCm2(dMm) * LineCore.Effective(dMm, p.DensityGCm3, core); // g/cm
+        double mass = 0;
+        double prevX = a, prevM = LinMass(p.DiameterAtSource(a));
         foreach (double x in p.Xs.Where(x => x > a && x < b).Append(b))
         {
-            double area = AreaCm2(p.DiameterAtSource(x));
-            volCm3 += (area + prevArea) / 2 * (x - prevX);
-            prevX = x; prevArea = area;
+            double m = LinMass(p.DiameterAtSource(x));
+            mass += (m + prevM) / 2 * (x - prevX);
+            prevX = x; prevM = m;
         }
-        return volCm3 * p.DensityGCm3;
+        return mass;
     }
 
     private static double AreaCm2(double dMm) => Math.PI / 4 * (dMm / 10) * (dMm / 10);
@@ -558,6 +591,15 @@ public static class PrototypeAssembler
         var densities = r.Pieces.Select(p => p.Piece.DensityGCm3).Distinct().ToList();
         if (densities.Count == 1 && densities[0] > 0)
             project.SharedDensityGCm3 = densities[0];
+        // The density is a compound: without its core the finished line would weigh and sink as a
+        // homogeneous body. Carried over only when every piece has the same core.
+        var cores = r.Pieces.Select(p => (p.Piece.CoreType, p.Piece.CoreDiameterMm, p.Piece.CoreDensityGCm3)).Distinct().ToList();
+        if (cores.Count == 1 && cores[0].CoreDiameterMm is > 0)
+        {
+            project.CoreType        = cores[0].CoreType;
+            project.CoreDiameterMm  = cores[0].CoreDiameterMm;
+            project.CoreDensityGCm3 = cores[0].CoreDensityGCm3;
+        }
         return project;
     }
 

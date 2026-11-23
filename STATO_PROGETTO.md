@@ -22,6 +22,40 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 23 novembre 2026 — revisione generale del codice (calcoli)
+
+Controllati: SinkingSpeedCalc (cilindro isolato, corpo rigido, Compensate, densità per velocità), LineCore
+(ρ_eff, massa, compound, conversione file), CoreCatalog, ProjectSegment (massa, colonna Sink), famiglie
+(AFFTA, peso, velocità, densità), zone (ApplyZoneDensities), quantizzazione C, PDF (masse e velocità per
+ugello), Sink Map app e PDF, CLI build/report, Prototype, gemello FlyLinePhysics (45/45 test).
+Formule di base corrette: equilibrio peso/spinta/drag, unità, acqua (densità polinomiale, ν tabellata),
+massa core + coating, inversi. Verifica incrociata: CLI `report` sul vecchio Phantom Hover (0.993) dà
+0.156 → 0.481 in/s, identico a un ricalcolo indipendente in Python.
+
+**Errori trovati e corretti:**
+1. **Core condiviso fra le schede.** `LineCore.Current` è unico per tutta l'app, ma ogni scheda ha il suo
+   core: affiancate o dopo un cambio scheda, masse e velocità usavano il core dell'ultima scheda caricata
+   o modificata. Ora ogni scheda rimette il suo core quando diventa visibile e prima di ogni
+   clic/tasto/rotella (`MainWindow.Tabs.cs`). Probabile causa della Sink Map di stamattina (0.060 → 0.443
+   in/s nell'app contro 0.156 → 0.481 del calcolo).
+2. **CLI `build`: zone a massa conservata senza core.** Il core veniva impostato solo dopo `Build`, quindi
+   la riscalatura usava √(ρ_base/ρ_zona) da linea omogenea. Ora `Build` imposta il core della spec prima
+   di riscalare. Verifica (Phantom Hover, zona 0–325 a 1.40): S1 0.264 g come senza zona, Ø 0.964 (prima
+   sarebbe stato 0.888).
+3. **Prototype: massa senza core.** I pezzi portavano solo la ρ del compound. Ora portano il core del file
+   (salvato nel .flproto, ricaricato dalla sorgente per i vecchi), la massa usa ρ_eff(D) e il progetto
+   assemblato eredita il core se è uguale per tutti i pezzi.
+
+**Osservazioni (non errori, da decidere):**
+- Zone a massa conservata con nodo al bordo: il tratto vicino fuori zona parte dal Ø riscalato e cambia
+  massa (prova sopra: S3 3.101 → 2.800 g, 30 ft 246.0 → 241.4 gr). È la scelta "bordo zona = nodo".
+- Compensate: la quantizzazione a ≤ 4 densità lascia i Ø e cambia le densità ⇒ anche la massa del file C
+  si scosta dall'NC (oltre alla velocità). Da misurare su un file vero.
+- Sink Map / colonna Sink = cilindro isolato; tratti con zona = corpo rigido (velocità unica): due modelli
+  voluti, ma la mappa e la colonna non sono confrontabili su quei tratti.
+- Drag Cd = 1 + 10/Re^(2/3): poco affidabile sotto Re ≈ 1 (tratti quasi neutri, < ~0.1 in/s).
+- Codice morto: `LineSinkSpeed`, `LineSinkSpeedRange` (ancora 1.001–2.5), `TaperedSegmentSinkSpeed`.
+
 ### 23 novembre 2026 — Sink Map "invertita": primo dato reale, compound hover ≥ 1.02
 
 - Stefano: la Sink Map di **Phantom Hover** dava la pancia (Ø 2.16) più lenta (blu) e la running line

@@ -44,6 +44,17 @@ public class PrototypePiece
     /// <summary>Material density from the source project, g/cm³. 0 = unknown (no weight estimate).</summary>
     public double DensityGCm3 { get; set; }
 
+    /// <summary>The source project's core (core + coating, 19/11/2026): <see cref="DensityGCm3"/> is
+    /// the compound around it, so the piece's mass needs it. Empty / null for a piece with no known
+    /// core, or one saved before 23/11/2026 whose source could not be read again.</summary>
+    public string  CoreType        { get; set; } = string.Empty;
+    public double? CoreDiameterMm  { get; set; }
+    public double? CoreDensityGCm3 { get; set; }
+
+    [JsonIgnore] public CoreModel? Core =>
+        CoreDiameterMm is > 0 && CoreDensityGCm3 is > 0
+            ? new CoreModel(CoreDiameterMm.Value, CoreDensityGCm3.Value) : null;
+
     /// <summary>Cleaned scan, source orientation, Xs starting at 0 (cm), Ds full diameter (mm).</summary>
     public double[] Xs { get; set; } = Array.Empty<double>();
     public double[] Ds { get; set; } = Array.Empty<double>();

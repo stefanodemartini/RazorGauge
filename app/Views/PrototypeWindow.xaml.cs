@@ -769,6 +769,7 @@ public partial class PrototypeWindow : Window
     private static PrototypePiece Clone(PrototypePiece p) => new()
     {
         Id = p.Id, Name = p.Name, PartNumber = p.PartNumber, SourcePath = p.SourcePath, ColorHex = p.ColorHex, DensityGCm3 = p.DensityGCm3,
+        CoreType = p.CoreType, CoreDiameterMm = p.CoreDiameterMm, CoreDensityGCm3 = p.CoreDensityGCm3,
         Xs = p.Xs, Ds = p.Ds,   // scan arrays are never mutated — share them
         Flipped = p.Flipped, TrimStartCm = p.TrimStartCm, TrimEndCm = p.TrimEndCm, OffsetCm = p.OffsetCm,
     };

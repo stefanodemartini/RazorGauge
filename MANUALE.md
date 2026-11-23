@@ -1054,6 +1054,10 @@ pezzo deve avere **almeno 4 cm in più ad ogni estremità che si unisce** a un a
   la copia negli appunti.
 - La massa totale compare solo se tutti i pezzi hanno una densità (ρ = 0 → "density missing").
   Nota: la massa è calcolata sul diametro scansionato — la verifica vera è la bilancia.
+- Dal 23/11/2026 ogni pezzo porta con sé il **core** del suo file: la ρ è quella del compound e la massa
+  la conta attorno al core (come nella finestra principale). I pezzi di prototipi salvati prima lo
+  rileggono dal file sorgente, se è ancora al suo posto. La linea assemblata esportata come progetto
+  eredita il core solo se tutti i pezzi hanno lo stesso.
 
 ### Tasti
 | Tasto | Azione |
