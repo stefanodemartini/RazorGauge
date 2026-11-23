@@ -29,13 +29,16 @@ quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `gi
   veloce.** Primo dato reale sulle velocità.
 - Legenda e colori corretti (blu = lento, rosso = veloce, app e PDF). Causa: compound del file 0.993
   (< acqua) con core 17 lb a 1.056 ⇒ le parti sottili affondano per il core, la pancia è quasi neutra.
-- Calcolo: con core 17 lb il Ø più grosso affonda più veloce solo se compound ≳ **1.02** (inversione).
-  ⇒ un compound sinking/hover sotto ~1.02 contraddice l'osservazione.
+- Calcolo: con core 17 lb il Ø più grosso affonda più veloce solo se compound ≳ **1.005** (inversione;
+  a 1.00 la pancia è già più lenta, a 1.01 già più veloce). ⇒ un compound sinking/hover sotto ~1.005
+  contraddice l'osservazione.
 - **Decisione di Stefano: compound Phantom Hover = 1.02.** Applicato a `Phantom Hover.flp` con diametri
   invariati (backup `Phantom Hover.backup_2026-11-23.flp`): massa totale 59.95 → 61.13 g, testa
   0–1900 cm 43.95 → 44.93 g, 30 ft 240.8 → 245.8 gr. Le varianti 0.70 / 0.75 ips erano già 1.020 / 1.025.
-- Da fare: controllare gli altri progetti convertiti il 19/11 (sinking/hover con compound < 1.02) e
-  valutare un avviso nell'app.
+- Controllo dei 26 progetti in Projects (23/11): nessun altro da correggere. Sotto 1.02 solo
+  Phantom Hover 0.70ips (1.0198, sopra l'inversione) e ST27 - 60 0.30ips / C 0.20ins (1.007) e
+  ST27 - 65 (1.006), che hanno core generico senza Ø o nessun core ⇒ calcolati omogenei, pancia
+  più veloce comunque. Da valutare: avviso nell'app per compound sinking/hover sotto l'inversione.
 - Anche: finestra About ad altezza automatica (titolo tagliato) e pulsante "?" con padding 0.
 
 ### 20 novembre 2026 — PUNTO DI RIPRESA (chiusura sessione)
