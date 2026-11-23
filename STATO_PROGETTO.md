@@ -22,6 +22,22 @@ Copia PDF: `RazorGauge_documento_progetto.pdf` in questa cartella.
 Software e hardware sono ora nello stesso repository. Le modifiche al progetto vanno annotate qui
 quando cambiano decisioni o stato del banco; il dettaglio puntuale resta nel `git log`.
 
+### 23 novembre 2026 — Sink Map "invertita": primo dato reale, compound hover ≥ 1.02
+
+- Stefano: la Sink Map di **Phantom Hover** dava la pancia (Ø 2.16) più lenta (blu) e la running line
+  (Ø 0.98) più veloce (rosso). **In acqua si osserva il contrario: dove il Ø è maggiore affonda più
+  veloce.** Primo dato reale sulle velocità.
+- Legenda e colori corretti (blu = lento, rosso = veloce, app e PDF). Causa: compound del file 0.993
+  (< acqua) con core 17 lb a 1.056 ⇒ le parti sottili affondano per il core, la pancia è quasi neutra.
+- Calcolo: con core 17 lb il Ø più grosso affonda più veloce solo se compound ≳ **1.02** (inversione).
+  ⇒ un compound sinking/hover sotto ~1.02 contraddice l'osservazione.
+- **Decisione di Stefano: compound Phantom Hover = 1.02.** Applicato a `Phantom Hover.flp` con diametri
+  invariati (backup `Phantom Hover.backup_2026-11-23.flp`): massa totale 59.95 → 61.13 g, testa
+  0–1900 cm 43.95 → 44.93 g, 30 ft 240.8 → 245.8 gr. Le varianti 0.70 / 0.75 ips erano già 1.020 / 1.025.
+- Da fare: controllare gli altri progetti convertiti il 19/11 (sinking/hover con compound < 1.02) e
+  valutare un avviso nell'app.
+- Anche: finestra About ad altezza automatica (titolo tagliato) e pulsante "?" con padding 0.
+
 ### 20 novembre 2026 — PUNTO DI RIPRESA (chiusura sessione)
 
 **Stato:** peso e velocità di affondamento calcolati con core + coating in tutta l'app (NC, C/Compensate,
