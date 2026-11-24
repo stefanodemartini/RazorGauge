@@ -1201,3 +1201,15 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   vecchia del file (08/11) invece di quella aggiornata -> cancellate le righe core + coating, ripristinate in 581491b.
   Da ora la sessione Cowork: rilegge il file dal disco subito prima, aggiunge solo la sua parte, scrive con controllo
   della data di modifica e RILEGGE il file dopo la scrittura confrontandolo (hash) con quello voluto.
+
+## 24/11/2026 - Firmware per le schede RazorSensor: master 1.0.2-alpha (G_PIX_FIRST=2), compilazione master e slave OK, documentazione corretta
+- master_razorgauge 1.0.1-alpha -> 1.0.2-alpha: G_PIX_FIRST 16 -> 2 (TSL1401CL nuovo della scheda RazorSensor, montato da JLCPCB,
+  tutti i pixel buoni; il 16 escludeva i pixel 0-13 morti del vecchio modulo Hiwonder). G_PIX_LAST invariato (125).
+- Pin verificati, invariati. Master: USE_RAZORBOARD 1, encoder 32/33, SI 26, CLK 27, AO 34, LASER 25, WIFI_RESET 14, UART RX 16 / TX 17.
+  Slave 0.6.7: PUL 25, DIR 26, ENA 27, BTN_FAST_O 34, UART RX 16 / TX 17.
+- Compilazione arduino-cli (esp32:esp32:esp32), niente caricato sulle schede:
+  master_razorgauge 1 083 951 byte (82% di 1 310 720), RAM 54 688 (16%); slave 1 083 075 byte (82%), RAM 51 396 (15%).
+  Librerie gia' installate: WiFiManager 2.0.17, WebSockets 2.7.2, FastAccelStepper 2.0.1.
+- Doc corretta: PROCEDURA_PRIMO_AVVIO (titolo, master_razorgauge.ino al posto di master/master.ino, ESP32 Dev Module non S3,
+  librerie slave, BOOT, rete "RazorGauge_Slave_Setup", note Hiwonder, sezione 1.0.2-alpha), FIRMWARE.md (versione + riga
+  di compilazione), README (1.0.2-alpha).

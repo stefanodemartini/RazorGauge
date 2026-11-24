@@ -1,4 +1,4 @@
-# RazorGauge — procedura di primo avvio e prove al banco (master laser 1.0.1-alpha)
+# RazorGauge — procedura di primo avvio e prove al banco (master laser 1.0.2-alpha)
 
 Obiettivo: diametro della coda di topo entro **±0.01 mm**. Le prove sotto dicono se ci siamo e, se no, dove sta il problema.
 Annota i numeri (o fai screenshot della pagina /diag) e mandameli.
@@ -6,8 +6,10 @@ Annota i numeri (o fai screenshot della pagina /diag) e mandameli.
 ## 0. Compilazione e caricamento
 - Arduino IDE con lo stesso core ESP32 usato finora per il master; scheda **ESP32 Dev Module**.
 - Librerie: WiFiManager (tzapu), WebSockets (Markus Sattler) — le stesse del master attuale.
-- Carica `master/master.ino` sul modulo MASTER e `slave/slave.ino` sul modulo SLAVE. La compilazione non l'ho potuta fare qui: se l'IDE dà errori, copiami il messaggio.
+- Carica `master_razorgauge/master_razorgauge.ino` sul modulo MASTER e `slave/slave.ino` sul modulo SLAVE. La compilazione non l'ho potuta fare qui: se l'IDE dà errori, copiami il messaggio.
+- Entrambi i moduli sono ESP32 classico: scheda **ESP32 Dev Module**, NON ESP32-S3. Librerie dello slave: FastAccelStepper + WiFiManager. Programmare i moduli fuori dalla RazorBoard, solo USB; se resta su "Connecting..." tenere premuto BOOT.
 - Primo avvio: rete WiFi "DiametroLinea_Setup" (password 12345678) → scegli la tua rete. Leggi l'indirizzo IP sul monitor seriale (115200) o sul router; conviene una prenotazione DHCP.
+- Primo avvio dello slave: rete WiFi "RazorGauge_Slave_Setup" (password 12345678) → scegli la stessa rete.
 
 ## 1. Pagina di servizio
 Apri **http://&lt;ip-del-master&gt;/diag** da PC o telefono. Mostra i 128 pixel in tempo reale:
@@ -15,10 +17,10 @@ blu = segnale, grigio = riferimento, nero = buio, rosso = normalizzato (1 = luce
 I pulsanti mandano gli stessi comandi `gauge_*` che si possono dare da seriale o dall'app.
 
 ## 2. Allineamento del laser (senza cavo, coperchio montato)
-- Prima di montare: **LED del modulo Hiwonder coperto** (nastro nero/vernice) o dissaldato. Acceso aggiunge ~100 mV di luce continua (~5% del segnale, prova del 25/10/2026).
+- Prima di montare: **LED del modulo Hiwonder coperto** (nastro nero/vernice) o dissaldato. Acceso aggiunge ~100 mV di luce continua (~5% del segnale, prova del 25/10/2026). (solo col vecchio modulo Hiwonder; con la scheda RazorSensor tutti i pixel sono buoni, G_PIX_FIRST = 2)
 - Senza buio/riferimento la pagina mostra il frame grezzo ogni 0.2 s.
 - La curva blu deve essere una campana centrata, che copre bene i pixel, senza tratti piatti in alto (saturazione).
-- **I pixel 0–13 di questo sensore sono morti** (sempre 0, prova del 25/10/2026): è normale vederli a zero. Il firmware usa solo i pixel 16–125 (`G_PIX_FIRST` / `G_PIX_LAST`); la campana deve coprire bene quella zona.
+- **I pixel 0–13 di questo sensore sono morti** (sempre 0, prova del 25/10/2026): è normale vederli a zero. Il firmware usa solo i pixel 16–125 (`G_PIX_FIRST` / `G_PIX_LAST`); la campana deve coprire bene quella zona. (solo col vecchio modulo Hiwonder; con la scheda RazorSensor tutti i pixel sono buoni, G_PIX_FIRST = 2)
 - Ruota il laser nella sede (grani) finché la campana è più larga possibile: l'asse lungo dello spot va lungo la linea di pixel.
 
 ## 3. Buio e riferimento (senza cavo)
@@ -71,3 +73,6 @@ Stima teorica: ripetibilità 1–3 µm, accuratezza ±3–5 µm dopo la calibraz
 - Nuovo comando `gauge_stat [n]` (ripetibilità) e pagina `/diag` + dati `/gauge` (JSON). Protocollo dell'app WPF invariato.
 - Buio e riferimento salvati dalle versioni precedenti (in LSB) vengono ignorati: al primo avvio vanno rifatti.
 - Algoritmo provato su un simulatore del sensore (`strumenti/firmware_sim`): da 0.5 a 3 mm, errore < 0.5 µm e dev. std < 0.6 µm in condizioni ideali; il banco dirà quanto pesano gli effetti reali.
+
+## Cosa è cambiato nel firmware 1.0.2-alpha (rispetto a 1.0.1-alpha)
+- `G_PIX_FIRST` = 2 per la scheda RazorSensor (TSL1401CL nuovo, montato da JLCPCB, tutti i pixel buoni): pixel usati 2–125. Col vecchio modulo Hiwonder (pixel 0–13 morti) andrebbe rimesso a 16.

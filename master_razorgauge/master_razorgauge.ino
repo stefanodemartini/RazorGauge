@@ -16,9 +16,9 @@
 // numerazione in fila (0.6.0 accanto a 0.4.22) suggeriva il contrario, cioe "piu nuova quindi da
 // usare", mentre quella che gira e la 0.4.22-RB2. 0.x = era calibro, 1.x = era laser.
 // -alpha: scritta, compila, non ancora provata sul banco.
-#define FIRMWARE_VERSION "1.0.1-alpha"
+#define FIRMWARE_VERSION "1.0.2-alpha"
 #define FIRMWARE_DATE "2026-10-10"
-#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato"
+#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato + G_PIX_FIRST=2 per la scheda RazorSensor (TSL1401CL nuovo)"
 
 // -----------------------------
 // 1 = cablaggio sulla scheda RazorBoard (encoder su GPIO32/33, condizionato da 74HC14)
@@ -237,7 +237,7 @@ static const int      G_NPIX       = 128;
 static const float    G_PIXEL_MM   = 0.0635f;
 // Pixel usati per la misura (inclusi). Il TSL1401 montato ha i pixel 0-13 morti (0 fisso anche col laser
 // diretto, prova del 25/10/2026): si parte dal 16 con 2 di margine. Con un sensore sano: 2 .. G_NPIX - 3.
-static const int      G_PIX_FIRST  = 16;
+static const int      G_PIX_FIRST  = 2;   // scheda RazorSensor (TSL1401CL nuovo, sano). Vecchio modulo Hiwonder: 16
 static const int      G_PIX_LAST   = G_NPIX - 3;
 static const int      G_MARGIN_PX  = 8;        // pixel oltre i bordi inclusi nell'area (frange di diffrazione)
 static const float    G_EDGE_FIND  = 0.5f;     // soglia usata SOLO per localizzare l'ombra (e per il diametro "a soglia" di controllo)
