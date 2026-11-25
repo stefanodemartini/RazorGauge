@@ -1268,3 +1268,10 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Calibrazione: linea con due segni a 1500 cm, resetpos, goto 1500 -> arresto a 1499.93 cm (44 998 impulsi), lunghezza reale
   1501 cm (Stefano) -> PPC = 44998/1501 = 29.9787 impulsi/cm (199.86 mm/giro, nominale 200). Salvato con setppc:29.9787 (EEPROM).
   Ruota vecchia: 30.21. Da fare: corsa di verifica (resetpos + goto 1500, il segno deve cadere sul riferimento).
+- Corsa di verifica (PPC 29.9787, primo segno sul riferimento): goto 1500 fermo a 1498.97 cm (44 937 impulsi), al secondo segno
+  mancavano 4 cm -> linea percorsa 1496 cm -> 30.038 impulsi/cm. Le due corse NON concordano (29.979 vs 30.038, 0.2%) a parita' di
+  procedura; Stefano: la linea non scivola sulla ruota. Ipotesi aperte: ruota che slitta sull'albero (grani M3), allungamento della
+  linea sotto tensione, impulsi persi (prova: 10 giri a mano = 6000 impulsi). Su richiesta di Stefano PPC riportato a 30.0000 (setppc:30).
+- goto fermo ~1 cm prima: lo slave 0.6.7 fa fase 1 e fase 2 a passi contati con STEPS_PER_ENC = 25; con la ruota CNC il rapporto
+  reale e' ~26 -> fase 1 finisce ~60 cm prima (creep lento ~2 min) e la fase 2 si ferma a fine passi senza conferma dell'encoder.
+  Correzione proposta (slave, non fatta): fase 2 fino a conferma dell'encoder + STEPS_PER_ENC misurato.
