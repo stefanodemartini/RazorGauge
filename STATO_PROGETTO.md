@@ -1279,3 +1279,4 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   ripianifica sull'encoder: a fine fase 1, se mancano piu' di 8 cm, altro tratto veloce fino a 4 cm dal bersaglio; a fine
   fase 2, se l'encoder non e' entro 3 impulsi, altro tratto in creep. Max 10 ripianificazioni per goto, stop se l'encoder non si
   e' mosso dall'ultima (encoder guasto o linea che slitta). Compilato (82%), da caricare dall'IDE e provare con goto sotto monitor.
+- Slave 0.6.8, prima del caricamento: velocita' della fase veloce del goto ridotta da 8400 a 6600 Hz (GOTOPOS_MAX_HZ = FAST_HZ*0.55), richiesta di Stefano.

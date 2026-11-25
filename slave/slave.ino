@@ -33,7 +33,7 @@ WiFiManager wifiManager;
 // Motor parameters
 const uint32_t SCAN_HZ = 1500;       // Initial estimate for 2.0 cm/s; closed-loop from master fine-tunes this
 const uint32_t FAST_HZ = 12000;
-const uint32_t GOTOPOS_MAX_HZ = (uint32_t)(FAST_HZ * 0.70f);  // 8400 Hz — 30% slower than FAST
+const uint32_t GOTOPOS_MAX_HZ = (uint32_t)(FAST_HZ * 0.55f);  // 6600 Hz — 45% slower than FAST (era 0.70 = 8400, ridotta su richiesta di Stefano 25/11)
 const uint32_t ACCEL = 1500;
 const uint32_t GOTOPOS_ACCEL       = 800;    // gentle accel/decel for phase-1 long approach
 const uint32_t GOTOPOS_CREEP_HZ    = 400;    // phase-2 creep speed ≈ 0.5 cm/s (precise final approach)
