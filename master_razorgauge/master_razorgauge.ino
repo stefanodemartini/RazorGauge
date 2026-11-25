@@ -16,9 +16,9 @@
 // numerazione in fila (0.6.0 accanto a 0.4.22) suggeriva il contrario, cioe "piu nuova quindi da
 // usare", mentre quella che gira e la 0.4.22-RB2. 0.x = era calibro, 1.x = era laser.
 // -alpha: scritta, compila, non ancora provata sul banco.
-#define FIRMWARE_VERSION "1.0.2-alpha"
+#define FIRMWARE_VERSION "1.0.3-alpha"
 #define FIRMWARE_DATE "2026-10-10"
-#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato + G_PIX_FIRST=2 per la scheda RazorSensor (TSL1401CL nuovo)"
+#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato + G_PIX_FIRST=2 per la scheda RazorSensor (TSL1401CL nuovo) + ENCODER_REVERSE (verso encoder con la ruota CNC)"
 
 // -----------------------------
 // 1 = cablaggio sulla scheda RazorBoard (encoder su GPIO32/33, condizionato da 74HC14)
@@ -31,6 +31,9 @@
 #define ENCODER_DATA_PIN 12
 #define ENCODER_CLOCK_PIN 13
 #endif
+// 1 = inverte il verso di conteggio dell'encoder. RazorBoard + ruota CNC (25/11/2026): con la linea che avanza nel verso
+// della scansione l'encoder contava all'indietro (goto 1500 -> -1586 cm). 0 = verso originale.
+#define ENCODER_REVERSE 1
 // RazorGauge (TSL1401 + laser) — riusa i pin del vecchio calibro + 2 pin nuovi
 #define GAUGE_SI_PIN    26   // ex CALIPER_CLOCK_PIN
 #define GAUGE_CLK_PIN   27   // ex CALIPER_DATA_PIN
@@ -166,8 +169,13 @@ static void setupPCNT() {
   cfg.ctrl_gpio_num  = ENCODER_CLOCK_PIN;  // B phase (direction control)
   cfg.lctrl_mode = PCNT_MODE_KEEP;         // B=0: count normally
   cfg.hctrl_mode = PCNT_MODE_DISABLE;      // B=1: do not count (1x decoding)
+#if ENCODER_REVERSE
+  cfg.neg_mode   = PCNT_COUNT_DEC;         // verso invertito: A falling + B=0 → (-)
+  cfg.pos_mode   = PCNT_COUNT_INC;         //                  A rising  + B=0 → (+)
+#else
   cfg.neg_mode   = PCNT_COUNT_INC;         // A falling + B=0 → forward (+)
   cfg.pos_mode   = PCNT_COUNT_DEC;         // A rising  + B=0 → reverse (-)
+#endif
   cfg.counter_h_lim = PCNT_H_LIM;
   cfg.counter_l_lim = PCNT_L_LIM;
   cfg.unit    = PCNT_ENC_UNIT;
