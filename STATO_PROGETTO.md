@@ -1280,3 +1280,4 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   fase 2, se l'encoder non e' entro 3 impulsi, altro tratto in creep. Max 10 ripianificazioni per goto, stop se l'encoder non si
   e' mosso dall'ultima (encoder guasto o linea che slitta). Compilato (82%), da caricare dall'IDE e provare con goto sotto monitor.
 - Slave 0.6.8, prima del caricamento: velocita' della fase veloce del goto ridotta da 8400 a 6600 Hz (GOTOPOS_MAX_HZ = FAST_HZ*0.55), richiesta di Stefano.
+- Prova slave 0.6.8 (PPC 30.0000, resetpos, goto 1500 sotto monitor): fase 1 ripianificata a ~1430 cm, creep finale, arresto a 1499.97 cm (44 999 impulsi dal reset, ~200 s) -> il goto ora arriva sul bersaglio. Segno a 1500 ancora 2.8 cm prima del riferimento -> linea percorsa 1497.2 cm -> 30.055 impulsi/cm. Tre corse: 29.979 / 30.038 / 30.055; le ultime due concordano (0.06%), la prima e' fuori.
