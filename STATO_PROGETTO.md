@@ -1238,3 +1238,18 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Laser: resta da controllare a parte. LFD650-1-12 vuole 3-12 V; con JP2 su 1-2 (3.3 V) e' al limite minimo. Dopo aver sistemato U2:
   se il picco resta basso, JP2 su 2-3 (5 V). La prova "torcia nella gola, 20 ms" serve solo DOPO la correzione di U2.
 - Firmware: nessuna modifica necessaria. Utile in futuro un comando gauge_laser on|off per l'allineamento (non fatto).
+
+## 25/11/2026 - Diagnosi RazorSensor CONFERMATA al banco: U2 (LMV321) bloccato dalla piedinatura sbagliata
+- Piedinatura verificata su tre fonti: datasheet TI SLOS263Y (ago 2023) Table 5-2, LMV321 DBV/DCK: 1 IN+ / 2 GND / 3 IN- / 4 OUT / 5 VCC+;
+  LCSC C7972 = TI LMV321IDBVR; gerber prodotti (attributi del rame): U2 pin 1 = AO_BUF, 3 = VP, 4 = VN. Uscita vera (pin 4) -> R8 ->
+  ingresso + (pin 1) = reazione positiva.
+- Letture del master 192.168.1.239 (/gauge): fino alla misura n. 6514 tutti i 128 pixel a 142 mV (uscita U2 a 0 V); poi, dopo apertura
+  dello sportello / contatto col puntale, n. 8733+ tutti a 3155 mV piatti (= stesso valore del ponticello J5-5 -> 3V3). Mai valori intermedi.
+  Un sensore buono col buffer progettato non supera ~2.84 V e non da' 128 pixel identici.
+- Tester (Stefano): U2 pin 1 - pin 2 = 3.2 V, pin 4 - pin 2 = 3.2 V (uscita e ingresso + uguali, stato alto bloccato). Spiega anche la vecchia
+  misura di 3.2 V su J5-5 / D34 e la prima a 0 V (stato basso).
+- Conclusione: la causa e' U2 collegato con la piedinatura sbagliata (errore di progetto: la verifica del 02/11 controllo' U1 sul datasheet,
+  per U2 solo la rotazione, con l'ipotesi errata "pin 1 = OUT" in NOTE_ORDINE_JLC.txt riga 66). Sensore e laser non ancora provati.
+- Soluzione senza rifare le schede: A) togliere U2 + ponticello R4 (piazzola AO_RAW) -> U2 piazzola 1; B) U2 -> MCP6001T-I/OT
+  (1 OUT / 2 V- / 3 IN+ / 4 IN- / 5 V+, NON le versioni R o U). Disegno: scheda_sensore/script/disegna_rilavorazione_u2.py
+  (immagine rilavorazione_U2.png, non in git). Prossimi ordini: solo BOM U2 -> MCP6001T-I/OT, gerber e CPL invariati.
