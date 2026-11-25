@@ -1213,3 +1213,28 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Doc corretta: PROCEDURA_PRIMO_AVVIO (titolo, master_razorgauge.ino al posto di master/master.ino, ESP32 Dev Module non S3,
   librerie slave, BOOT, rete "RazorGauge_Slave_Setup", note Hiwonder, sezione 1.0.2-alpha), FIRMWARE.md (versione + riga
   di compilazione), README (1.0.2-alpha).
+
+## 25/11/2026 - Diagnosi scheda RazorSensor: segnale zero = U2 (LMV321) collegato con la piedinatura sbagliata -> comparatore bloccato
+- Sintomo: sensore collegato, /gauge raw = 142 mV (pavimento dell'ADC) su tutti i 128 pixel, gauge_ref sale a 20000 us con
+  picco 0. Catena ADC della RazorBoard OK (J5-5 a 3V3 -> 3155 mV). AO col tester: prima 0 V, poi 3.2 V DC. Pin del firmware OK.
+- CAUSA (dai file di progetto, da confermare al banco): in scheda_sensore/script/sens_def.py U2 e' collegato come se fosse
+  1 OUT / 3 IN+ / 4 IN- (piedinatura tipo MCP6001), ma l'LMV321IDBVR (C7972) e il simbolo KiCad usato hanno
+  1 IN+ / 2 V- / 3 IN- / 4 OUT / 5 V+. Sul PCB quindi: OUT (pin 4) sta sulla rete VN, IN+ (pin 1) su AO_BUF, IN- (pin 3) su VP.
+  AO_BUF e' collegato all'uscita tramite R8 10k (e verso l'ADC c'e' solo alta impedenza) -> IN+ = OUT: reazione POSITIVA.
+  L'operazionale e' un comparatore con isteresi a due stati fissi: 0 V oppure ~3.2 V, indipendenti dalla luce
+  (VP resta tra 0.08 e ~1.4 V e non riesce a ribaltarlo). Spiega sia la prima misura (0 V) sia la seconda (3.2 V),
+  e il segnale nullo anche con 20 ms di laser. Sensore e laser non sono ancora stati provati davvero: il segnale non arriva all'ADC.
+- Verifica col tester (scheda alimentata): pin 1 e pin 4 di U2 alla stessa tensione (0 V oppure ~3.2 V, piena scala), pin 3 ~0.08 V,
+  C3 (VREF) ~0.148 V. Se lo stato e' 0 V, il valore non cambia illuminando il sensore.
+- SOLUZIONI per le schede gia' montate:
+  A) (giusta, mantiene l'offset +0.15 V) sostituire U2 con un operazionale SOT-23-5 con piedinatura 1 OUT / 2 V- / 3 IN+ / 4 IN- / 5 V+,
+     rail-to-rail, 3.3 V, ~1 MHz: MCP6001T-I/OT (Microchip). Il PCB e' gia' giusto per quella piedinatura: nessun'altra modifica.
+     Verificare sul datasheet del pezzo comprato la piedinatura prima di saldarlo.
+  B) (prova rapida senza ricambi) togliere U2 e fare un ponticello da AO_RAW (lato di R3/R4 verso U1) alla piazzola 1 di U2 (AO_BUF):
+     AO arriva all'ADC tramite R10 100R, senza offset (il buio cade sul pavimento ~142 mV dell'ADC, come col vecchio modulo).
+     Carichi residui trascurabili: R8+R9 20k a GND e R4+R7 verso VREF, in parallelo a R3 330R.
+  Per le prossime schede (rev 1.2): correggere sens_def.py (U2 pins {1: VP, 3: VN, 4: AO_BUF} tenendo l'LMV321, oppure BOM -> MCP6001
+  tenendo il PCB) e rigenerare schema/PCB/produzione.
+- Laser: resta da controllare a parte. LFD650-1-12 vuole 3-12 V; con JP2 su 1-2 (3.3 V) e' al limite minimo. Dopo aver sistemato U2:
+  se il picco resta basso, JP2 su 2-3 (5 V). La prova "torcia nella gola, 20 ms" serve solo DOPO la correzione di U2.
+- Firmware: nessuna modifica necessaria. Utile in futuro un comando gauge_laser on|off per l'allineamento (non fatto).
