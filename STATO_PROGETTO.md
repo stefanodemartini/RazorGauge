@@ -1257,3 +1257,14 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   DS20001733L / DS21733J, Table 3-1: MCP6001 SOT-23-5 = 1 VOUT / 2 VSS / 3 VIN+ / 4 VIN- / 5 VDD (= PCB); 1R e 1U NO.
   Al montaggio: pin 1 verso R4, controllo pin 2 = GND e niente corto 5-2; acceso: pin 1 ~0.15 V al buio e sale con la luce,
   poi gauge_dark + gauge_ref. Esposizione oggi bloccata a 20000 us (salvata dal gauge_ref fatto con U2 bloccato): laser acceso ~80%.
+
+## 25/11/2026 - Encoder con la ruota CNC: verso invertito (master 1.0.3-alpha) e PPC calibrato 29.9787
+- Prima corsa (goto 1500 con 1.0.2-alpha): la linea avanzava nel verso giusto ma l'encoder contava all'indietro -> goto senza fine,
+  motore fermato a mano via "motor stop" a -1586 cm. Lezione: il monitor della corsa deve fermare il motore appena il conteggio
+  va nel verso sbagliato o supera la destinazione (fatto nella seconda corsa).
+- Firmware 1.0.3-alpha: #define ENCODER_REVERSE 1 (scambia INC/DEC dei fronti di A in setupPCNT, decodifica invariata). Commit 0db6e5e.
+  Caricato su COM8 dall'IDE (con esptool da riga di comando il modulo non entrava in download: "Wrong boot mode 0x13").
+  Verifica: ruota girata a mano in avanti -> ticks da 84 a 1421 (+).
+- Calibrazione: linea con due segni a 1500 cm, resetpos, goto 1500 -> arresto a 1499.93 cm (44 998 impulsi), lunghezza reale
+  1501 cm (Stefano) -> PPC = 44998/1501 = 29.9787 impulsi/cm (199.86 mm/giro, nominale 200). Salvato con setppc:29.9787 (EEPROM).
+  Ruota vecchia: 30.21. Da fare: corsa di verifica (resetpos + goto 1500, il segno deve cadere sul riferimento).
