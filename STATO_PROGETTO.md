@@ -1253,3 +1253,7 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Soluzione senza rifare le schede: A) togliere U2 + ponticello R4 (piazzola AO_RAW) -> U2 piazzola 1; B) U2 -> MCP6001T-I/OT
   (1 OUT / 2 V- / 3 IN+ / 4 IN- / 5 V+, NON le versioni R o U). Disegno: scheda_sensore/script/disegna_rilavorazione_u2.py
   (immagine rilavorazione_U2.png, non in git). Prossimi ordini: solo BOM U2 -> MCP6001T-I/OT, gerber e CPL invariati.
+- 25/11/2026: ordinato MCP6001T-I/OT da RS Components (marcatura vista: AA39 = MCP6001 I-temp, corretta). Datasheet Microchip
+  DS20001733L / DS21733J, Table 3-1: MCP6001 SOT-23-5 = 1 VOUT / 2 VSS / 3 VIN+ / 4 VIN- / 5 VDD (= PCB); 1R e 1U NO.
+  Al montaggio: pin 1 verso R4, controllo pin 2 = GND e niente corto 5-2; acceso: pin 1 ~0.15 V al buio e sale con la luce,
+  poi gauge_dark + gauge_ref. Esposizione oggi bloccata a 20000 us (salvata dal gauge_ref fatto con U2 bloccato): laser acceso ~80%.
