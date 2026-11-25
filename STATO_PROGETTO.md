@@ -1202,6 +1202,20 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   Da ora la sessione Cowork: rilegge il file dal disco subito prima, aggiunge solo la sua parte, scrive con controllo
   della data di modifica e RILEGGE il file dopo la scrittura confrontandolo (hash) con quello voluto.
 
+## 24/11/2026 - PEZZI MJF ARRIVATI E MONTATI: tutto OK. REVISIONE 2 - elenco delle modifiche (da fare solo a una futura ristampa)
+- Stefano: pezzi MJF (JLC3DP, PA12 grigio) arrivati e montati, tutto OK.
+- R2-1 Sportellino: gli scatti (chiuso / aperto +13) NON si sentono -> denti piu' consistenti.
+  Oggi: dente sul nottolino BUMP 0.45 oltre la lastra (X 39.75), gioco lastra-testa guida 0.25 -> interferenza nominale
+  solo 0.20 mm; incavo nella testa della guida profondo 0.35 (fianchi 30 gradi). Con la tolleranza MJF (+/-0.3) lo scatto sparisce.
+  Proposta: BUMP 0.45 -> 0.8 (interferenza ~0.55) e incavi 0.35 -> 0.6 di profondita' (stessi fianchi inclinati, nessuno spigolo vivo);
+  nottolino FIN_T 1.0 e lungo 8 mm invariato (PA12 flette abbastanza); verificare la forza con S1-S5 e la parete residua della testa
+  della guida (oggi 1.5 mm, resterebbe ~0.9: eventualmente testa 1.5 -> 1.8 verso il fronte). File: build_sportello.py (BUMP),
+  build_profiler.py (SH_DET_Y / _x0 incavi, SH_HEAD_X).
+- R2-2 Sede del laser: Stefano ha dovuto ALESARLA (poco) per infilare il laser Ø8.97. Oggi LAS_BORE = 9.03 sui piatti
+  (gioco 0.03 per lato, cad/RazorGauge.scad): i fori MJF escono piu' piccoli del nominale. Proposta: LAS_BORE 9.03 -> ~9.20
+  (gioco ~0.1 per lato; il laser si blocca comunque con epossidica dopo l'allineamento). Se Stefano sa il Ø dell'alesatore
+  usato, mettere quello. Aggiornare anche il controllo del laser in verifica_finale_profiler.py (oggi atteso 9.03).
+
 ## 24/11/2026 - Firmware per le schede RazorSensor: master 1.0.2-alpha (G_PIX_FIRST=2), compilazione master e slave OK, documentazione corretta
 - master_razorgauge 1.0.1-alpha -> 1.0.2-alpha: G_PIX_FIRST 16 -> 2 (TSL1401CL nuovo della scheda RazorSensor, montato da JLCPCB,
   tutti i pixel buoni; il 16 escludeva i pixel 0-13 morti del vecchio modulo Hiwonder). G_PIX_LAST invariato (125).

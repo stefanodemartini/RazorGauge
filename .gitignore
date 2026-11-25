@@ -57,6 +57,7 @@ immagini/
 
 # Output di compilazione del firmware (Arduino CLI)
 master_razorgauge/build/
+slave/build/
 
 # ── Eccezioni (19/11/2026): file NON rigenerabili o CONGELATI perche' gia' inviati ai fornitori ──
 # Sorgenti esterni da cui partono gli script (senza questi strumenti/ non ricostruisce nulla)
