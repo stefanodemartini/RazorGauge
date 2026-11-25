@@ -18,7 +18,7 @@ are in `STATO_PROGETTO.md`. Do not treat `Claude outputs/` or `_archivio_NON_USA
 - Connects to Wi-Fi via **WiFiManager** (AP SSID: `DiametroLinea_Setup`, password: `12345678`).
 - Relays motor commands to the slave over **UART2** (TX=GPIO17, RX=GPIO16) at 115200 8N1.
 
-### 2. `slave/slave.ino` — active classic ESP32 firmware (0.6.7)
+### 2. `slave/slave.ino` — active classic ESP32 firmware (0.6.8)
 - Controls a TB6600 stepper driver via **FastAccelStepper** (PUL=GPIO25, DIR=GPIO26, ENA=GPIO27).
 - Receives ASCII commands over **UART2** (RX=GPIO16, TX=GPIO17) at 115200 8N1.
 - Connects to the shared Wi-Fi via WiFiManager and exposes `/diag` for direct UART diagnostics.

@@ -1275,3 +1275,7 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - goto fermo ~1 cm prima: lo slave 0.6.7 fa fase 1 e fase 2 a passi contati con STEPS_PER_ENC = 25; con la ruota CNC il rapporto
   reale e' ~26 -> fase 1 finisce ~60 cm prima (creep lento ~2 min) e la fase 2 si ferma a fine passi senza conferma dell'encoder.
   Correzione proposta (slave, non fatta): fase 2 fino a conferma dell'encoder + STEPS_PER_ENC misurato.
+- Slave 0.6.8 (correzione del goto): STEPS_PER_ENC resta 25 (stima per difetto = mai oltre il bersaglio), ma il goto si
+  ripianifica sull'encoder: a fine fase 1, se mancano piu' di 8 cm, altro tratto veloce fino a 4 cm dal bersaglio; a fine
+  fase 2, se l'encoder non e' entro 3 impulsi, altro tratto in creep. Max 10 ripianificazioni per goto, stop se l'encoder non si
+  e' mosso dall'ultima (encoder guasto o linea che slitta). Compilato (82%), da caricare dall'IDE e provare con goto sotto monitor.

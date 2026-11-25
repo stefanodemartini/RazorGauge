@@ -7,7 +7,7 @@ contenuti diversi hanno già portato a leggere quella sbagliata per giorni.
 | cartella | versione | board | stato |
 |---|---|---|---|
 | `master/` | **0.4.25-RB2** | ESP32 classico | **ATTIVO** — col calibro centesimale |
-| `slave/` | **0.6.7** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore + diagnostica Wi-Fi |
+| `slave/` | **0.6.8** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore + diagnostica Wi-Fi |
 | `master_razorgauge/` | **1.0.2-alpha** | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
 | `gauge_esp32/` | — | ESP32 classico | **banco di collaudo** del RazorGauge: laser pulsato + CCD TSL1401, comandi seriali |
 | `gauge_esp32s3/` | — | ESP32-S3 | lo stesso, per la scheda S3 precedente |
@@ -75,7 +75,7 @@ Il watchdog encoder del master si arma all'avvio di `SCAN`/`FAST` (o quando rice
 non al primo campione encoder dopo il boot. Se il motore è comandato ma l'encoder non si muove per
 5 secondi, invia `STOP`; durante l'inattività non invia più stop spurii.
 
-### Diagnostica Wi-Fi e UART sullo slave 0.6.7
+### Diagnostica Wi-Fi e UART sullo slave 0.6.8
 
 Lo slave si collega alla stessa rete del master tramite WiFiManager. Al primo avvio, se non ha
 credenziali salvate, crea l'AP `RazorGauge_Slave_Setup` (password `12345678`): collegarsi con

@@ -6,9 +6,9 @@
 // ===============================
 // FW SLAVE - Controllo Motore Passo-Passo
 // ===============================
-#define FIRMWARE_VERSION "0.6.7"
+#define FIRMWARE_VERSION "0.6.8"
 #define FIRMWARE_DATE "2026-10-20 22:10:02 +02:00"
-#define FIRMWARE_FEATURES "UART Control + WiFi diagnostics endpoint + UART RX GPIO pull-up test + UART RX counters over protocol + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer + porting su ESP32 classico (DevKit V1 30p, RazorBoard)"
+#define FIRMWARE_FEATURES "UART Control + WiFi diagnostics endpoint + UART RX GPIO pull-up test + UART RX counters over protocol + GOTOPOS two-phase (fast approach + 400Hz creep) + encoder forceStop + non-blocking caliper buffer + porting su ESP32 classico (DevKit V1 30p, RazorBoard) + GOTOPOS ripianificato sull'encoder (fase 1 se lontano, fase 2 finché l'encoder non conferma l'arrivo)"
 
 // -----------------------------
 // Pin definitions
@@ -42,6 +42,11 @@ const uint32_t FAST_STOP_DECEL = 24000;
 const uint32_t MIN_SPEED_HZ = 300;
 const uint32_t STEPS_PER_ENC = 25;           // stepper steps per encoder pulse
 const int32_t  GOTOPOS_STOP_ENC_STEPS = 3;   // ≈ 1 mm — encoder stop threshold
+// Fase 2: se lo stepper finisce i passi ma l'encoder non è arrivato (STEPS_PER_ENC è una stima:
+// con la ruota CNC un impulso vale più di 25 passi e il goto si fermava ~1 cm prima), si ripianifica
+// il tratto mancante (veloce se mancano più di 8 cm, altrimenti creep). Limite ai tentativi (fase 1 e 2
+// insieme) e stop se l'encoder non si è mosso dall'ultima ripianificazione.
+const uint8_t  GOTOPOS_MAX_CREEP_RETRIES = 10;
 
 // ── Encoder calibration (deve corrispondere al master) ────────────────────
 // Set ENCODER_PPR and WHEEL_CIRC_MM to match your hardware.
@@ -69,6 +74,8 @@ bool encoderPosReceived = false;
 bool rxDiagnosticMode = false;
 // GOTOPOS two-phase state: false = phase-1 fast approach, true = phase-2 creep
 bool gotoPhase2 = false;
+uint8_t gotoCreepRetries = 0;                 // ripianificazioni della fase 2 nel goto corrente
+int32_t gotoLastReplanPos = INT32_MIN;        // encoder all'ultima ripianificazione (stallo se non cambia)
 
 // -----------------------------
 // FastAccelStepper objects
@@ -342,6 +349,8 @@ void processCommand(const char* command) {
     mode = GOTOPOS;
     posActive = true;
     currentDynamicSpeed = GOTOPOS_MAX_HZ;
+    gotoCreepRetries = 0;
+    gotoLastReplanPos = INT32_MIN;
 
     if (initialDist > GOTOPOS_CREEP_DIST_ENC) {
       // Phase 1: fast trapezoidal approach — stop naturally at the creep-zone entry,
@@ -587,11 +596,27 @@ void loop() {
     checkPositionReached();
 
     if (mode == GOTOPOS && !stepper->isRunning()) {
-      if (!gotoPhase2) {
+      int32_t dist1 = encoderPosReceived ? getDistanceToGo() : 0;
+      if (!gotoPhase2 && dist1 > 2 * GOTOPOS_CREEP_DIST_ENC &&
+          gotoCreepRetries < GOTOPOS_MAX_CREEP_RETRIES && encoderFedPos != gotoLastReplanPos) {
+        // Phase 1 finished but still far (STEPS_PER_ENC underestimates the real ratio):
+        // another fast approach to the creep-zone entry instead of creeping the whole gap.
+        gotoCreepRetries++;
+        gotoLastReplanPos = encoderFedPos;
+        int32_t steps = (dist1 - GOTOPOS_CREEP_DIST_ENC) * (int32_t)STEPS_PER_ENC;
+        stepper->setSpeedInHz(GOTOPOS_MAX_HZ);
+        stepper->setAcceleration(GOTOPOS_ACCEL);
+        stepper->move(fwd ? steps : -steps);
+        Serial.print("→ GOTOPOS fase 1 ripianificata #");
+        Serial.print(gotoCreepRetries);
+        Serial.print(", mancano ");
+        Serial.print(dist1);
+        Serial.println(" impulsi");
+      } else if (!gotoPhase2) {
         // Phase 1 finished — motor stopped at creep-zone entry.
         // Start phase 2: slow precise creep to the final target.
         gotoPhase2 = true;
-        int32_t dist2 = encoderPosReceived ? getDistanceToGo() : 0;
+        int32_t dist2 = dist1;
         Serial.print("→ GOTOPOS fase 2 (creep), dist rimanente=");
         Serial.println(dist2);
         if (dist2 <= GOTOPOS_STOP_ENC_STEPS) {
@@ -606,10 +631,35 @@ void loop() {
           stepper->move(fwd ? phase2Steps : -phase2Steps);
         }
       } else {
-        // Phase 2 finished naturally — motor stopped at or very near the target.
-        stopMotion();
-        sendStatus();
-        Serial.println("✓ GOTOPOS completato (fase 2 naturale)");
+        // Phase 2 steps finished. Done only if the encoder confirms (checkPositionReached
+        // would already have stopped us within GOTOPOS_STOP_ENC_STEPS); otherwise re-plan.
+        int32_t signedDist = targetPos - encoderFedPos;
+        bool overshot = fwd ? (signedDist < 0) : (signedDist > 0);
+        int32_t dist = abs(signedDist);
+        if (encoderPosReceived && !overshot && dist > GOTOPOS_STOP_ENC_STEPS &&
+            gotoCreepRetries < GOTOPOS_MAX_CREEP_RETRIES && encoderFedPos != gotoLastReplanPos) {
+          gotoCreepRetries++;
+          gotoLastReplanPos = encoderFedPos;
+          int32_t steps = dist * (int32_t)STEPS_PER_ENC;
+          stepper->setSpeedInHz(GOTOPOS_CREEP_HZ);
+          stepper->setAcceleration(GOTOPOS_CREEP_ACCEL);
+          stepper->move(fwd ? steps : -steps);
+          Serial.print("→ GOTOPOS fase 2 ripianificata #");
+          Serial.print(gotoCreepRetries);
+          Serial.print(", mancano ");
+          Serial.print(dist);
+          Serial.println(" impulsi");
+        } else {
+          if (encoderPosReceived && !overshot && dist > GOTOPOS_STOP_ENC_STEPS) {
+            Serial.print("⚠ GOTOPOS interrotto: encoder fermo o troppi tentativi, mancano ");
+            Serial.print(dist);
+            Serial.println(" impulsi");
+          } else {
+            Serial.println("✓ GOTOPOS completato (fase 2)");
+          }
+          stopMotion();
+          sendStatus();
+        }
       }
     }
     
