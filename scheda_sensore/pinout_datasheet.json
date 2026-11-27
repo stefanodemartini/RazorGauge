@@ -1,0 +1,75 @@
+{
+  "_descrizione": "Piedinature dei circuiti integrati della scheda RazorSensor, UNICA fonte per i collegamenti (sens_def.py collega per nome di funzione e ricava i numeri da qui). Ogni voce e' presa dal datasheet ufficiale del codice esatto, con documento, revisione e tabella/pagina. Nessuna piedinatura a memoria. Nomi di funzione normalizzati per gli operazionali: OUT, IN+, IN-, V+, V-; 'datasheet_names' riporta i nomi originali.",
+  "_aggiornato": "2026-11-27",
+  "parts": {
+    "TSL1401CL": {
+      "mpn": "TSL1401CL",
+      "manufacturer": "ams",
+      "package": "CL (8 pin)",
+      "lcsc": "C2802316",
+      "kicad_symbol": "RazorSensor:TSL1401CL",
+      "source": {
+        "document": "ams TSL1401CL datasheet v1-01 (scheda_sensore/C2802316_ams_TSL1401CL_datasheet_v1-01.pdf)",
+        "table": "Figure 3 Pin Diagram / Figure 4 Terminal Functions",
+        "page": 5
+      },
+      "pins": {"1": "SI", "2": "CLK", "3": "AO", "4": "VDD", "5": "NC", "6": "GND", "7": "GND", "8": "NC"},
+      "datasheet_names": {"1": "SI", "2": "CLK", "3": "AO", "4": "VDD", "5": "NC", "6": "GND", "7": "GND", "8": "NC"},
+      "nc_pins": ["5", "8"]
+    },
+    "MCP6001T-I/OT": {
+      "mpn": "MCP6001T-I/OT",
+      "manufacturer": "Microchip",
+      "package": "SOT-23-5 (OT)",
+      "lcsc": "C116490",
+      "lcsc_verificato": "https://www.lcsc.com/product-detail/C116490.html (27/11/2026: MICROCHIP MCP6001T-I/OT, SOT-23-5)",
+      "kicad_symbol": "Amplifier_Operational:MCP6001-OT",
+      "type": "opamp",
+      "source": {
+        "document": "Microchip DS20001733L, MCP6001/1R/1U/2/4",
+        "table": "TABLE 3-1 PIN FUNCTION TABLE, colonna MCP6001 5-Lead SC70/SOT-23",
+        "page": 11,
+        "ordering": "PRODUCT IDENTIFICATION SYSTEM p. 47: MCP6001T-I/OT = Tape and Reel, Industrial, 5-Lead SOT-23",
+        "slew_rate": "0.6 V/us (tabella AC, p. 4)"
+      },
+      "pins": {"1": "OUT", "2": "V-", "3": "IN+", "4": "IN-", "5": "V+"},
+      "datasheet_names": {"1": "VOUT", "2": "VSS", "3": "VIN+", "4": "VIN-", "5": "VDD"}
+    }
+  },
+  "incompatible_with_pcb_v1": {
+    "_nota": "Codici con la stessa impronta SOT-23-5 ma piedinatura diversa da quella del PCB v1 (1 OUT / 2 V- / 3 IN+ / 4 IN- / 5 V+). NON montarli su RazorSensor v1/rev 1.2.",
+    "LMV321IDBVR": {
+      "mpn": "LMV321IDBVR",
+      "manufacturer": "Texas Instruments",
+      "package": "SOT-23-5 (DBV)",
+      "lcsc": "C7972",
+      "kicad_symbol": "Amplifier_Operational:LMV321",
+      "type": "opamp",
+      "source": {"document": "TI SLOS263Y (rev. agosto 2023)", "table": "Table 5-2 Pin Functions: LMV321, Figure 5-2 DBV", "page": 3},
+      "pins": {"1": "IN+", "2": "V-", "3": "IN-", "4": "OUT", "5": "V+"},
+      "datasheet_names": {"1": "1IN+", "2": "GND", "3": "1IN-", "4": "OUT", "5": "VCC+"},
+      "motivo": "montato sulla v1 (errore di progetto 25/11/2026): uscita sul pin 4 -> reazione positiva"
+    },
+    "MCP6001RT-I/OT": {
+      "mpn": "MCP6001RT-I/OT",
+      "manufacturer": "Microchip",
+      "package": "SOT-23-5 (OT)",
+      "type": "opamp",
+      "source": {"document": "Microchip DS20001733L", "table": "TABLE 3-1, colonna MCP6001R", "page": 11},
+      "pins": {"1": "OUT", "2": "V+", "3": "IN+", "4": "IN-", "5": "V-"},
+      "datasheet_names": {"1": "VOUT", "2": "VDD", "3": "VIN+", "4": "VIN-", "5": "VSS"},
+      "motivo": "alimentazioni scambiate (pin 2 = VDD, pin 5 = VSS)"
+    },
+    "MCP6001UT-I/OT": {
+      "mpn": "MCP6001UT-I/OT",
+      "manufacturer": "Microchip",
+      "package": "SOT-23-5 (OT)",
+      "lcsc": "C21403",
+      "type": "opamp",
+      "source": {"document": "Microchip DS20001733L", "table": "TABLE 3-1, colonna MCP6001U", "page": 11},
+      "pins": {"1": "IN+", "2": "V-", "3": "IN-", "4": "OUT", "5": "V+"},
+      "datasheet_names": {"1": "VIN+", "2": "VSS", "3": "VIN-", "4": "VOUT", "5": "VDD"},
+      "motivo": "stessa piedinatura del TI LMV321 DBV: uscita sul pin 4"
+    }
+  }
+}

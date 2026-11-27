@@ -8,7 +8,7 @@ contenuti diversi hanno già portato a leggere quella sbagliata per giorni.
 |---|---|---|---|
 | `master/` | **0.4.25-RB2** | ESP32 classico | **ATTIVO** — col calibro centesimale |
 | `slave/` | **0.6.8** | ESP32 classico (DevKit V1 30p, RazorBoard) | **ATTIVO** — controllo motore + diagnostica Wi-Fi |
-| `master_razorgauge/` | **1.0.2-alpha** | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
+| `master_razorgauge/` | **1.0.4-alpha** | ESP32 classico | preliminare — sostituisce il calibro col RazorGauge ottico, web UI rimossa |
 | `gauge_esp32/` | — | ESP32 classico | **banco di collaudo** del RazorGauge: laser pulsato + CCD TSL1401, comandi seriali |
 | `gauge_esp32s3/` | — | ESP32-S3 | lo stesso, per la scheda S3 precedente |
 | `ccd_test/` | — | ESP32 classico | prova del **solo sensore** TSL1401, senza laser: integrazione regolabile in ms, profilo ASCII, test di linearità |

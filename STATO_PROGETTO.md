@@ -1328,3 +1328,34 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   `scheda_sensore/PROMPT_VSCODE_rev1.2.md` (pinout_datasheet.json, sens_def per nome di pin, verifica_elettrica_scheda.py con
   test di non regressione v1 = ERRORE, BOM rev 1.2 U2 MCP6001T-I/OT, note d'ordine, attesa 5 us). Regola: nessun ordine
   PCB/PCBA senza verifica elettrica tutto OK e revisione indipendente delle piedinature sul datasheet.
+
+## 27/11/2026 - RazorSensor rev 1.2 (solo BOM) e verifica elettrica (eseguito PROMPT_VSCODE_rev1.2.md)
+- `scheda_sensore/pinout_datasheet.json`: piedinature dai datasheet ufficiali, con documento e pagina:
+  TSL1401CL (ams v1-01, fig. 3-4 p. 5), MCP6001T-I/OT (Microchip DS20001733L, tab. 3-1 p. 11, codici p. 47, slew 0.6 V/us p. 4);
+  non compatibili col PCB: TI LMV321IDBVR (SLOS263Y tab. 5-2 p. 3), MCP6001RT-I/OT e MCP6001UT-I/OT (DS20001733L tab. 3-1).
+- `sens_def.py`: nuova `ic()` che collega i circuiti integrati per NOME di funzione e ricava i numeri dal JSON (errore
+  bloccante se un nome manca o un pin resta senza rete e non e' dichiarato NC). U1 e U2 convertiti; U2 = MCP6001T-I/OT
+  (simbolo Amplifier_Operational:MCP6001-OT). Netlist identica al PCB v1 (U2: 1 AO_BUF, 2 GND, 3 VP, 4 VN, 5 VDD).
+- `strumenti/verifica_elettrica_scheda.py`: pad -> funzione -> rete (sens_def == PCB), reazione degli operazionali con
+  percorsi resistivi, ingressi non flottanti, alimentazioni, reti con un solo pad, simulazione DC nodale (A 1e5, AO 0..2 V).
+  Test di non regressione (`--non-regressione`, esito in `scheda_sensore/verifica_elettrica_2026-11-27.txt`):
+  v1 (LMV321IDBVR) = ERRORE (4: nessun percorso OUT->IN-, reazione positiva VN->R8->AO_BUF, dVdiff/dVout = +1, uscita
+  bloccata a 0 V come al banco); rev 1.2 (MCP6001T-I/OT) = TUTTO OK (dVdiff/dVout = -0.5, AO_BUF = 0.958*AO + 0.154 V,
+  scarto massimo 0.4 mV). ngspice non installato: solo calcolo nodale.
+- BOM rev 1.2: U2 -> MCP6001T-I/OT **LCSC C116490** (verificato su lcsc.com/product-detail/C116490.html: MICROCHIP
+  MCP6001T-I/OT, SOT-23-5). Aggiornate `produzione/RazorSensor_BOM_JLCPCB.csv` (solo la riga di U2) e `RazorSensor_BOM.csv`.
+  Gerber e CPL invariati (U2 rotazione 270: pad 1 = angolo verso R4, fila 1-3 verso U1; nell'anteprima JLC controllare che
+  il pallino del C116490 cada sul pad 1). `NOTE_ORDINE_JLC.txt` aggiornato (rev 1.2, controllo di OGNI pad, verifica prima dell'ordine).
+- Schema: modifica puntuale di `RazorSensor.kicad_sch` (non rigenerato, UUID e legami col PCB invariati): simbolo incorporato
+  LMV321 -> MCP6001-OT (stessa geometria, pin rinumerati 1 OUT / 3 + / 4 -), etichette di U2 scambiate (+ VP, - VN, uscita
+  AO_BUF), cartiglio rev 1.2. Netlist dello schema (kicad-cli 10) identica pin per pin a prima. ERC: gli stessi 2 errori della v1
+  (power_pin_not_driven su U1 4/6, manca PWR_FLAG: alimentazione dal cavo) + 1 avviso lib_symbol_mismatch (copia del simbolo nello
+  schema diversa da quella della libreria KiCad 10, pin uguali). `RazorSensor_schema.pdf` rigenerato con kicad-cli.
+  ATTENZIONE: `gen_sch_s.py` (pipeline Linux) con MCP6001-OT non funzionerebbe com'e': il simbolo e' derivato ("extends
+  MCP6L91T-EOT") e raw_symbol/kiutils leggono solo la parte derivata -> da sistemare se si rigenera lo schema.
+- Firmware: master_razorgauge **1.0.4-alpha**, gReadFrame attesa per pixel 1 -> 5 us (assestamento MCP6001). NON compilato:
+  il core ESP32 installato sul PC e' passato a 4.0.0 (25/11 22:20) e `driver/pcnt.h` (PCNT legacy dell'encoder) non esiste
+  piu' -> il master non compila nemmeno senza la modifica. Serve il core 3.3.x (prima 3.3.8) oppure il porting al driver
+  PCNT nuovo (esp_driver_pcnt). FIRMWARE.md e README aggiornati a 1.0.4-alpha.
+- Regola: nessun ordine PCB/PCBA senza `python strumenti/verifica_elettrica_scheda.py` tutto OK e revisione indipendente
+  delle piedinature sul datasheet del codice esatto.

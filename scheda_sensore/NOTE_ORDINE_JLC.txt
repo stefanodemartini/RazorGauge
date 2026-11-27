@@ -1,5 +1,10 @@
 RazorGauge - scheda sensore TSL1401CL rev 1.1 - NOTE PER L'ORDINE JLCPCB (29/10/2026, fori 31/10/2026, serigrafie in inglese 30/10/2026)
 
+REV 1.2 (27/11/2026) - SOLO BOM: U2 LMV321IDBVR (C7972) -> Microchip MCP6001T-I/OT (C116490). Gerber e CPL invariati.
+  Motivo: errore di piedinatura della v1 (scheda_sensore/ANALISI_ERRORE_U2.md). Il PCB e' gia' giusto per l'MCP6001.
+  Prima di ogni ordine PCB/PCBA: python strumenti/verifica_elettrica_scheda.py tutto OK + revisione indipendente delle
+  piedinature sul datasheet del codice esatto (scheda_sensore/pinout_datasheet.json).
+
 ORDINE PASSO PASSO (jlcpcb.com)
   0. Sensore: 15 pezzi di C2802316 gia' comprati (pre-ordine JLCPCB, 76 EUR, 03/11/2026). Prima di caricare la BOM
      controlla in Parts Manager -> My Parts Lib che siano ARRIVATI (stato "in stock", quantita' 15).
@@ -63,7 +68,13 @@ PCBA
   Nell'anteprima del montaggio CONTROLLARE:
    - U1 TSL1401CL: pallino del pin 1 verso il bordo ANTERIORE (lato piazzole del cavo), fila dei pin 1-4 verso il lato
      dei condensatori (lato rullo). Il CPL usa il centro del package (Y 11.695), non il centro dei pixel (Y 12.0).
-   - U2 LMV321 (SOT-23-5): pin 1 (OUT) verso il chip; correzione di rotazione +180 gia applicata, verificare.
+   - U2 MCP6001T-I/OT (C116490, SOT-23-5, rev 1.2): pin 1 = VOUT (Microchip DS20001733L tab. 3-1: 1 VOUT, 2 VSS, 3 VIN+,
+     4 VIN-, 5 VDD). Pallino del pin 1 sul pad 1 = angolo verso R4, sulla fila dei pad 1-2-3 rivolta verso il chip U1.
+     Rotazione CPL 270 invariata (verificata nell'anteprima della v1 per il C7972): il modello JLC del C116490 potrebbe
+     avere un'origine diversa -> controllare che il pallino cada sul pad 1, altrimenti ruotare di 180 nell'anteprima.
+     NON accettare sostituzioni: LMV321 (TI, C7972), MCP6001R e MCP6001U hanno la stessa impronta ma piedinatura diversa.
+   - Nell'anteprima controllare per OGNI pad la funzione (datasheet) e la rete del PCB, non solo il pin 1.
+   - Prima di ordinare: python strumenti/verifica_elettrica_scheda.py deve dare tutto OK.
   Remark da incollare nell'ordine:
    "U1 (TSL1401CL, C2802316) is an optical sensor with a clear molded package, MSL 5a (ams datasheet v1-01):
     floor life 24 h after opening the moisture barrier bag. If baking is needed, bake at 60 C for 24 h ONLY
@@ -80,7 +91,7 @@ CAVO SALDATO (J1, 5 piazzole sul bordo anteriore, nomi in serigrafia sopra) -> R
 
 CIRCUITO
   TSL1401CL a 3.3 V (dal master), 100 nF + 10 uF, R serie 100 su SI e CLK, carico 330 su AO (come nel datasheet).
-  Buffer LMV321: Vout = 0.958 x AO + 0.154 V (zero spostato sopra la zona morta di ~70 mV dell'ADC ESP32;
+  Buffer U2 (rev 1.2: MCP6001T-I/OT; la v1 montava il LMV321 con la piedinatura sbagliata): Vout = 0.958 x AO + 0.154 V (zero spostato sopra la zona morta di ~70 mV dell'ADC ESP32;
   l'offset lo toglie il frame di buio, il guadagno lo assorbe la calibrazione). Uscita con 100 ohm in serie.
   Pixel 1 = lato pin 1 = verso il fronte (lontano dalla piastra).
 

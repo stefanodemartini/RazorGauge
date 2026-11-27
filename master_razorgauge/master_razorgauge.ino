@@ -16,9 +16,9 @@
 // numerazione in fila (0.6.0 accanto a 0.4.22) suggeriva il contrario, cioe "piu nuova quindi da
 // usare", mentre quella che gira e la 0.4.22-RB2. 0.x = era calibro, 1.x = era laser.
 // -alpha: scritta, compila, non ancora provata sul banco.
-#define FIRMWARE_VERSION "1.0.3-alpha"
+#define FIRMWARE_VERSION "1.0.4-alpha"
 #define FIRMWARE_DATE "2026-10-10"
-#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato + G_PIX_FIRST=2 per la scheda RazorSensor (TSL1401CL nuovo) + ENCODER_REVERSE (verso encoder con la ruota CNC)"
+#define FIRMWARE_FEATURES "WiFi Manager + EMA + 0.01mm + UART Motor + Scan timer + Autostop + RicezioneON/OFF + GOTOPOS + Caliper timeout + Atomic encoder + Watchdog fixes + Scan state sync on connect + GOTOPOS chart overlay + encoder init fix + non-blocking caliper buffer + GOTOPOS overshoot safety guard + mirrored profile chart + hardware PCNT encoder (ISR-immune) + RazorGauge optical shadow gauge (replaces caliper) + web UI removed (WPF app via WebSocket) + goto_status completed broadcast fix + USE_RAZORBOARD pin switch + RazorGauge 0.6: ADC in mV calibrati + oversampling + posa del buio = posa laser + scarico veloce + indici di qualita + gauge_stat + pagina /diag + GOTOPOS corretto con PPC calibrato + G_PIX_FIRST=2 per la scheda RazorSensor (TSL1401CL nuovo) + ENCODER_REVERSE (verso encoder con la ruota CNC) + 1.0.4: attesa per pixel 1 -> 5 us (slew del buffer MCP6001)"
 
 // -----------------------------
 // 1 = cablaggio sulla scheda RazorBoard (encoder su GPIO32/33, condizionato da 74HC14)
@@ -319,7 +319,7 @@ static void gReadFrame(uint16_t* buf) {
   digitalWrite(GAUGE_CLK_PIN, HIGH);
   digitalWrite(GAUGE_SI_PIN, LOW);
   for (int i = 0; i < G_NPIX; i++) {
-    delayMicroseconds(1);
+    delayMicroseconds(5);   // assestamento del buffer U2 (MCP6001, slew 0.6 V/us: gradino di 2 V al bordo dell'ombra ~3.5 us)
     buf[i] = gAdcMv();
     digitalWrite(GAUGE_CLK_PIN, LOW);
     digitalWrite(GAUGE_CLK_PIN, HIGH);
