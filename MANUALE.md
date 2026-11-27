@@ -127,6 +127,11 @@ Attivare **Design Mode OFF** con il toggle in alto a destra. Appaiono i pannelli
 | GOTO | `goto X.X` | Va alla posizione X cm |
 | Motor Status | `motor status` | Legge stato motore dal firmware |
 
+Durante il GOTO la lunghezza mostrata è in cm interi per difetto (il firmware tronca: 1499.9 → 1499). A fine
+movimento l'app usa la posizione finale col decimale, la arrotonda al cm (1499.9 → **1500**) e la scrive nel log
+("Posizione finale: 1499.9 cm"). Se la posizione finale è entro 0.5 cm dal bersaglio lo stato è **✔ Target
+raggiunto**, anche se il firmware 1.0.3 segnala `completed:false`.
+
 ### Calibrazione
 - **Set Display Zero**: azzera il valore display attuale
 - **Reset Offset**: azzera l'offset di misura

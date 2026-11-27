@@ -80,6 +80,8 @@ public class MainViewModel : ObservableObject
     /// is enabled at a position that is not zero.</summary>
     public double MeasuredLengthCm => _measuredLengthCm;
 
+    private double? _gotoTargetCm;   // target of the running GOTOPOS, from goto_status active:true
+
     private void SetMeasuredLength(double cm)
     {
         _measuredLengthCm = cm;
@@ -473,10 +475,23 @@ public class MainViewModel : ObservableObject
                             {
                                 var target  = root.TryGetProperty("target",  out var tEl) ? tEl.GetDouble()  : 0;
                                 var current = root.TryGetProperty("current", out var cEl) ? cEl.GetDouble()  : 0;
+                                _gotoTargetCm = target;
                                 GotoStatus = $"GOTOPOS attivo: {current:0.0} → {target:0.0} cm";
                             }
                             else
                             {
+                                // The live {"cm":N} messages are floor()ed by the firmware (1499.9 → 1499); the final
+                                // position carries a decimal, so show it rounded to the nearest cm (1499.9 → 1500).
+                                // Firmware 1.0.3 reports completed:false when the slave ends the goto by itself, even on
+                                // target: treat "within 0.5 cm of the target" as reached.
+                                if (root.TryGetProperty("final_cm", out var finEl))
+                                {
+                                    var finRaw = finEl.GetDouble();
+                                    SetMeasuredLength(Math.Round(finRaw, MidpointRounding.AwayFromZero));
+                                    if (_gotoTargetCm is double tgt && Math.Abs(finRaw - tgt) < 0.5) completed = true;
+                                    AppendLog($"Posizione finale: {finRaw:0.0} cm");
+                                }
+                                _gotoTargetCm = null;
                                 GotoStatus = completed ? "✔ Target raggiunto" : "Movimento interrotto";
                                 AppendLog(GotoStatus);
                             }
