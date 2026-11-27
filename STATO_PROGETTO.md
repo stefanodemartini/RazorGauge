@@ -1313,3 +1313,18 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - Attenzione operativa: riportare la linea a mano al segno 0 fa variare il conteggio (12:03: da 1499.9 a 1618.8, non a 0) -> Reset Posizione sempre DOPO aver rimesso la linea. Un GOTO lanciato senza reset da 1618.8 verso 1500 sarebbe andato all'indietro (la macchina non puo'): fermato dal monitor.
 - Misura della sola lunghezza di una linea sconosciuta (domanda di Stefano, 27/11). Verificato nel codice: durante un GOTO il motore NON si ferma quando la ruota si ferma. Master: watchdog encoder 5 s soppresso in GOTOPOS (FW-10). Slave 0.6.8: la fase 1 fa tutti i passi pianificati senza guardare l'encoder; a fine fase 1 una ripianificazione veloce, poi fase 2 in creep (400 Hz, ~16 impulsi/s) per tutta la distanza mancante -> con GOTO 4000 su linea da 30 m decine di minuti a vuoto prima dello stop per stallo. Quindi col GOTO bisogna premere STOP (la lunghezza resta giusta: dopo l'uscita della coda la ruota non conta piu').
   Alternative: (1) Reset Posizione + scan_on + motor fast_s: fuori dal goto il watchdog di 5 s ferma il motore da solo; lunghezza in cm interi per difetto; registra punti fittizi -> reset prima del goto successivo; non ancora provata. (2) Proposta (non fatta): nel master watchdog dei 5 s attivo anche in GOTOPOS (in creep l'encoder avanza ~16 impulsi/s, nessun falso stop); da caricare dall'IDE.
+
+## 26/11/2026 - RazorSensor: analisi dell'errore su U2, rimedio, JP2 e prevenzione (sessione Cowork)
+- Analisi completa in `scheda_sensore/ANALISI_ERRORE_U2.md`: errore = U2 collegato per numero di pin con la piedinatura
+  "1 OUT / 3 IN+ / 4 IN-" presa a memoria (TI LMV321 DBV: 1 IN+ / 3 IN- / 4 OUT) -> reazione positiva. Cause: piedinatura
+  non presa dal datasheet del codice ordinato, collegamenti per numero e non per nome, controlli (ERC, DRC, anteprima JLC sul
+  solo pin 1, nota "pin 1 (OUT)" scritta da noi) tutti coerenti con l'errore, nessuna simulazione della catena analogica.
+- Rimedio confermato: U2 -> MCP6001T-I/OT (solo T-I/OT, marcatura AA..), nessun'altra modifica; rilavorazione con U1
+  protetto (finestrella coperta, niente aria calda diretta, U2 a ~4 mm dal TSL1401CL). Ponticello senza U2 solo come prova.
+- Da fare nel firmware: attesa per pixel in gReadFrame 1 -> 5 us (slew MCP6001 0.6 V/us, gradino ~2 V al bordo dell'ombra).
+- JP2: dopo la riparazione gauge_ref con JP2 1-2 (3.3 V, 0.3 V sopra il minimo del laser); se l'esposizione sale verso il
+  massimo o il picco e' basso/instabile -> JP2 2-3 (5 V). L'esposizione salvata (20000 us) viene dal riferimento con U2 bloccato.
+- Prevenzione: skill `verifica-progetto-scheda` (nuova) e `jlcpcb-ordine-pcba` (aggiornata); lavoro per VS Code in
+  `scheda_sensore/PROMPT_VSCODE_rev1.2.md` (pinout_datasheet.json, sens_def per nome di pin, verifica_elettrica_scheda.py con
+  test di non regressione v1 = ERRORE, BOM rev 1.2 U2 MCP6001T-I/OT, note d'ordine, attesa 5 us). Regola: nessun ordine
+  PCB/PCBA senza verifica elettrica tutto OK e revisione indipendente delle piedinature sul datasheet.
