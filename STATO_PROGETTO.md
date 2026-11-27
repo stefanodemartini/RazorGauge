@@ -1378,5 +1378,15 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
 - NOTE_ORDINE_JLC.txt: rev 1.2, condizione per ordinare, checklist del giorno dell'ordine (verifica elettrica, piedinature,
   TSL1401CL ~13 in My Parts Lib, stock C116490 senza sostituti, pallino U2 sul pad 1, "v1.2" sotto, Remark MSL), comandi
   kicad-cli per rigenerare i gerber su Windows. Immagine del lato sotto: scheda_sensore/RazorSensor_rev1.2_lato_sotto.png.
+
+## 27/11/2026 - Laser: JP2 spostato su 2-3 (5 V)
+- Stefano: laser visibile ma troppo fioco con JP2 1-2. Il firmware non ha un comando "laser fisso": il laser si accende solo
+  nelle pose; con dark+ref salvati il master misura di continuo (~10 misure/s, posa 20 ms) -> laser acceso ~85% del tempo,
+  quindi la luminosita' non si alza da software. Causa: alimentazione al minimo (3.3 V meno la caduta del pilota ~3.1 V).
+- Datasheet Picotronic LFD650-1-12(9x20) (integrazione_profiler/LFD650-1-12_9x20_datasheet.pdf): 3 (min) / 3 (tip) / 12 (max)
+  V DC, 15/25/30 mA, potenza ottica max 1 mW regolata, classe 2. ATTENZIONE: corpo in ottone = VDD(+) -> non deve toccare
+  metallo a massa (con JP2 2-3 il corpo e' a 5 V).
+- JP2 spostato su 2-3 (5 V) a scheda spenta. Al riavvio master OK (fw 1.0.4-alpha, ppc 30.02 conservato, misure in corso).
+  Dopo l'MCP6001 il gauge_ref ridurra' da solo l'esposizione (oggi 20 ms, salvata con U2 bloccato).
 - Regola: nessun ordine PCB/PCBA senza `python strumenti/verifica_elettrica_scheda.py` tutto OK e revisione indipendente
   delle piedinature sul datasheet del codice esatto.
