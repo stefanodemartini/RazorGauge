@@ -1364,5 +1364,19 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   esp32-libs/3.3.8/bin, bootloader_*.elf mancanti -> core disinstallato e reinstallato). Compilati: master 1.0.4-alpha
   1 104 987 byte (84%), RAM 54 168 (16%); slave 0.6.8 1 099 887 byte (83%), RAM 50 876 (15%). Lo slave compila anche col
   4.0.0 (87%). NON aggiornare il core ESP32 dall'IDE finche' il master usa driver/pcnt.h.
+
+## 27/11/2026 - RazorSensor rev 1.2: pacchetto di produzione pronto (NON ordinato)
+- Richiesta di Stefano: preparare tutto per la produzione della versione funzionante. Condizione: ordinare solo DOPO che
+  una scheda v1 riparata con l'MCP6001 funziona al banco (sensore e laser mai provati davvero finora).
+- PCB: serigrafia sotto "RazorGauge TSL1401CL v1" -> "v1.2" (testo 1.75..19.25 mm, dentro i 24 mm); valore di U2 su F.Fab
+  LMV321 -> MCP6001 (non va nei gerber). DRC KiCad 10: 0 errori, 0 non collegati, stessi 16 avvisi di libreria della v1.
+- Gerber + foratura rigenerati con kicad-cli 10 (stesse opzioni di produzione_s.py) -> produzione/RazorSensor_gerber.zip
+  (12 file). Confronto v1/v1.2 entrambi da KiCad 10: cambia SOLO B_Silkscreen (+ il .gbrjob). Confronto v1 KiCad 10 con lo
+  zip originale (KiCad 7): stesse piazzole/tratti per livello, stessi 21 fori PTH + 3 NPTH.
+- BOM JLCPCB e CPL rigenerati dal PCB con la logica di produzione_s.py (python di KiCad 10): identici ai file in produzione/
+  (CPL = v1; BOM = v1 con U2 C116490). Verifica elettrica rifatta sul PCB aggiornato: v1 ERRORE, rev 1.2 TUTTO OK.
+- NOTE_ORDINE_JLC.txt: rev 1.2, condizione per ordinare, checklist del giorno dell'ordine (verifica elettrica, piedinature,
+  TSL1401CL ~13 in My Parts Lib, stock C116490 senza sostituti, pallino U2 sul pad 1, "v1.2" sotto, Remark MSL), comandi
+  kicad-cli per rigenerare i gerber su Windows. Immagine del lato sotto: scheda_sensore/RazorSensor_rev1.2_lato_sotto.png.
 - Regola: nessun ordine PCB/PCBA senza `python strumenti/verifica_elettrica_scheda.py` tutto OK e revisione indipendente
   delle piedinature sul datasheet del codice esatto.

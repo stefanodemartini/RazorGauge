@@ -77,7 +77,7 @@ b) operazionali: reazione, ingressi, alimentazioni
   OK      U2 V- su GND (atteso GND)
   OK      U2 uscita chiusa sull'ingresso invertente: AO_BUF -> R8 -> VN
   OK      U2 IN+ (VP) riferito in DC: VP -> R4 -> AO_RAW
-  OK      U2 IN- (VN) riferito in DC: VN -> R9 -> GND
+  OK      U2 IN- (VN) riferito in DC: VN -> R8 -> AO_BUF
 c) reti
   OK      12 reti, nessuna con un solo pad
   OK      U2 uscita su AO_BUF (non alimentazione)

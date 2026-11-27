@@ -1,13 +1,28 @@
-RazorGauge - scheda sensore TSL1401CL rev 1.1 - NOTE PER L'ORDINE JLCPCB (29/10/2026, fori 31/10/2026, serigrafie in inglese 30/10/2026)
+RazorGauge - scheda sensore TSL1401CL rev 1.2 - NOTE PER L'ORDINE JLCPCB (rev 1.1: 29/10/2026, fori 31/10/2026, serigrafie in inglese 30/10/2026; rev 1.2: 27/11/2026)
 
-REV 1.2 (27/11/2026) - SOLO BOM: U2 LMV321IDBVR (C7972) -> Microchip MCP6001T-I/OT (C116490). Gerber e CPL invariati.
+REV 1.2 (27/11/2026): U2 LMV321IDBVR (C7972) -> Microchip MCP6001T-I/OT (C116490) + serigrafia sotto "v1" -> "v1.2".
   Motivo: errore di piedinatura della v1 (scheda_sensore/ANALISI_ERRORE_U2.md). Il PCB e' gia' giusto per l'MCP6001.
-  Prima di ogni ordine PCB/PCBA: python strumenti/verifica_elettrica_scheda.py tutto OK + revisione indipendente delle
-  piedinature sul datasheet del codice esatto (scheda_sensore/pinout_datasheet.json).
+  Gerber rigenerati con KiCad 10 (kicad-cli, stesse opzioni di script/produzione_s.py): rispetto alla v1 cambia SOLO
+  B_Silkscreen (rame, maschere, pasta, contorno, 21 fori PTH + 3 NPTH identici). CPL identico alla v1; BOM: solo la riga di U2.
+  Immagine del lato sotto: RazorSensor_rev1.2_lato_sotto.png. Gerber della v1: nella storia git (commit 249a08d e precedenti).
+
+  CONDIZIONE PER ORDINARE: prima una scheda v1 riparata con l'MCP6001 deve funzionare al banco (pin 1 di U2 ~0.15 V al
+  buio e sale con la luce; gauge_dark + gauge_ref con profilo pulito; laser OK con JP2 1-2 o 2-3). Se la prova cambia
+  qualcosa (valori, JP2, componenti), aggiornare questi file PRIMA dell'ordine.
+
+  CHECKLIST DEL GIORNO DELL'ORDINE
+  [ ] python strumenti/verifica_elettrica_scheda.py  -> "ESITO definizione attuale: TUTTO OK"
+  [ ] revisione indipendente delle piedinature (scheda_sensore/pinout_datasheet.json contro i datasheet citati)
+  [ ] My Parts Lib JLCPCB: TSL1401CL C2802316 disponibili (dovrebbero essere 13; fuori produzione, non ricomprabili)
+  [ ] LCSC C116490 (Microchip MCP6001T-I/OT) a magazzino; se 0 NON accettare sostituti (LMV321, MCP6001R/U = piedinatura diversa)
+  [ ] dopo il caricamento: 9 righe BOM trovate, U2 = C116490 MCP6001T-I/OT
+  [ ] anteprima: pallino di U2 sul pad 1 (angolo verso R4), U1 come sotto; controllare la funzione di OGNI pad di U2
+  [ ] anteprima del PCB: sotto si legge "RazorGauge TSL1401CL v1.2"
+  [ ] Remark MSL del TSL1401CL incollato (testo nella sezione PCBA)
 
 ORDINE PASSO PASSO (jlcpcb.com)
-  0. Sensore: 15 pezzi di C2802316 gia' comprati (pre-ordine JLCPCB, 76 EUR, 03/11/2026). Prima di caricare la BOM
-     controlla in Parts Manager -> My Parts Lib che siano ARRIVATI (stato "in stock", quantita' 15).
+  0. Sensore: 15 pezzi di C2802316 comprati (pre-ordine JLCPCB, 76 EUR, 03/11/2026); 2 usati per la v1 -> ne restano ~13.
+     Prima di caricare la BOM controlla in Parts Manager -> My Parts Lib la quantita' disponibile.
   1. "Add gerber file" -> produzione/RazorSensor_gerber.zip (deve riconoscere 2 strati, 24 x 18 mm).
   2. Opzioni PCB:
        Base Material FR-4 | Layers 2 | Dimensions 24 x 18 mm | PCB Qty 5 | Product Type Industrial/Consumer
@@ -24,11 +39,17 @@ ORDINE PASSO PASSO (jlcpcb.com)
 
 SERIGRAFIE (30/10/2026, in inglese)
   Sopra: 3V3 / GND / SI / CLK / AO accanto alle 5 piazzole del cavo.
-  Sotto: "RazorGauge TSL1401CL v1", "RazorBlade 2026", "ROLLER SIDE" (lato rullo, bordo dei condensatori),
+  Sotto: "RazorGauge TSL1401CL v1.2" (era "v1" fino alla rev 1.1), "RazorBlade 2026", "ROLLER SIDE" (lato rullo, bordo dei condensatori),
          "<- FRONT" (la freccia ora punta davvero verso il fronte = bordo delle piazzole del cavo; prima "FRONTE ->"
          puntava dalla parte opposta), "JLCJLCJLCJLC" (posto del numero d'ordine JLCPCB).
 
-STATO: PRONTA PER L'ORDINE (31/10/2026)
+RIGENERARE I GERBER SU WINDOWS (KiCad 10, se si tocca il PCB; produzione_s.py ha percorsi Linux)
+  kicad-cli pcb export gerbers --layers F.Cu,B.Cu,F.Paste,B.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts
+            --subtract-soldermask --no-x2 -o <cartella>\ scheda_sensore\RazorSensor.kicad_pcb
+  kicad-cli pcb export drill --format excellon --excellon-separate-th -o <cartella>\ scheda_sensore\RazorSensor.kicad_pcb
+  poi zip dei 12 file (9 gerber + job + PTH.drl + NPTH.drl) in produzione/RazorSensor_gerber.zip; kicad-cli pcb drc.
+
+STATO rev 1.1: PRONTA PER L'ORDINE (31/10/2026) - superata dalla rev 1.2 (vedi in alto)
   Fori di fissaggio definiti: 3 fori NPTH Ø2.2 per viti M2 x 5 autofilettanti nella slitta (x 3, testa <= Ø3.8; NON piu lunghe: la slitta e spessa 3.5 e sotto c e la mensola),
   in X 2.0 Y 14.0 / X 2.0 Y 6.0 / X 22.0 Y 14.5 (coordinate KiCad), 0.9 mm dal bordo, area senza rame Ø4.4 attorno.
   31/10/2026: NIENTE CONNETTORE: il cavo si salda su 5 piazzole passanti (J1, passo 2 mm, foro 0.8; J1 NON e' nella BOM
