@@ -1022,6 +1022,7 @@ Il cavo analogico AO va tenuto corto (≤30–50 cm) e schermato.
 - [x] ~~Leggere dal vecchio ESP32 il PPC attivo e annotarlo~~ → **fatto 19/10/2026. PPC attivo letto: 30.2100 (calibrato).** Verificato su linea graduata al metro, 18 punti da 100 a 1798 cm: un solo errore di scala dello **0.087%** (il salto da −1 a −2 cm è il troncamento `(int)`, non due regimi). **PPC corretto da impostare: 30.1837** (`setppc:30.1837`). Niente slittamento, nessuna dipendenza dal diametro — conferma sperimentale della decisione "contatto tangente → nessuna correzione".
 - [x] **Pixel 0–13 del TSL1401 a 0 fisso** (24/10/2026): morti, esclusi nel master 1.0.1-alpha (`G_PIX_FIRST`) — vedi sezione 25 ottobre
 - [ ] Ordinare un TSL1401 di scorta
+- [ ] (rimandato, 27/11/2026) Porting dell'encoder del master al driver PCNT nuovo (esp_driver_pcnt) per il core ESP32 4.x; fino ad allora core 3.3.8 e niente aggiornamenti dall'IDE. Dopo il porting rifare prova 10 giri a mano + corsa da 15 m.
 - [ ] Banco `ccd_lcd` col laser: togliere la saturazione (trimmer in serie, laser pulsato dal kit o ND16), poi ombra di un filo sulla finestra — vedi sezione 27 ottobre
 - [ ] Al primo avvio: misurare il tempo reale di una misura (8 frame) e rifare la tabella velocità/rumore
 - [ ] Prova Archimede in etanolo su spezzoni dritti già scansionati (verifica indipendente del gauge)
@@ -1357,5 +1358,10 @@ Cartella `piastra_alluminio/`. Sorgenti: `layout.py` (assieme), `fori.py` (unica
   il core ESP32 installato sul PC e' passato a 4.0.0 (25/11 22:20) e `driver/pcnt.h` (PCNT legacy dell'encoder) non esiste
   piu' -> il master non compila nemmeno senza la modifica. Serve il core 3.3.x (prima 3.3.8) oppure il porting al driver
   PCNT nuovo (esp_driver_pcnt). FIRMWARE.md e README aggiornati a 1.0.4-alpha.
+  AGGIORNAMENTO 27/11: decisione di Stefano, niente porting (l'encoder e' appena stato validato col driver legacy) ->
+  core esp32 riportato a **3.3.8** (`arduino-cli core install esp32:esp32@3.3.8`; la prima estrazione aveva perso
+  esp32-libs/3.3.8/bin, bootloader_*.elf mancanti -> core disinstallato e reinstallato). Compilati: master 1.0.4-alpha
+  1 104 987 byte (84%), RAM 54 168 (16%); slave 0.6.8 1 099 887 byte (83%), RAM 50 876 (15%). Lo slave compila anche col
+  4.0.0 (87%). NON aggiornare il core ESP32 dall'IDE finche' il master usa driver/pcnt.h.
 - Regola: nessun ordine PCB/PCBA senza `python strumenti/verifica_elettrica_scheda.py` tutto OK e revisione indipendente
   delle piedinature sul datasheet del codice esatto.
